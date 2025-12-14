@@ -1,10 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { 
-  X, Upload, FileText, FileSpreadsheet, Image, 
+import {
+  X, Upload, FileText, FileSpreadsheet, Image,
   AlertCircle, CheckCircle, Loader, ChevronDown, ChevronRight,
   Check, Package, User, DollarSign, Truck
 } from 'lucide-react';
 import { useQuoteExtraction } from '../hooks/useQuoteExtraction';
+import { useAppContext } from '../context/AppContext';
 
 // ============================================
 // QUOTE UPLOAD MODAL - FIXED VERSION
@@ -27,10 +28,12 @@ import { useQuoteExtraction } from '../hooks/useQuoteExtraction';
 const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
 function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
+  const { state } = useAppContext();
+  const { settings } = state;
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [showAdditional, setShowAdditional] = useState(false);
-  
+
   const {
     step,
     progress,
@@ -49,7 +52,7 @@ function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
     getQuoteData,
     reset,
     wasFound,
-  } = useQuoteExtraction(productId);
+  } = useQuoteExtraction(productId, settings.apiKey);
 
   if (!isOpen) return null;
 

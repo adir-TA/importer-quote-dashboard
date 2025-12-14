@@ -19,11 +19,11 @@ import { buildCoreQuote, buildQuoteMetadata } from '../utils/quoteDataModels';
 // - User must confirm everything
 // ============================================
 
-export function useQuoteExtraction(productId) {
+export function useQuoteExtraction(productId, apiKey) {
   // ============================================
   // STATE
   // ============================================
-  
+
   // Flow: 'idle' | 'extracting' | 'review' | 'error'
   const [step, setStep] = useState('idle');
   const [progress, setProgress] = useState('');
@@ -102,7 +102,7 @@ export function useQuoteExtraction(productId) {
 
     try {
       setProgress('Extracting quote data...');
-      const result = await extractQuoteFromFile(file);
+      const result = await extractQuoteFromFile(file, apiKey);
 
       if (!result.success) {
         setError(result.error);
