@@ -334,6 +334,7 @@ export {
   extracted,
   notFound,
   wasFound,
+  getValue,
   createEmptyLineItem,
   createEmptyExtraction,
 } from './quoteDataModels';
