@@ -384,7 +384,7 @@ function QuoteComparison() {
           <div>
             <h2>Compare Quotes</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
-              Find the best option by landed cost per unit
+              Compare suppliers and select the best landed cost for your business
             </p>
           </div>
         </div>

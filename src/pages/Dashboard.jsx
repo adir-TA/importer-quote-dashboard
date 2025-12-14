@@ -207,9 +207,9 @@ function Dashboard() {
     <div className="page">
       <div className="header">
         <div>
-          <h2>Dashboard</h2>
+          <h2>Decision Dashboard</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Find the best landed cost for your imports
+            Make confident sourcing decisions with accurate landed cost comparisons
           </p>
         </div>
       </div>

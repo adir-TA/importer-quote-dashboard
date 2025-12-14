@@ -1,15 +1,16 @@
-# HA Tools - Import Quote Management
+# HA Tools - Importer Decision Dashboard
 
-A secure, production-ready SaaS application for managing import quotes, suppliers, and orders.
+A secure, production-ready SaaS application for importers to make confident sourcing decisions. Compare supplier quotes, calculate landed costs, and choose the best option for your business.
 
 ## Features
 
-- 📦 **Product Management** - Track products and their quotes
-- 📝 **Quote Comparison** - Side-by-side comparison with AI analysis
-- 👥 **Supplier Directory** - Manage supplier relationships
-- 🚚 **Order Tracking** - Monitor order status
-- 📄 **Document Storage** - Keep all import documents organized
-- ✨ **AI Helpers** - RFQ generator, translator, currency converter
+- 📊 **Decision Dashboard** - Compare all quotes and see the best option instantly
+- 📦 **Product Management** - Track products and collect supplier quotes
+- 💰 **Landed Cost Calculator** - Calculate true cost including all import fees
+- 📝 **Quote Upload & Extract** - Upload documents or paste screenshots (Ctrl+V)
+- 🔍 **Multi-SKU Support** - Handle complex quotes with multiple line items
+- ✅ **Field Confidence** - See which data was found vs missing in documents
+- 🚢 **Shipping Reality** - Track weight, dimensions, CBM for accurate planning
 
 ## Security Features
 

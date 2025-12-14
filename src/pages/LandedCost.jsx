@@ -437,7 +437,7 @@ function LandedCost() {
         <div>
           <h2>Landed Cost Calculator</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Configure import fees (global) and preview landed cost for a specific quote
+            Calculate true landed cost including all import fees for accurate decision-making
           </p>
         </div>
       </div>
