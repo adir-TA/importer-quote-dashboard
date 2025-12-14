@@ -19,6 +19,24 @@ function Settings() {
     setTimeout(() => setSaved(false), 2000);
   };
 
+  const handleClearSeedData = async () => {
+    const confirmed = await confirm({
+      title: 'Delete Fake Seed Products',
+      message: 'This will permanently delete the fake products (USB-C Cable, LED Desk Lamp, etc.) and their quotes from the database. Continue?',
+      type: 'danger',
+      confirmText: 'Delete Fake Data'
+    });
+
+    if (confirmed) {
+      try {
+        await actions.clearAllSeedData();
+        showAlert({ title: 'Success', message: 'All fake seed data has been deleted!', type: 'success' });
+      } catch (error) {
+        showAlert({ title: 'Error', message: 'Failed to delete seed data: ' + error.message, type: 'error' });
+      }
+    }
+  };
+
   const handleClearAllData = async () => {
     const confirmed = await confirm({
       title: 'Clear All Data',
@@ -161,9 +179,14 @@ function Settings() {
             <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
               This will permanently delete all your data including products, quotes, suppliers, orders, and documents. This action cannot be undone.
             </p>
-            <button className="btn btn-danger" onClick={handleClearAllData}>
-              <Trash2 size={16} /> Clear All Data
-            </button>
+            <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
+              <button className="btn" onClick={handleClearSeedData} style={{ background: '#f59e0b', color: 'white', padding: '12px 20px' }}>
+                <Trash2 size={16} /> Delete Fake Seed Products Only
+              </button>
+              <button className="btn btn-danger" onClick={handleClearAllData}>
+                <Trash2 size={16} /> Clear All Data (Everything)
+              </button>
+            </div>
           </div>
         </div>
 

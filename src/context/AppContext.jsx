@@ -141,11 +141,39 @@ export function AppProvider({ children }) {
       setQuotes(prev => prev.filter(q => q.product_id !== productId));
       return;
     }
-    
+
     const { error } = await supabase.from('products').delete().eq('id', productId);
     if (error) throw error;
     setProducts(prev => prev.filter(p => p.id !== productId));
     setQuotes(prev => prev.filter(q => q.product_id !== productId));
+  };
+
+  // DELETE ALL SEED/FAKE DATA FROM DATABASE
+  const clearAllSeedData = async () => {
+    const FAKE_PRODUCT_NAMES = [
+      'USB-C Charging Cable',
+      'Microfiber Cleaning Cloth',
+      'LED Desk Lamp',
+      'Silicone Phone Case'
+    ];
+
+    try {
+      // Delete all products with these fake names
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .in('name', FAKE_PRODUCT_NAMES);
+
+      if (error) throw error;
+
+      // Refresh data from database
+      await fetchAllData();
+
+      console.log('[CLEARED] All seed data deleted from database');
+    } catch (error) {
+      console.error('[ERROR] Failed to clear seed data:', error);
+      throw error;
+    }
   };
 
   // Quote actions with new structure
@@ -514,6 +542,7 @@ export function AppProvider({ children }) {
       updateFees, addFee, updateFee, deleteFee, resetFees,
       updateSettings, toggleQuoteSelection, setSelectedQuotes,
       refreshData: fetchAllData,
+      clearAllSeedData,
     },
     computed: { 
       getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
