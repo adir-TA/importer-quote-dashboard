@@ -6,7 +6,7 @@
 // 1. If a field is NOT explicitly present → status: 'not_found'
 // 2. NEVER infer or guess ANY data
 // 3. NEVER invent values
-// 4. Use OpenAI Vision API to actually read documents
+// 4. Use Claude API (Anthropic) to actually read documents
 //
 // ============================================
 
@@ -20,16 +20,16 @@ import {
 } from './quoteDataModels';
 
 // ============================================
-// REAL OpenAI Vision API EXTRACTION
+// REAL CLAUDE API EXTRACTION
 // ============================================
 
 /**
- * Extract data from image using OpenAI Vision API
+ * Extract data from image using Claude API (Anthropic)
  * NEVER returns fake data - only what's actually in the document
  */
 async function extractFromImage(file, apiKey) {
   if (!apiKey) {
-    throw new Error('OpenAI API key required. Add it in Settings.');
+    throw new Error('Anthropic API key required. Add it in Settings.');
   }
 
   // Convert image to base64
@@ -43,28 +43,46 @@ async function extractFromImage(file, apiKey) {
     reader.readAsDataURL(file);
   });
 
-  // Call OpenAI Vision API with STRICT extraction rules
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  // Determine media type
+  const mediaType = file.type || 'image/jpeg';
+
+  // Call Claude API with STRICT extraction rules
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'gpt-4o',
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 4000,
+      temperature: 0,
       messages: [
         {
-          role: 'system',
-          content: `You are a quote data extractor for importers. Your job is to extract supplier quote information from images.
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: mediaType,
+                data: base64,
+              },
+            },
+            {
+              type: 'text',
+              text: `You are a quote data extractor for importers. Extract supplier quote information from this image.
 
 CRITICAL RULES - NEVER BREAK THESE:
 1. ONLY extract data that is EXPLICITLY VISIBLE in the document
 2. NEVER guess, infer, or invent ANY data
-3. If a field is not clearly visible, mark it as null
+3. If a field is not clearly visible, use null
 4. For tables with multiple rows, extract ALL rows as separate line items
 5. Be extremely precise with numbers - no rounding, no estimates
+6. Extract exact company names, SKUs, and values as written
 
-Return ONLY valid JSON in this exact structure:
+Return ONLY valid JSON in this exact structure (no markdown, no explanation):
 {
   "supplierName": "exact company name from document" or null,
   "supplierContact": "contact person name" or null,
@@ -93,40 +111,25 @@ Return ONLY valid JSON in this exact structure:
 
 If the document has a table with multiple rows, create a separate line item for EACH row.
 Extract ALL columns from the table.
-Use exact values - don't convert units or round numbers.`
-        },
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: 'Extract all quote data from this document. Return ONLY the JSON, no explanation.'
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: `data:image/jpeg;base64,${base64}`,
-                detail: 'high'
-              }
+Use exact values - don't convert units or round numbers.
+Return ONLY the JSON object, nothing else.`
             }
           ]
         }
       ],
-      max_tokens: 4000,
-      temperature: 0, // Zero temperature = most deterministic
     }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error?.message || 'OpenAI API request failed');
+    throw new Error(error.error?.message || 'Claude API request failed');
   }
 
   const data = await response.json();
-  const content = data.choices[0]?.message?.content;
+  const content = data.content?.[0]?.text;
 
   if (!content) {
-    throw new Error('No response from OpenAI');
+    throw new Error('No response from Claude');
   }
 
   // Parse JSON from response
@@ -142,7 +145,7 @@ Use exact values - don't convert units or round numbers.`
 }
 
 /**
- * Convert OpenAI response to our ExtractedField structure
+ * Convert Claude response to our ExtractedField structure
  * Marks each field as 'extracted' or 'not_found' based on whether it was found
  */
 function convertToExtractionResult(rawData) {
@@ -243,7 +246,7 @@ function convertToExtractionResult(rawData) {
 
 /**
  * Process PDF file
- * PRODUCTION: Use pdf.js or similar to extract text/images, then send to Vision API
+ * PRODUCTION: Use pdf.js or similar to extract text/images, then send to Claude
  */
 async function processPdf(file, apiKey) {
   // For now, PDFs need to be converted to images first
@@ -263,7 +266,7 @@ async function processExcel(file, apiKey) {
 /**
  * Main extraction function
  * @param {File} file - The uploaded file
- * @param {string} apiKey - OpenAI API key from settings
+ * @param {string} apiKey - Anthropic API key from settings
  * @returns {Promise<ExtractionResult>}
  */
 export async function extractQuoteFromFile(file, apiKey) {
@@ -274,7 +277,7 @@ export async function extractQuoteFromFile(file, apiKey) {
   if (!apiKey) {
     return {
       success: false,
-      error: 'OpenAI API key required. Please add it in Settings to use quote extraction.'
+      error: 'Anthropic API key required. Please add it in Settings to use quote extraction.'
     };
   }
 

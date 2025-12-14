@@ -256,7 +256,7 @@ function QuoteCapture() {
 
     // Check for API key
     if (!settings.apiKey) {
-      setError('OpenAI API key required. Please add it in Settings to use quote extraction.');
+      setError('Anthropic API key required. Please add it in Settings to use quote extraction.');
       return;
     }
 
