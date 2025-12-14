@@ -1,0 +1,162 @@
+import React, { useState, useMemo } from 'react';
+import { Plus, Users, X, Check, Globe, MessageCircle } from 'lucide-react';
+import { useAppContext } from '../context/AppContext';
+import { useModal } from '../context/ModalContext';
+import { SearchInput } from '../components';
+import { filterBySearch } from '../utils/helpers';
+
+const STATUS_OPTIONS = [
+  { value: 'verified', label: 'Verified', color: '#10b981' },
+  { value: 'pending', label: 'Pending', color: '#f59e0b' },
+  { value: 'warning', label: 'Warning', color: '#ef4444' },
+  { value: 'blocked', label: 'Blocked', color: '#6b7280' }
+];
+
+function Suppliers() {
+  const { state, actions, computed } = useAppContext();
+  const { confirm } = useModal();
+  const { suppliers } = state;
+
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState(null);
+  const [formData, setFormData] = useState({ company: '', contact: '', email: '', wechat: '', website: '', status: 'pending', notes: '' });
+
+  const filteredSuppliers = useMemo(() => {
+    let result = filterBySearch(suppliers, search, ['company', 'contact', 'email']);
+    if (statusFilter !== 'all') result = result.filter(s => s.status === statusFilter);
+    return result;
+  }, [suppliers, search, statusFilter]);
+
+  const handleOpenModal = (supplier = null) => {
+    if (supplier) {
+      setEditingSupplier(supplier);
+      setFormData({ company: supplier.company, contact: supplier.contact || '', email: supplier.email || '', wechat: supplier.wechat || '', website: supplier.website || '', status: supplier.status || 'pending', notes: supplier.notes || '' });
+    } else {
+      setEditingSupplier(null);
+      setFormData({ company: '', contact: '', email: '', wechat: '', website: '', status: 'pending', notes: '' });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => { setIsModalOpen(false); setEditingSupplier(null); };
+
+  const handleSave = () => {
+    if (!formData.company.trim()) { alert('Please enter company name'); return; }
+    if (editingSupplier) actions.updateSupplier({ ...editingSupplier, ...formData });
+    else actions.addSupplier(formData);
+    handleCloseModal();
+  };
+
+  const handleDelete = async (supplierId) => {
+    const confirmed = await confirm({ title: 'Delete Supplier', message: 'Are you sure?', type: 'danger', confirmText: 'Delete' });
+    if (confirmed) actions.deleteSupplier(supplierId);
+  };
+
+  const getStatusBadge = (status) => {
+    const opt = STATUS_OPTIONS.find(o => o.value === status) || STATUS_OPTIONS[1];
+    return <span className="status-badge" style={{ background: `${opt.color}20`, color: opt.color }}>{opt.label}</span>;
+  };
+
+  return (
+    <div className="page">
+      <div className="header">
+        <h2>Suppliers</h2>
+        <button className="btn btn-primary" onClick={() => handleOpenModal()}><Plus size={16} /> Add Supplier</button>
+      </div>
+
+      <div className="content">
+        <div className="filter-bar">
+          <SearchInput value={search} onChange={setSearch} placeholder="Search suppliers..." />
+          <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
+            <option value="all">All Status</option>
+            {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+          </select>
+        </div>
+
+        {filteredSuppliers.length === 0 ? (
+          <div className="empty-state">
+            <Users size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+            <h3>No suppliers found</h3>
+            <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => handleOpenModal()}><Plus size={16} /> Add Supplier</button>
+          </div>
+        ) : (
+          <div className="suppliers-grid">
+            {filteredSuppliers.map(supplier => (
+              <div key={supplier.id} className="supplier-card" onClick={() => handleOpenModal(supplier)}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                  <div className="supplier-name">{supplier.company}</div>
+                  {getStatusBadge(supplier.status)}
+                </div>
+                <div className="supplier-info">
+                  {supplier.contact && <span>👤 {supplier.contact}</span>}
+                  {supplier.email && <span>✉️ {supplier.email}</span>}
+                  {supplier.wechat && <span><MessageCircle size={14} style={{ marginRight: '4px' }} />{supplier.wechat}</span>}
+                  {supplier.website && <span><Globe size={14} style={{ marginRight: '4px' }} />{supplier.website}</span>}
+                </div>
+                <div style={{ marginTop: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                  {computed.getSupplierQuotes(supplier.id).length} quotes
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {isModalOpen && (
+        <div className="modal-overlay" onClick={handleCloseModal}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <span className="modal-title">🏢 {editingSupplier ? 'Edit Supplier' : 'New Supplier'}</span>
+              <button className="icon-btn" onClick={handleCloseModal}><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label className="form-label">Company Name *</label>
+                <input type="text" className="form-input" value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Contact Person</label>
+                  <input type="text" className="form-input" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Status</label>
+                  <select className="form-select" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
+                    {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="form-group">
+                <label className="form-label">Email</label>
+                <input type="email" className="form-input" value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">WeChat ID</label>
+                  <input type="text" className="form-input" value={formData.wechat} onChange={e => setFormData({ ...formData, wechat: e.target.value })} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Website</label>
+                  <input type="text" className="form-input" value={formData.website} onChange={e => setFormData({ ...formData, website: e.target.value })} />
+                </div>
+              </div>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Notes</label>
+                <textarea className="form-input" rows={3} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} />
+              </div>
+            </div>
+            <div className="modal-footer">
+              {editingSupplier && <button className="btn btn-danger" onClick={() => { handleDelete(editingSupplier.id); handleCloseModal(); }} style={{ marginRight: 'auto' }}>Delete</button>}
+              <button className="btn btn-secondary" onClick={handleCloseModal}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave}><Check size={16} /> {editingSupplier ? 'Update' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default Suppliers;

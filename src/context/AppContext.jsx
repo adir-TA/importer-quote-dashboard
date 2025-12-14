@@ -1,0 +1,715 @@
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from './AuthContext';
+
+const AppContext = createContext(null);
+
+// Default fees for landed cost calculation
+const DEFAULT_FEES = [
+  { id: 'freight', name: 'Freight/Shipping', type: 'fixed', value: 500 },
+  { id: 'customs', name: 'Customs Duty', type: 'percentage', value: 5 },
+  { id: 'insurance', name: 'Insurance', type: 'percentage', value: 1 },
+  { id: 'broker', name: 'Broker Fee', type: 'fixed', value: 150 },
+];
+
+// ============================================
+// SEED DATA FOR LOCAL TESTING
+// Remove or guard with flag for production
+// ============================================
+const SEED_PRODUCTS = [
+  {
+    id: 'seed-product-1',
+    name: 'USB-C Charging Cable',
+    category: 'Electronics',
+    description: '1m USB-C to USB-C fast charging cable, braided nylon',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-product-2',
+    name: 'Microfiber Cleaning Cloth',
+    category: 'Home & Garden',
+    description: '30x30cm premium microfiber cloth, 300gsm',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-product-3',
+    name: 'LED Desk Lamp',
+    category: 'Electronics',
+    description: 'Adjustable LED desk lamp with USB port, 3 color modes',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-product-4',
+    name: 'Silicone Phone Case',
+    category: 'Accessories',
+    description: 'Protective silicone case for iPhone 15, multiple colors',
+    created_at: new Date().toISOString(),
+  },
+];
+
+const SEED_QUOTES = [
+  // USB-C Charging Cable quotes (4 quotes)
+  {
+    id: 'seed-quote-1a',
+    product_id: 'seed-product-1',
+    supplierName: 'Shenzhen Tech Co.',
+    unitPrice: 0.85,
+    currency: 'USD',
+    moq: 1000,
+    incoterm: 'FOB Shenzhen',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-1b',
+    product_id: 'seed-product-1',
+    supplierName: 'Guangzhou Electronics',
+    unitPrice: 0.92,
+    currency: 'USD',
+    moq: 500,
+    incoterm: 'FOB Guangzhou',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-1c',
+    product_id: 'seed-product-1',
+    supplierName: 'Dongguan Cable Factory',
+    unitPrice: 0.78,
+    currency: 'USD',
+    moq: 2000,
+    incoterm: 'FOB Shenzhen',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-1d',
+    product_id: 'seed-product-1',
+    supplierName: 'Ningbo Trading',
+    unitPrice: 0.95,
+    currency: 'USD',
+    moq: 300,
+    incoterm: 'CIF Los Angeles',
+    created_at: new Date().toISOString(),
+  },
+  // Microfiber Cleaning Cloth quotes (3 quotes)
+  {
+    id: 'seed-quote-2a',
+    product_id: 'seed-product-2',
+    supplierName: 'Hebei Textile Mill',
+    unitPrice: 0.32,
+    currency: 'USD',
+    moq: 5000,
+    incoterm: 'FOB Tianjin',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-2b',
+    product_id: 'seed-product-2',
+    supplierName: 'Jiangsu Home Goods',
+    unitPrice: 0.38,
+    currency: 'USD',
+    moq: 3000,
+    incoterm: 'FOB Shanghai',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-2c',
+    product_id: 'seed-product-2',
+    supplierName: 'Zhejiang Fabrics',
+    unitPrice: 0.29,
+    currency: 'USD',
+    moq: 10000,
+    incoterm: 'FOB Ningbo',
+    created_at: new Date().toISOString(),
+  },
+  // LED Desk Lamp quotes (5 quotes)
+  {
+    id: 'seed-quote-3a',
+    product_id: 'seed-product-3',
+    supplierName: 'Zhongshan Lighting',
+    unitPrice: 4.50,
+    currency: 'USD',
+    moq: 500,
+    incoterm: 'FOB Shenzhen',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-3b',
+    product_id: 'seed-product-3',
+    supplierName: 'Foshan LED Factory',
+    unitPrice: 4.20,
+    currency: 'USD',
+    moq: 1000,
+    incoterm: 'FOB Guangzhou',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-3c',
+    product_id: 'seed-product-3',
+    supplierName: 'Shenzhen Bright Co.',
+    unitPrice: 4.85,
+    currency: 'USD',
+    moq: 300,
+    incoterm: 'FOB Shenzhen',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-3d',
+    product_id: 'seed-product-3',
+    supplierName: 'Hangzhou Electronics',
+    unitPrice: 3.95,
+    currency: 'USD',
+    moq: 2000,
+    incoterm: 'FOB Shanghai',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-3e',
+    product_id: 'seed-product-3',
+    supplierName: 'Xiamen Light Solutions',
+    unitPrice: 5.10,
+    currency: 'USD',
+    moq: 200,
+    incoterm: 'CIF Los Angeles',
+    created_at: new Date().toISOString(),
+  },
+  // Silicone Phone Case quotes (2 quotes)
+  {
+    id: 'seed-quote-4a',
+    product_id: 'seed-product-4',
+    supplierName: 'Dongguan Silicone',
+    unitPrice: 0.65,
+    currency: 'USD',
+    moq: 2000,
+    incoterm: 'FOB Shenzhen',
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: 'seed-quote-4b',
+    product_id: 'seed-product-4',
+    supplierName: 'Shenzhen Cases Ltd.',
+    unitPrice: 0.72,
+    currency: 'USD',
+    moq: 1000,
+    incoterm: 'FOB Shenzhen',
+    created_at: new Date().toISOString(),
+  },
+];
+
+export function AppProvider({ children }) {
+  const { user } = useAuth();
+  
+  const [products, setProducts] = useState([]);
+  const [quotes, setQuotes] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [documents, setDocuments] = useState([]);
+  const [fees, setFees] = useState(DEFAULT_FEES);
+  const [settings, setSettings] = useState({ apiKey: '', currency: 'USD' });
+  const [selectedQuotes, setSelectedQuotes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      fetchAllData();
+    } else {
+      // Reset all state
+      setProducts([]);
+      setQuotes([]);
+      setSuppliers([]);
+      setOrders([]);
+      setDocuments([]);
+      setFees(DEFAULT_FEES);
+      setSettings({ apiKey: '', currency: 'USD' });
+      setSelectedQuotes([]);
+      setLoading(false);
+      setInitialized(false);
+    }
+  }, [user]);
+
+  // Initialize with seed data if empty (for local testing)
+  useEffect(() => {
+    if (!loading && !initialized && user) {
+      if (products.length === 0 && quotes.length === 0) {
+        // Add seed data for testing - remove for production
+        setProducts(SEED_PRODUCTS);
+        setQuotes(SEED_QUOTES);
+        setInitialized(true);
+      } else {
+        setInitialized(true);
+      }
+    }
+  }, [loading, initialized, user, products.length, quotes.length]);
+
+  const fetchAllData = async () => {
+    setLoading(true);
+    try {
+      const [productsRes, quotesRes, suppliersRes, ordersRes, documentsRes, settingsRes] = await Promise.all([
+        supabase.from('products').select('*').order('created_at', { ascending: false }),
+        supabase.from('quotes').select('*').order('created_at', { ascending: false }),
+        supabase.from('suppliers').select('*').order('created_at', { ascending: false }),
+        supabase.from('orders').select('*').order('created_at', { ascending: false }),
+        supabase.from('documents').select('*').order('created_at', { ascending: false }),
+        supabase.from('user_settings').select('*').single(),
+      ]);
+
+      // Transform quotes to new structure if needed
+      const transformedQuotes = (quotesRes.data || []).map(q => ({
+        ...q,
+        supplierName: q.supplier_name || q.supplierName || '',
+        unitPrice: q.fields?.unitPrice || q.unitPrice || 0,
+        currency: q.fields?.currency || q.currency || 'USD',
+        moq: q.fields?.moq || q.moq || 0,
+        incoterm: q.fields?.incoterm || q.incoterm || '',
+      }));
+
+      setProducts(productsRes.data || []);
+      setQuotes(transformedQuotes);
+      setSuppliers(suppliersRes.data || []);
+      setOrders(ordersRes.data || []);
+      setDocuments(documentsRes.data || []);
+      
+      if (settingsRes.data) {
+        setSettings({
+          apiKey: settingsRes.data.api_key || '',
+          currency: settingsRes.data.currency || 'USD',
+        });
+        // Load saved fees if available
+        if (settingsRes.data.fees) {
+          setFees(settingsRes.data.fees);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+    setLoading(false);
+  };
+
+  // Product actions
+  const addProduct = async (product) => {
+    // Check if it's a demo product (local only)
+    if (product.id?.startsWith('demo-')) {
+      setProducts(prev => [product, ...prev]);
+      return product;
+    }
+    
+    const { data, error } = await supabase
+      .from('products')
+      .insert({ user_id: user.id, name: product.name, category: product.category || null, description: product.description || null })
+      .select()
+      .single();
+    if (error) throw error;
+    setProducts(prev => [data, ...prev]);
+    return data;
+  };
+
+  const updateProduct = async (product) => {
+    if (product.id?.startsWith('demo-')) {
+      setProducts(prev => prev.map(p => p.id === product.id ? { ...p, ...product } : p));
+      return product;
+    }
+    
+    const { data, error } = await supabase
+      .from('products')
+      .update({ name: product.name, category: product.category, description: product.description })
+      .eq('id', product.id)
+      .select()
+      .single();
+    if (error) throw error;
+    setProducts(prev => prev.map(p => p.id === product.id ? data : p));
+    return data;
+  };
+
+  const deleteProduct = async (productId) => {
+    if (productId?.startsWith('demo-')) {
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      setQuotes(prev => prev.filter(q => q.product_id !== productId));
+      return;
+    }
+    
+    const { error } = await supabase.from('products').delete().eq('id', productId);
+    if (error) throw error;
+    setProducts(prev => prev.filter(p => p.id !== productId));
+    setQuotes(prev => prev.filter(q => q.product_id !== productId));
+  };
+
+  // Quote actions with new structure
+  const addQuote = async (quote) => {
+    const newQuote = {
+      id: quote.id || `quote-${Date.now()}`,
+      product_id: quote.productId || quote.product_id,
+      supplierName: quote.supplierName,
+      unitPrice: parseFloat(quote.unitPrice) || 0,
+      currency: quote.currency || 'USD',
+      moq: parseInt(quote.moq) || 0,
+      incoterm: quote.incoterm || '',
+      created_at: new Date().toISOString(),
+    };
+
+    // For demo/local quotes
+    if (newQuote.id?.startsWith('demo-') || newQuote.product_id?.startsWith('demo-')) {
+      setQuotes(prev => [newQuote, ...prev]);
+      return newQuote;
+    }
+
+    const { data, error } = await supabase
+      .from('quotes')
+      .insert({
+        user_id: user.id,
+        product_id: newQuote.product_id,
+        supplier_name: newQuote.supplierName,
+        fields: {
+          unitPrice: newQuote.unitPrice,
+          currency: newQuote.currency,
+          moq: newQuote.moq,
+          incoterm: newQuote.incoterm,
+        },
+      })
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    const transformedData = {
+      ...data,
+      supplierName: data.supplier_name,
+      unitPrice: newQuote.unitPrice,
+      currency: newQuote.currency,
+      moq: newQuote.moq,
+      incoterm: newQuote.incoterm,
+    };
+    
+    setQuotes(prev => [transformedData, ...prev]);
+    return transformedData;
+  };
+
+  const updateQuote = async (quote) => {
+    const updatedQuote = {
+      ...quote,
+      unitPrice: parseFloat(quote.unitPrice) || 0,
+      moq: parseInt(quote.moq) || 0,
+    };
+
+    if (quote.id?.startsWith('demo-')) {
+      setQuotes(prev => prev.map(q => q.id === quote.id ? updatedQuote : q));
+      return updatedQuote;
+    }
+
+    const { data, error } = await supabase
+      .from('quotes')
+      .update({
+        supplier_name: updatedQuote.supplierName,
+        fields: {
+          unitPrice: updatedQuote.unitPrice,
+          currency: updatedQuote.currency,
+          moq: updatedQuote.moq,
+          incoterm: updatedQuote.incoterm,
+        },
+      })
+      .eq('id', quote.id)
+      .select()
+      .single();
+    
+    if (error) throw error;
+    
+    const transformedData = {
+      ...data,
+      supplierName: data.supplier_name,
+      unitPrice: updatedQuote.unitPrice,
+      currency: updatedQuote.currency,
+      moq: updatedQuote.moq,
+      incoterm: updatedQuote.incoterm,
+    };
+    
+    setQuotes(prev => prev.map(q => q.id === quote.id ? transformedData : q));
+    return transformedData;
+  };
+
+  const deleteQuote = async (quoteId) => {
+    if (quoteId?.startsWith('demo-')) {
+      setQuotes(prev => prev.filter(q => q.id !== quoteId));
+      setSelectedQuotes(prev => prev.filter(id => id !== quoteId));
+      return;
+    }
+    
+    const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
+    if (error) throw error;
+    setQuotes(prev => prev.filter(q => q.id !== quoteId));
+    setSelectedQuotes(prev => prev.filter(id => id !== quoteId));
+  };
+
+  // Fee actions
+  const updateFees = (newFees) => {
+    setFees(newFees);
+  };
+
+  const addFee = (fee) => {
+    const newFee = {
+      id: `fee-${Date.now()}`,
+      name: fee.name || 'New Fee',
+      type: fee.type || 'fixed',
+      value: fee.value || 0,
+    };
+    setFees(prev => [...prev, newFee]);
+    return newFee;
+  };
+
+  const updateFee = (feeId, updates) => {
+    setFees(prev => prev.map(f => f.id === feeId ? { ...f, ...updates } : f));
+  };
+
+  const deleteFee = (feeId) => {
+    setFees(prev => prev.filter(f => f.id !== feeId));
+  };
+
+  const resetFees = () => {
+    setFees(DEFAULT_FEES);
+  };
+
+  // ============================================
+  // LANDED COST CALCULATION
+  // ============================================
+  // FORMULA (strict separation of money vs units):
+  //   unit_price     = $/unit (money per unit)
+  //   quantity       = units (count)
+  //   FOB_total      = unit_price × quantity ($ total)
+  //   total_fees     = fixed$ + (percent × FOB_total) ($ total)
+  //   total_landed   = FOB_total + total_fees ($ total)
+  //   landed_per_unit = total_landed ÷ quantity ($/unit)
+  // ============================================
+  const calculateLandedCost = useCallback((quote, quantity = null) => {
+    // Step 1: Extract unit_price ($/unit) - MONEY
+    const unit_price = parseFloat(quote.unitPrice) || 0;
+    
+    // Step 2: Determine quantity (units) - COUNT
+    const qty = quantity || parseFloat(quote.moq) || 1;
+    
+    // Safety check: both must be > 0 for valid calculation
+    const isValid = unit_price > 0 && qty > 0;
+    
+    // Step 3: Calculate FOB_total ($ total) = unit_price × quantity
+    const FOB_total = unit_price * qty;
+
+    // Step 4: Calculate fees (all in $ money)
+    let totalFees = 0;
+    const feeBreakdown = fees.map(fee => {
+      const feeValue = parseFloat(fee.value) || 0;
+      let amount = 0;
+      
+      if (fee.type === 'percentage') {
+        // Percentage: (FOB_total × percentage) / 100 = $
+        amount = (FOB_total * feeValue) / 100;
+      } else {
+        // Fixed: Already in $ (per shipment)
+        amount = feeValue;
+      }
+      totalFees += amount;
+      return { ...fee, amount };
+    });
+
+    // Step 5: Calculate total_landed ($ total)
+    const total_landed = FOB_total + totalFees;
+    
+    // Step 6: Calculate landed_per_unit ($/unit)
+    const landed_per_unit = qty > 0 ? total_landed / qty : 0;
+    
+    // Step 7: Fee markup percentage
+    const fee_markup_percent = FOB_total > 0 ? (totalFees / FOB_total) * 100 : 0;
+
+    return {
+      // Validation
+      isValid,
+      
+      // Core values (new naming)
+      unit_price,           // $/unit
+      quantity: qty,        // units
+      FOB_total,            // $ total
+      total_fees: totalFees,// $ total
+      total_landed,         // $ total
+      landed_per_unit,      // $/unit
+      fee_markup_percent,   // %
+      feeBreakdown,
+      
+      // Backward compatibility aliases
+      unitPrice: unit_price,
+      fobTotal: FOB_total,
+      productCost: FOB_total,
+      totalFees,
+      totalLandedCost: total_landed,
+      totalLanded: total_landed,
+      landedCostPerUnit: landed_per_unit,
+      landedPerUnit: landed_per_unit,
+      feeMarkupPercent: fee_markup_percent,
+      feePercentage: fee_markup_percent,
+    };
+  }, [fees]);
+
+  // Supplier actions
+  const addSupplier = async (supplier) => {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .insert({
+        user_id: user.id,
+        company: supplier.company,
+        contact: supplier.contact || null,
+        email: supplier.email || null,
+        wechat: supplier.wechat || null,
+        website: supplier.website || null,
+        status: supplier.status || 'pending',
+        notes: supplier.notes || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    setSuppliers(prev => [data, ...prev]);
+    return data;
+  };
+
+  const updateSupplier = async (supplier) => {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .update({
+        company: supplier.company,
+        contact: supplier.contact,
+        email: supplier.email,
+        wechat: supplier.wechat,
+        website: supplier.website,
+        status: supplier.status,
+        notes: supplier.notes,
+      })
+      .eq('id', supplier.id)
+      .select()
+      .single();
+    if (error) throw error;
+    setSuppliers(prev => prev.map(s => s.id === supplier.id ? data : s));
+    return data;
+  };
+
+  const deleteSupplier = async (supplierId) => {
+    const { error } = await supabase.from('suppliers').delete().eq('id', supplierId);
+    if (error) throw error;
+    setSuppliers(prev => prev.filter(s => s.id !== supplierId));
+  };
+
+  // Order actions (kept but not exposed in nav)
+  const addOrder = async (order) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .insert({
+        user_id: user.id,
+        name: order.name,
+        supplier: order.supplier || null,
+        status: order.status || 'pending',
+        quantity: order.quantity || null,
+        total: order.total || null,
+        notes: order.notes || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    setOrders(prev => [data, ...prev]);
+    return data;
+  };
+
+  const updateOrder = async (order) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ name: order.name, supplier: order.supplier, status: order.status, quantity: order.quantity, total: order.total, notes: order.notes })
+      .eq('id', order.id)
+      .select()
+      .single();
+    if (error) throw error;
+    setOrders(prev => prev.map(o => o.id === order.id ? data : o));
+    return data;
+  };
+
+  const deleteOrder = async (orderId) => {
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) throw error;
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+  };
+
+  // Document actions (kept but not exposed in nav)
+  const addDocument = async (doc) => {
+    const { data, error } = await supabase
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        name: doc.name,
+        category: doc.category || null,
+        notes: doc.notes || null,
+        file_url: doc.data || null,
+        file_size: doc.size || null,
+        file_type: doc.type || null,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    setDocuments(prev => [data, ...prev]);
+    return data;
+  };
+
+  const updateDocument = async (doc) => {
+    const { data, error } = await supabase
+      .from('documents')
+      .update({ name: doc.name, category: doc.category, notes: doc.notes })
+      .eq('id', doc.id)
+      .select()
+      .single();
+    if (error) throw error;
+    setDocuments(prev => prev.map(d => d.id === doc.id ? data : d));
+    return data;
+  };
+
+  const deleteDocument = async (docId) => {
+    const { error } = await supabase.from('documents').delete().eq('id', docId);
+    if (error) throw error;
+    setDocuments(prev => prev.filter(d => d.id !== docId));
+  };
+
+  const updateSettings = async (newSettings) => {
+    const { data: existing } = await supabase.from('user_settings').select('id').eq('user_id', user.id).single();
+    if (existing) {
+      await supabase.from('user_settings').update({ api_key: newSettings.apiKey, currency: newSettings.currency }).eq('user_id', user.id);
+    } else {
+      await supabase.from('user_settings').insert({ user_id: user.id, api_key: newSettings.apiKey, currency: newSettings.currency });
+    }
+    setSettings(newSettings);
+  };
+
+  const toggleQuoteSelection = (quoteId) => {
+    setSelectedQuotes(prev => prev.includes(quoteId) ? prev.filter(id => id !== quoteId) : [...prev, quoteId]);
+  };
+
+  // Computed values
+  const getProductQuotes = useCallback((productId) => quotes.filter(q => q.product_id === productId), [quotes]);
+  const getSupplierQuotes = useCallback((supplierId) => quotes.filter(q => q.supplier_id === supplierId), [quotes]);
+  const getProductById = useCallback((productId) => products.find(p => p.id === productId), [products]);
+  const getActiveOrders = useCallback(() => orders.filter(o => o.status !== 'delivered'), [orders]);
+  const getDocumentCategories = useCallback(() => [...new Set(documents.map(d => d.category).filter(Boolean))], [documents]);
+
+  const value = {
+    state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },
+    actions: {
+      addProduct, updateProduct, deleteProduct,
+      addQuote, updateQuote, deleteQuote,
+      addSupplier, updateSupplier, deleteSupplier,
+      addOrder, updateOrder, deleteOrder,
+      addDocument, updateDocument, deleteDocument,
+      updateFees, addFee, updateFee, deleteFee, resetFees,
+      updateSettings, toggleQuoteSelection, setSelectedQuotes,
+      refreshData: fetchAllData,
+    },
+    computed: { 
+      getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
+      calculateLandedCost,
+    },
+  };
+
+  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+}
+
+export function useAppContext() {
+  const context = useContext(AppContext);
+  if (!context) throw new Error('useAppContext must be used within an AppProvider');
+  return context;
+}
