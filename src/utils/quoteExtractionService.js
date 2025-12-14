@@ -24,7 +24,7 @@ import {
 // ============================================
 
 /**
- * Extract data from image using Claude API (Anthropic)
+ * Extract data from image using backend API (which calls Claude)
  * NEVER returns fake data - only what's actually in the document
  */
 async function extractFromImage(file, apiKey) {
@@ -46,102 +46,34 @@ async function extractFromImage(file, apiKey) {
   // Determine media type
   const mediaType = file.type || 'image/jpeg';
 
-  // Call Claude API with STRICT extraction rules
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  // Call BACKEND API (which proxies to Claude to avoid CORS)
+  const API_URL = 'http://localhost:3001/api/extract-quote';
+
+  const response = await fetch(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
-      max_tokens: 4000,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'image',
-              source: {
-                type: 'base64',
-                media_type: mediaType,
-                data: base64,
-              },
-            },
-            {
-              type: 'text',
-              text: `You are a quote data extractor for importers. Extract supplier quote information from this image.
-
-CRITICAL RULES - NEVER BREAK THESE:
-1. ONLY extract data that is EXPLICITLY VISIBLE in the document
-2. NEVER guess, infer, or invent ANY data
-3. If a field is not clearly visible, use null
-4. For tables with multiple rows, extract ALL rows as separate line items
-5. Be extremely precise with numbers - no rounding, no estimates
-6. Extract exact company names, SKUs, and values as written
-
-Return ONLY valid JSON in this exact structure (no markdown, no explanation):
-{
-  "supplierName": "exact company name from document" or null,
-  "supplierContact": "contact person name" or null,
-  "supplierEmail": "email address" or null,
-  "currency": "USD" or "EUR" or "CNY" etc. or null,
-  "incoterm": "FOB Shanghai" or "CIF Los Angeles" etc. or null,
-  "validUntil": "date quote expires" or null,
-  "paymentTerms": "exact payment terms" or null,
-  "leadTime": "exact lead time" or null,
-  "notes": "any important notes/remarks" or null,
-  "lineItems": [
-    {
-      "productName": "exact product name" or null,
-      "sku": "model/item number" or null,
-      "unitPrice": 1.23 (number only, no currency symbol) or null,
-      "moq": 1000 (number only) or null,
-      "quantity": 5000 (number from quote) or null,
-      "dimensions": "exact dimensions text" or null,
-      "weight": "exact weight" or null,
-      "packing": "packing description" or null,
-      "cartonSize": "carton dimensions" or null,
-      "cbm": 0.123 (number only) or null
-    }
-  ]
-}
-
-If the document has a table with multiple rows, create a separate line item for EACH row.
-Extract ALL columns from the table.
-Use exact values - don't convert units or round numbers.
-Return ONLY the JSON object, nothing else.`
-            }
-          ]
-        }
-      ],
+      image: base64,
+      mediaType: mediaType,
+      apiKey: apiKey,
     }),
   });
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.error?.message || 'Claude API request failed');
+    throw new Error(error.error || 'Extraction API request failed');
   }
 
-  const data = await response.json();
-  const content = data.content?.[0]?.text;
+  const result = await response.json();
 
-  if (!content) {
-    throw new Error('No response from Claude');
+  if (!result.success || !result.data) {
+    throw new Error('No data returned from extraction API');
   }
-
-  // Parse JSON from response
-  const jsonMatch = content.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) {
-    throw new Error('Could not parse extraction result');
-  }
-
-  const rawData = JSON.parse(jsonMatch[0]);
 
   // Convert raw data to our field structure with confidence tracking
-  return convertToExtractionResult(rawData);
+  return convertToExtractionResult(result.data);
 }
 
 /**
