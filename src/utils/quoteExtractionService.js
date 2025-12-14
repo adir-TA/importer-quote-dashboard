@@ -1,15 +1,13 @@
 // ============================================
-// QUOTE EXTRACTION SERVICE
+// QUOTE EXTRACTION SERVICE - REAL IMPLEMENTATION
 // ============================================
-// 
-// EXTRACTION RULES (NON-NEGOTIABLE):
-// 1. If a field is NOT explicitly present → null, status: 'not_found'
-// 2. NEVER infer MOQ from quantity
-// 3. NEVER infer unit price if multiple SKUs exist without selection
-// 4. NEVER invent values
 //
-// OUTPUT: ExtractionResult with all line items
-// User must SELECT which line item to use for quote
+// EXTRACTION RULES (NON-NEGOTIABLE):
+// 1. If a field is NOT explicitly present → status: 'not_found'
+// 2. NEVER infer or guess ANY data
+// 3. NEVER invent values
+// 4. Use OpenAI Vision API to actually read documents
+//
 // ============================================
 
 import {
@@ -22,243 +20,297 @@ import {
 } from './quoteDataModels';
 
 // ============================================
-// MOCK EXTRACTION DATA
-// ============================================
-// Simulates realistic extraction with multiple SKUs,
-// missing fields, and logistics data
-
-const MOCK_EXTRACTIONS = {
-  // Multi-SKU aluminum foil quote (realistic messy data)
-  multi_sku_table: {
-    supplierName: extracted('Jiangsu Dingsheng New Material Co., Ltd', 'Header'),
-    supplierContact: extracted('Ms. Wang Li', 'Contact section'),
-    supplierEmail: extracted('sales@dingsheng-alu.com', 'Contact section'),
-    currency: extracted('USD', 'Price column'),
-    incoterm: extracted('FOB Shanghai', 'Terms section'),
-    validUntil: extracted('2024-03-15', 'Header'),
-    paymentTerms: extracted('30% TT deposit, 70% against B/L copy', 'Terms'),
-    leadTime: extracted('25-30 days after deposit', 'Terms'),
-    notes: extracted('Prices subject to LME aluminum fluctuation', 'Footer'),
-    lineItems: [
-      {
-        id: 'item-1',
-        productName: extracted('Aluminum Foil 8011-O', 'Row 1'),
-        sku: extracted('AF-8011-O-9', 'Row 1'),
-        unitPrice: extracted(2850, 'Row 1'), // USD/MT
-        currency: extracted('USD', 'Header'),
-        moq: notFound(), // NOT in document - don't guess!
-        quantity: extracted(5, 'Row 1'), // 5 MT
-        dimensions: extracted('0.009mm x 500mm', 'Row 1'),
-        weight: notFound(),
-        packing: extracted('Wooden pallet, export standard', 'Row 1'),
-        cartonSize: notFound(),
-        cbm: notFound(),
-      },
-      {
-        id: 'item-2',
-        productName: extracted('Aluminum Foil 8011-O', 'Row 2'),
-        sku: extracted('AF-8011-O-12', 'Row 2'),
-        unitPrice: extracted(2780, 'Row 2'),
-        currency: extracted('USD', 'Header'),
-        moq: notFound(),
-        quantity: extracted(10, 'Row 2'),
-        dimensions: extracted('0.012mm x 500mm', 'Row 2'),
-        weight: notFound(),
-        packing: extracted('Wooden pallet, export standard', 'Row 2'),
-        cartonSize: notFound(),
-        cbm: notFound(),
-      },
-      {
-        id: 'item-3',
-        productName: extracted('Aluminum Foil 8079-O', 'Row 3'),
-        sku: extracted('AF-8079-O-7', 'Row 3'),
-        unitPrice: extracted(2950, 'Row 3'),
-        currency: extracted('USD', 'Header'),
-        moq: notFound(),
-        quantity: extracted(3, 'Row 3'),
-        dimensions: extracted('0.007mm x 450mm', 'Row 3'),
-        weight: notFound(),
-        packing: extracted('Wooden pallet, export standard', 'Row 3'),
-        cartonSize: notFound(),
-        cbm: notFound(),
-      },
-    ],
-    hasMultipleItems: true,
-  },
-
-  // Single item with full logistics
-  single_item_full: {
-    supplierName: extracted('Shenzhen Tech Electronics Co., Ltd', 'Header'),
-    supplierContact: extracted('Mr. Zhang Wei', 'Contact'),
-    supplierEmail: extracted('zhang@sztech.com', 'Contact'),
-    currency: extracted('USD', 'Price line'),
-    incoterm: extracted('FOB Shenzhen', 'Terms'),
-    validUntil: extracted('2024-02-28', 'Header'),
-    paymentTerms: extracted('30% deposit, 70% before shipment', 'Terms'),
-    leadTime: extracted('15-20 working days', 'Terms'),
-    notes: extracted('Custom logo available +$0.05/pc', 'Remarks'),
-    lineItems: [
-      {
-        id: 'item-1',
-        productName: extracted('USB-C Charging Cable 1M Braided', 'Product section'),
-        sku: extracted('TC-USBC-1M-BR', 'Product section'),
-        unitPrice: extracted(0.85, 'Price table'),
-        currency: extracted('USD', 'Price table'),
-        moq: extracted(1000, 'Terms section'), // Actually found!
-        quantity: extracted(5000, 'Order details'),
-        dimensions: extracted('100cm x Ø3mm', 'Specs'),
-        weight: extracted('45g', 'Specs'),
-        packing: extracted('100pcs/inner box, 1000pcs/carton', 'Packing'),
-        cartonSize: extracted('52 x 42 x 38 cm', 'Packing'),
-        cbm: extracted(0.083, 'Packing'),
-      },
-    ],
-    hasMultipleItems: false,
-  },
-
-  // Excel with partial data (common scenario)
-  excel_partial: {
-    supplierName: extracted('Guangzhou Trading Ltd', 'Cell A2'),
-    supplierContact: notFound(),
-    supplierEmail: extracted('info@gztrading.com', 'Cell A4'),
-    currency: extracted('USD', 'Header'),
-    incoterm: notFound(), // NOT FOUND - don't invent "FOB"
-    validUntil: notFound(),
-    paymentTerms: notFound(),
-    leadTime: notFound(),
-    notes: extracted('Prices valid for 30 days', 'Footer'),
-    lineItems: [
-      {
-        id: 'item-1',
-        productName: extracted('LED Desk Lamp Model A', 'Cell B5'),
-        sku: extracted('LED-DL-A01', 'Cell A5'),
-        unitPrice: extracted(4.25, 'Cell C5'),
-        currency: extracted('USD', 'Header'),
-        moq: notFound(), // NOT in spreadsheet
-        quantity: extracted(1000, 'Cell D5'),
-        dimensions: extracted('45 x 12 x 40 cm', 'Cell E5'),
-        weight: extracted('0.8 kg', 'Cell F5'),
-        packing: extracted('1pc/color box, 10pcs/carton', 'Cell G5'),
-        cartonSize: notFound(),
-        cbm: notFound(),
-      },
-    ],
-    hasMultipleItems: false,
-  },
-
-  // Poor quality scan - minimal extraction
-  poor_scan: {
-    supplierName: extracted('Ningbo Import Export', 'OCR - partial'),
-    supplierContact: notFound(),
-    supplierEmail: notFound(),
-    currency: notFound(), // Can't determine
-    incoterm: notFound(),
-    validUntil: notFound(),
-    paymentTerms: notFound(),
-    leadTime: notFound(),
-    notes: notFound(),
-    lineItems: [
-      {
-        id: 'item-1',
-        productName: notFound(), // Can't read product name
-        sku: notFound(),
-        unitPrice: extracted(0.35, 'OCR - number detected'),
-        currency: notFound(),
-        moq: notFound(),
-        quantity: notFound(),
-        dimensions: notFound(),
-        weight: notFound(),
-        packing: notFound(),
-        cartonSize: notFound(),
-        cbm: notFound(),
-      },
-    ],
-    hasMultipleItems: false,
-  },
-};
-
-// ============================================
-// FILE PROCESSING
+// REAL OpenAI Vision API EXTRACTION
 // ============================================
 
 /**
- * Process PDF file
- * PRODUCTION: Replace with pdf.js or Claude Vision API
+ * Extract data from image using OpenAI Vision API
+ * NEVER returns fake data - only what's actually in the document
  */
-async function processPdf(file) {
-  console.log('[Extraction] Processing PDF:', file.name);
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  
-  // Return multi-SKU mock (common for PDFs)
-  return MOCK_EXTRACTIONS.multi_sku_table;
+async function extractFromImage(file, apiKey) {
+  if (!apiKey) {
+    throw new Error('OpenAI API key required. Add it in Settings.');
+  }
+
+  // Convert image to base64
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64String = reader.result.split(',')[1];
+      resolve(base64String);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  // Call OpenAI Vision API with STRICT extraction rules
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o',
+      messages: [
+        {
+          role: 'system',
+          content: `You are a quote data extractor for importers. Your job is to extract supplier quote information from images.
+
+CRITICAL RULES - NEVER BREAK THESE:
+1. ONLY extract data that is EXPLICITLY VISIBLE in the document
+2. NEVER guess, infer, or invent ANY data
+3. If a field is not clearly visible, mark it as null
+4. For tables with multiple rows, extract ALL rows as separate line items
+5. Be extremely precise with numbers - no rounding, no estimates
+
+Return ONLY valid JSON in this exact structure:
+{
+  "supplierName": "exact company name from document" or null,
+  "supplierContact": "contact person name" or null,
+  "supplierEmail": "email address" or null,
+  "currency": "USD" or "EUR" or "CNY" etc. or null,
+  "incoterm": "FOB Shanghai" or "CIF Los Angeles" etc. or null,
+  "validUntil": "date quote expires" or null,
+  "paymentTerms": "exact payment terms" or null,
+  "leadTime": "exact lead time" or null,
+  "notes": "any important notes/remarks" or null,
+  "lineItems": [
+    {
+      "productName": "exact product name" or null,
+      "sku": "model/item number" or null,
+      "unitPrice": 1.23 (number only, no currency symbol) or null,
+      "moq": 1000 (number only) or null,
+      "quantity": 5000 (number from quote) or null,
+      "dimensions": "exact dimensions text" or null,
+      "weight": "exact weight" or null,
+      "packing": "packing description" or null,
+      "cartonSize": "carton dimensions" or null,
+      "cbm": 0.123 (number only) or null
+    }
+  ]
+}
+
+If the document has a table with multiple rows, create a separate line item for EACH row.
+Extract ALL columns from the table.
+Use exact values - don't convert units or round numbers.`
+        },
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: 'Extract all quote data from this document. Return ONLY the JSON, no explanation.'
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${base64}`,
+                detail: 'high'
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 4000,
+      temperature: 0, // Zero temperature = most deterministic
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error?.message || 'OpenAI API request failed');
+  }
+
+  const data = await response.json();
+  const content = data.choices[0]?.message?.content;
+
+  if (!content) {
+    throw new Error('No response from OpenAI');
+  }
+
+  // Parse JSON from response
+  const jsonMatch = content.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) {
+    throw new Error('Could not parse extraction result');
+  }
+
+  const rawData = JSON.parse(jsonMatch[0]);
+
+  // Convert raw data to our field structure with confidence tracking
+  return convertToExtractionResult(rawData);
+}
+
+/**
+ * Convert OpenAI response to our ExtractedField structure
+ * Marks each field as 'extracted' or 'not_found' based on whether it was found
+ */
+function convertToExtractionResult(rawData) {
+  const result = {
+    supplierName: rawData.supplierName !== null
+      ? extracted(rawData.supplierName, 'Document header')
+      : notFound(),
+
+    supplierContact: rawData.supplierContact !== null
+      ? extracted(rawData.supplierContact, 'Contact section')
+      : notFound(),
+
+    supplierEmail: rawData.supplierEmail !== null
+      ? extracted(rawData.supplierEmail, 'Contact section')
+      : notFound(),
+
+    currency: rawData.currency !== null
+      ? extracted(rawData.currency, 'Price section')
+      : notFound(),
+
+    incoterm: rawData.incoterm !== null
+      ? extracted(rawData.incoterm, 'Terms section')
+      : notFound(),
+
+    validUntil: rawData.validUntil !== null
+      ? extracted(rawData.validUntil, 'Header')
+      : notFound(),
+
+    paymentTerms: rawData.paymentTerms !== null
+      ? extracted(rawData.paymentTerms, 'Terms section')
+      : notFound(),
+
+    leadTime: rawData.leadTime !== null
+      ? extracted(rawData.leadTime, 'Terms section')
+      : notFound(),
+
+    notes: rawData.notes !== null
+      ? extracted(rawData.notes, 'Remarks/Notes')
+      : notFound(),
+
+    lineItems: [],
+    hasMultipleItems: false,
+  };
+
+  // Convert line items
+  if (Array.isArray(rawData.lineItems) && rawData.lineItems.length > 0) {
+    result.lineItems = rawData.lineItems.map((item, index) => ({
+      id: `item-${Date.now()}-${index}`,
+
+      productName: item.productName !== null
+        ? extracted(item.productName, `Row ${index + 1}`)
+        : notFound(),
+
+      sku: item.sku !== null
+        ? extracted(item.sku, `Row ${index + 1}`)
+        : notFound(),
+
+      unitPrice: item.unitPrice !== null
+        ? extracted(item.unitPrice, `Row ${index + 1}`)
+        : notFound(),
+
+      currency: result.currency, // Inherit from document level
+
+      moq: item.moq !== null
+        ? extracted(item.moq, `Row ${index + 1}`)
+        : notFound(),
+
+      quantity: item.quantity !== null
+        ? extracted(item.quantity, `Row ${index + 1}`)
+        : notFound(),
+
+      dimensions: item.dimensions !== null
+        ? extracted(item.dimensions, `Row ${index + 1}`)
+        : notFound(),
+
+      weight: item.weight !== null
+        ? extracted(item.weight, `Row ${index + 1}`)
+        : notFound(),
+
+      packing: item.packing !== null
+        ? extracted(item.packing, `Row ${index + 1}`)
+        : notFound(),
+
+      cartonSize: item.cartonSize !== null
+        ? extracted(item.cartonSize, `Row ${index + 1}`)
+        : notFound(),
+
+      cbm: item.cbm !== null
+        ? extracted(item.cbm, `Row ${index + 1}`)
+        : notFound(),
+    }));
+
+    result.hasMultipleItems = result.lineItems.length > 1;
+  }
+
+  return result;
+}
+
+/**
+ * Process PDF file
+ * PRODUCTION: Use pdf.js or similar to extract text/images, then send to Vision API
+ */
+async function processPdf(file, apiKey) {
+  // For now, PDFs need to be converted to images first
+  // Most PDF libraries can render to canvas/image
+  throw new Error('PDF support coming soon. Please convert to image or use screenshot (Ctrl+V)');
 }
 
 /**
  * Process Excel file
- * PRODUCTION: Replace with xlsx library
+ * PRODUCTION: Use xlsx library to parse spreadsheet
  */
-async function processExcel(file) {
-  console.log('[Extraction] Processing Excel:', file.name);
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  return MOCK_EXTRACTIONS.excel_partial;
-}
-
-/**
- * Process image via OCR
- * PRODUCTION: Replace with Tesseract.js or Claude Vision
- */
-async function processImage(file) {
-  console.log('[Extraction] Processing Image:', file.name);
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  // Randomly return different quality
-  return Math.random() > 0.5 
-    ? MOCK_EXTRACTIONS.single_item_full 
-    : MOCK_EXTRACTIONS.poor_scan;
+async function processExcel(file, apiKey) {
+  // Excel parsing would use SheetJS (xlsx) library
+  throw new Error('Excel support coming soon. Please convert to image or use screenshot (Ctrl+V)');
 }
 
 /**
  * Main extraction function
- * @param {File} file 
+ * @param {File} file - The uploaded file
+ * @param {string} apiKey - OpenAI API key from settings
  * @returns {Promise<ExtractionResult>}
  */
-export async function extractQuoteFromFile(file) {
+export async function extractQuoteFromFile(file, apiKey) {
   if (!file) {
     return { success: false, error: 'No file provided' };
+  }
+
+  if (!apiKey) {
+    return {
+      success: false,
+      error: 'OpenAI API key required. Please add it in Settings to use quote extraction.'
+    };
   }
 
   const fileName = file.name.toLowerCase();
   const fileType = file.type;
 
   try {
-    let mockData;
+    let extractionResult;
 
     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-      mockData = await processPdf(file);
+      extractionResult = await processPdf(file, apiKey);
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ||
                fileType.includes('spreadsheet') || fileType.includes('excel')) {
-      mockData = await processExcel(file);
+      extractionResult = await processExcel(file, apiKey);
     } else if (fileType.startsWith('image/') ||
                fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
-      mockData = await processImage(file);
+      extractionResult = await extractFromImage(file, apiKey);
     } else {
       return {
         success: false,
-        error: 'Unsupported file type. Please upload PDF, Excel, or image files.',
+        error: 'Unsupported file type. Please upload image files (PNG, JPG) or paste screenshots (Ctrl+V).',
       };
     }
 
-    // Build result
+    // Build final result
     const result = {
       success: true,
       fileName: file.name,
       fileType: fileType,
-      ...mockData,
+      ...extractionResult,
     };
 
     // Calculate stats
     result.meta = countExtractionStats(result);
+
+    console.log('[Extraction] Success:', result.meta.found, 'of', result.meta.total, 'core fields found');
 
     return result;
 
@@ -266,7 +318,7 @@ export async function extractQuoteFromFile(file) {
     console.error('[Extraction] Error:', error);
     return {
       success: false,
-      error: `Failed to process file: ${error.message}`,
+      error: error.message || 'Failed to extract quote data from file',
     };
   }
 }
@@ -275,15 +327,10 @@ export async function extractQuoteFromFile(file) {
 // EXPORTS
 // ============================================
 
-export { MOCK_EXTRACTIONS };
 export {
   extracted,
   notFound,
   wasFound,
-  getValue,
   createEmptyLineItem,
   createEmptyExtraction,
-  buildCoreQuote,
-  buildQuoteMetadata,
-  countExtractionStats,
 } from './quoteDataModels';

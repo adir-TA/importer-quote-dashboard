@@ -158,7 +158,7 @@ function DetailField({ field, label, format }) {
 // ============================================
 function QuoteCapture() {
   const { state, actions } = useAppContext();
-  const { products } = state;
+  const { products, settings } = state;
   const fileInputRef = useRef(null);
 
   // File upload state
@@ -254,12 +254,18 @@ function QuoteCapture() {
   const extractQuoteData = async () => {
     if (!file) return;
 
+    // Check for API key
+    if (!settings.apiKey) {
+      setError('OpenAI API key required. Please add it in Settings to use quote extraction.');
+      return;
+    }
+
     setExtracting(true);
     setError('');
 
     try {
-      // Call extraction service
-      const result = await extractQuoteFromFile(file);
+      // Call extraction service with API key from settings
+      const result = await extractQuoteFromFile(file, settings.apiKey);
 
       if (!result.success) {
         throw new Error(result.error);
