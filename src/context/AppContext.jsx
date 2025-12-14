@@ -13,186 +13,9 @@ const DEFAULT_FEES = [
 ];
 
 // ============================================
-// SEED DATA FOR LOCAL TESTING
-// Remove or guard with flag for production
+// PRODUCTION READY - NO FAKE DATA
 // ============================================
-const SEED_PRODUCTS = [
-  {
-    id: 'seed-product-1',
-    name: 'USB-C Charging Cable',
-    category: 'Electronics',
-    description: '1m USB-C to USB-C fast charging cable, braided nylon',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-product-2',
-    name: 'Microfiber Cleaning Cloth',
-    category: 'Home & Garden',
-    description: '30x30cm premium microfiber cloth, 300gsm',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-product-3',
-    name: 'LED Desk Lamp',
-    category: 'Electronics',
-    description: 'Adjustable LED desk lamp with USB port, 3 color modes',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-product-4',
-    name: 'Silicone Phone Case',
-    category: 'Accessories',
-    description: 'Protective silicone case for iPhone 15, multiple colors',
-    created_at: new Date().toISOString(),
-  },
-];
-
-const SEED_QUOTES = [
-  // USB-C Charging Cable quotes (4 quotes)
-  {
-    id: 'seed-quote-1a',
-    product_id: 'seed-product-1',
-    supplierName: 'Shenzhen Tech Co.',
-    unitPrice: 0.85,
-    currency: 'USD',
-    moq: 1000,
-    incoterm: 'FOB Shenzhen',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-1b',
-    product_id: 'seed-product-1',
-    supplierName: 'Guangzhou Electronics',
-    unitPrice: 0.92,
-    currency: 'USD',
-    moq: 500,
-    incoterm: 'FOB Guangzhou',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-1c',
-    product_id: 'seed-product-1',
-    supplierName: 'Dongguan Cable Factory',
-    unitPrice: 0.78,
-    currency: 'USD',
-    moq: 2000,
-    incoterm: 'FOB Shenzhen',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-1d',
-    product_id: 'seed-product-1',
-    supplierName: 'Ningbo Trading',
-    unitPrice: 0.95,
-    currency: 'USD',
-    moq: 300,
-    incoterm: 'CIF Los Angeles',
-    created_at: new Date().toISOString(),
-  },
-  // Microfiber Cleaning Cloth quotes (3 quotes)
-  {
-    id: 'seed-quote-2a',
-    product_id: 'seed-product-2',
-    supplierName: 'Hebei Textile Mill',
-    unitPrice: 0.32,
-    currency: 'USD',
-    moq: 5000,
-    incoterm: 'FOB Tianjin',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-2b',
-    product_id: 'seed-product-2',
-    supplierName: 'Jiangsu Home Goods',
-    unitPrice: 0.38,
-    currency: 'USD',
-    moq: 3000,
-    incoterm: 'FOB Shanghai',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-2c',
-    product_id: 'seed-product-2',
-    supplierName: 'Zhejiang Fabrics',
-    unitPrice: 0.29,
-    currency: 'USD',
-    moq: 10000,
-    incoterm: 'FOB Ningbo',
-    created_at: new Date().toISOString(),
-  },
-  // LED Desk Lamp quotes (5 quotes)
-  {
-    id: 'seed-quote-3a',
-    product_id: 'seed-product-3',
-    supplierName: 'Zhongshan Lighting',
-    unitPrice: 4.50,
-    currency: 'USD',
-    moq: 500,
-    incoterm: 'FOB Shenzhen',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-3b',
-    product_id: 'seed-product-3',
-    supplierName: 'Foshan LED Factory',
-    unitPrice: 4.20,
-    currency: 'USD',
-    moq: 1000,
-    incoterm: 'FOB Guangzhou',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-3c',
-    product_id: 'seed-product-3',
-    supplierName: 'Shenzhen Bright Co.',
-    unitPrice: 4.85,
-    currency: 'USD',
-    moq: 300,
-    incoterm: 'FOB Shenzhen',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-3d',
-    product_id: 'seed-product-3',
-    supplierName: 'Hangzhou Electronics',
-    unitPrice: 3.95,
-    currency: 'USD',
-    moq: 2000,
-    incoterm: 'FOB Shanghai',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-3e',
-    product_id: 'seed-product-3',
-    supplierName: 'Xiamen Light Solutions',
-    unitPrice: 5.10,
-    currency: 'USD',
-    moq: 200,
-    incoterm: 'CIF Los Angeles',
-    created_at: new Date().toISOString(),
-  },
-  // Silicone Phone Case quotes (2 quotes)
-  {
-    id: 'seed-quote-4a',
-    product_id: 'seed-product-4',
-    supplierName: 'Dongguan Silicone',
-    unitPrice: 0.65,
-    currency: 'USD',
-    moq: 2000,
-    incoterm: 'FOB Shenzhen',
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: 'seed-quote-4b',
-    product_id: 'seed-product-4',
-    supplierName: 'Shenzhen Cases Ltd.',
-    unitPrice: 0.72,
-    currency: 'USD',
-    moq: 1000,
-    incoterm: 'FOB Shenzhen',
-    created_at: new Date().toISOString(),
-  },
-];
+// All data comes from Supabase. No seed/mock data.
 
 export function AppProvider({ children }) {
   const { user } = useAuth();
@@ -226,19 +49,12 @@ export function AppProvider({ children }) {
     }
   }, [user]);
 
-  // Initialize with seed data if empty (for local testing)
+  // Mark as initialized when data is loaded
   useEffect(() => {
     if (!loading && !initialized && user) {
-      if (products.length === 0 && quotes.length === 0) {
-        // Add seed data for testing - remove for production
-        setProducts(SEED_PRODUCTS);
-        setQuotes(SEED_QUOTES);
-        setInitialized(true);
-      } else {
-        setInitialized(true);
-      }
+      setInitialized(true);
     }
-  }, [loading, initialized, user, products.length, quotes.length]);
+  }, [loading, initialized, user]);
 
   const fetchAllData = async () => {
     setLoading(true);
