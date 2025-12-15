@@ -317,6 +317,9 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   };
 
   const needsReview = matchStats.medium + matchStats.low;
+  const hasLockedItems = editableLineItems.some(item =>
+    item.matchConfidenceLevel === 'high' && item.autoMatched
+  );
 
   // ============================================
   // RENDER
@@ -705,7 +708,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                     color: matchStats.high > 0 ? '#166534' : '#92400e',
                     marginTop: '4px',
                   }}>
-                    {isLocked && '🔒 Auto-confirmed items are locked. '}
+                    {hasLockedItems && '🔒 Auto-confirmed items are locked. '}
                     Click "Details" on any item to see match breakdown.
                   </div>
                 </div>
