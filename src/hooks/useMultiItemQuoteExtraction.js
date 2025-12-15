@@ -145,7 +145,6 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
           priceConfidence: item.unitPrice?.confidence || null,
           moq: getValue(item.moq) !== null ? String(getValue(item.moq)) : '',
           dimensions: getValue(item.dimensions) || '',
-          product_dimensions_text: getValue(item.dimensions) || '',
           weight_g: getValue(item.weight_g) !== null ? String(getValue(item.weight_g)) : '',
           packing_pcs_per_ctn: getValue(item.packing_pcs_per_ctn) !== null ? String(getValue(item.packing_pcs_per_ctn)) : '',
           carton_length_cm: getValue(item.carton_length_cm) !== null ? String(getValue(item.carton_length_cm)) : '',

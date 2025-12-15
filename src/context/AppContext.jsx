@@ -321,7 +321,7 @@ export function AppProvider({ children }) {
       supplier_quote_id: quoteData.id,
       raw_item_name: item.productName, // Exact name from supplier
       sku: item.sku || null,
-      product_dimensions_text: item.dimensions || null, // Raw dimensions string
+      dimensions_text: item.dimensions || null, // Raw dimensions string
       unit_price: parseFloat(item.unitPrice),
       price_unit: item.priceUnit || 'per pc',
       moq: item.moq ? parseInt(item.moq) : null,

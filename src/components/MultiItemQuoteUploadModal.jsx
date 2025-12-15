@@ -80,7 +80,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
     if (confidenceLevel === 'high') {
       return "✓ This product matches all physical specifications. Any differences are cosmetic only.";
     } else if (confidenceLevel === 'medium') {
-      return "This product matches most specifications. Review the breakdown below to confirm.";
+      return "✓ This product matches all physical specifications. Any differences are cosmetic.";
     } else {
       return "This match has lower confidence. Please verify the specifications match your requirements.";
     }
@@ -127,7 +127,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
             </button>
           </div>
 
-          {/* Match Breakdown */}
+          {/* Match Breakdown - Grouped by Priority */}
           <div style={{ marginTop: '16px' }}>
             <div style={{
               fontSize: '0.75rem',
@@ -137,58 +137,153 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}>
-              Match Breakdown (Confidence: {confidence}%)
+              Match Breakdown
             </div>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              {Object.entries(matchBreakdown).map(([key, data]) => {
-                const scorePercent = data.score;
-                const barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
 
-                return (
-                  <div key={key} style={{
-                    background: 'white',
-                    padding: '10px',
-                    borderRadius: '6px',
-                    border: '1px solid #e5e7eb',
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                      <span style={{
-                        textTransform: 'capitalize',
-                        fontWeight: 500,
-                        fontSize: '0.8rem',
-                      }}>
-                        {key}
-                      </span>
-                      <span style={{
-                        fontSize: '0.75rem',
-                        color: '#64748b',
-                      }}>
-                        {data.weight}% weight
-                      </span>
-                    </div>
-                    <div style={{
-                      height: '8px',
-                      background: '#e5e7eb',
-                      borderRadius: '4px',
-                      overflow: 'hidden',
-                      marginBottom: '4px',
+            {/* Physical Match Section */}
+            <div style={{ marginBottom: '16px' }}>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                marginBottom: '6px',
+                color: '#15803d',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
+              }}>
+                ✓ Physical Match
+              </div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {['dimensions', 'weight'].map(key => {
+                  const data = matchBreakdown[key];
+                  if (!data) return null;
+                  const scorePercent = data.score;
+                  const barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+
+                  return (
+                    <div key={key} style={{
+                      background: 'white',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
                     }}>
-                      <div style={{
-                        height: '100%',
-                        width: `${scorePercent}%`,
-                        background: barColor,
-                        transition: 'width 0.3s',
-                        borderRadius: '4px',
-                      }} />
-                    </div>
-                    {data.detail && (
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        {data.detail.explanation || JSON.stringify(data.detail)}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{
+                          textTransform: 'capitalize',
+                          fontWeight: 500,
+                          fontSize: '0.8rem',
+                        }}>
+                          {key}
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                        }}>
+                          {data.weight}% weight
+                        </span>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                      <div style={{
+                        height: '8px',
+                        background: '#e5e7eb',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        marginBottom: '4px',
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${scorePercent}%`,
+                          background: barColor,
+                          transition: 'width 0.3s',
+                          borderRadius: '4px',
+                        }} />
+                      </div>
+                      {data.detail && (
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          {data.detail.explanation || JSON.stringify(data.detail)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Non-Critical Differences Section */}
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                marginBottom: '6px',
+                color: '#a16207',
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
+              }}>
+                ⚠️ Non-Critical Differences
+              </div>
+              <div style={{ display: 'grid', gap: '8px' }}>
+                {['material', 'name'].map(key => {
+                  const data = matchBreakdown[key];
+                  if (!data) return null;
+                  const scorePercent = data.score;
+
+                  // Name mismatch uses neutral/amber, never red
+                  let barColor;
+                  if (key === 'name') {
+                    barColor = scorePercent >= 80 ? '#10b981' : '#f59e0b'; // Green or amber only
+                  } else {
+                    barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+                  }
+
+                  // Special label for name differences
+                  const label = key === 'name' && scorePercent < 50
+                    ? 'Supplier naming differs (common in quotes)'
+                    : key;
+
+                  return (
+                    <div key={key} style={{
+                      background: 'white',
+                      padding: '10px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <span style={{
+                          textTransform: key === 'name' && scorePercent < 50 ? 'none' : 'capitalize',
+                          fontWeight: 500,
+                          fontSize: '0.8rem',
+                        }}>
+                          {label}
+                        </span>
+                        <span style={{
+                          fontSize: '0.75rem',
+                          color: '#64748b',
+                        }}>
+                          {data.weight}% weight
+                        </span>
+                      </div>
+                      <div style={{
+                        height: '8px',
+                        background: '#e5e7eb',
+                        borderRadius: '4px',
+                        overflow: 'hidden',
+                        marginBottom: '4px',
+                      }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${scorePercent}%`,
+                          background: barColor,
+                          transition: 'width 0.3s',
+                          borderRadius: '4px',
+                        }} />
+                      </div>
+                      {data.detail && (
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                          {data.detail.explanation || JSON.stringify(data.detail)}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
