@@ -77,20 +77,52 @@ CRITICAL RULES - NEVER BREAK THESE:
 PRICE EXTRACTION RULES (MOST CRITICAL):
 ═══════════════════════════════════════════════════════════════
 
-A. ALWAYS distinguish "per piece" vs "per carton":
+A. STRICT COLUMN HEADER SEMANTICS (NON-NEGOTIABLE):
+
+   unitPrice may ONLY come from columns with headers containing:
+   ✓ "Unit Price"
+   ✓ "Price"
+   ✓ "USD / PC"
+   ✓ "/ PC"
+   ✓ "Price/PC"
+   ✓ "Unit Cost"
+
+   EXPLICITLY EXCLUDE columns containing:
+   ✗ "CBM"
+   ✗ "Meas"
+   ✗ "Volume"
+   ✗ "Carton Size"
+   ✗ "Cube"
+   ✗ "Measurement"
+
+   IF a numeric value is under a CBM/Meas/Volume column:
+   → Store it as "cbm", NEVER as "unitPrice"
+   → Set unitPrice to null
+
+B. PRICE SANITY VALIDATION:
+
+   IF extracted unitPrice is in typical CBM range (0.01 - 0.5) AND
+   A CBM/Meas column exists in the same row:
+   → Set "priceConfidence": "low"
+   → Set "priceEstimated": true
+   → Add note: "Value may be CBM, not price"
+
+   Typical price ranges by product:
+   - Consumer goods: $0.50 - $50
+   - Industrial parts: $1 - $500
+   - CBM values: 0.01 - 0.5
+
+C. ALWAYS distinguish "per piece" vs "per carton":
    - If doc says "USD 0.05 / PC" → unitPrice = 0.05
    - If doc says "USD 5.00 / CTN" → unitPrice = null (not per piece)
    - If doc shows BOTH → extract the per-piece price ONLY
 
-B. NEVER multiply or divide prices unless document explicitly shows calculation
+D. NEVER multiply or divide prices unless document explicitly shows calculation
 
-C. Use table ROW ALIGNMENT over visual proximity:
+E. Use table ROW ALIGNMENT over visual proximity:
    - Match price to SKU by same table row, NOT by proximity
-   - Trust column headers (Price/PC, Price/CTN, etc.)
-
-D. Mark ambiguous prices:
-   - If unit unclear → set "priceConfidence": "low" and "priceEstimated": true
-   - If document shows conflicting prices → use the per-piece one
+   - Column position determines field type (header is law)
+   - If header says "CBM", the column contains CBM data ONLY
 
 ═══════════════════════════════════════════════════════════════
 PRODUCT NAME GENERATION:
@@ -113,14 +145,36 @@ If no product name visible:
 4. Minimum: "<SKU> - <Dimensions>"
 
 ═══════════════════════════════════════════════════════════════
+MOQ EXTRACTION (FIRST-CLASS FIELD):
+═══════════════════════════════════════════════════════════════
+
+MOQ is a LINE-ITEM-LEVEL field, NOT a document-level field.
+
+Extract MOQ from table rows:
+✓ "600 pcs/ctn" → moq: 600
+✓ "1000 pcs/ctn" → moq: 1000
+✓ "MOQ: 5000" → moq: 5000
+✓ "Min Order: 2000" → moq: 2000
+
+MOQ may appear in columns labeled:
+- "MOQ"
+- "Min Order"
+- "Minimum Qty"
+- "Packing" (e.g., "600 pcs/ctn")
+
+CRITICAL: MOQ must be attached to each line item.
+If MOQ exists in the row → extract it and set high confidence.
+If missing → set moq to null (NOT zero).
+
+═══════════════════════════════════════════════════════════════
 CONFIDENCE SCORING:
 ═══════════════════════════════════════════════════════════════
 
 For unitPrice and moq, add confidence scores:
 
-"high" = clearly labeled in document (e.g., column header "Price/PC: 0.05")
+"high" = clearly labeled in document (exact header match + row alignment)
 "medium" = inferable from context but not explicitly labeled
-"low" = ambiguous, unclear, or conflicting information
+"low" = ambiguous, unclear, conflicting, or sanity-flagged
 
 ═══════════════════════════════════════════════════════════════
 JSON STRUCTURE (return ONLY this, no markdown):

@@ -122,15 +122,47 @@ function convertToExtractionResult(rawData) {
     hasMultipleItems: false,
   };
 
+  // ============================================
+  // POST-EXTRACTION VALIDATION FUNCTIONS
+  // ============================================
+
+  /**
+   * Sanity check: Detect if unitPrice looks like CBM
+   * CBM range: 0.01 - 0.5
+   * Typical prices: > $0.50
+   */
+  function validatePriceVsCBM(item) {
+    const price = item.unitPrice;
+    const cbm = item.cbm;
+
+    // If both price and CBM exist
+    if (price !== null && cbm !== null) {
+      // If price is in typical CBM range
+      if (price > 0 && price < 0.6) {
+        console.warn(`[VALIDATION] Price ${price} is in CBM range. CBM value: ${cbm}. Flagging as low confidence.`);
+        return {
+          ...item,
+          priceConfidence: 'low',
+          priceEstimated: true,
+        };
+      }
+    }
+
+    return item;
+  }
+
   // Convert line items
   if (Array.isArray(rawData.lineItems) && rawData.lineItems.length > 0) {
     result.lineItems = rawData.lineItems.map((item, index) => {
+      // Run validation on raw item first
+      const validatedItem = validatePriceVsCBM(item);
+
       // ============================================
       // SMART PRODUCT NAME GENERATION
       // ============================================
       // NEVER show "Unknown product" or null
       // Auto-generate: "<Material/Category> - <SKU> - <Dimensions>"
-      let productName = item.productName;
+      let productName = validatedItem.productName;
       let productNameSource = `Row ${index + 1}`;
 
       if (!productName || productName === 'Unknown product') {
@@ -141,13 +173,13 @@ function convertToExtractionResult(rawData) {
         // (Claude might include it in packing or other fields)
 
         // Always add SKU if available
-        if (item.sku) {
-          parts.push(item.sku);
+        if (validatedItem.sku) {
+          parts.push(validatedItem.sku);
         }
 
         // Always add dimensions if available
-        if (item.dimensions) {
-          parts.push(item.dimensions);
+        if (validatedItem.dimensions) {
+          parts.push(validatedItem.dimensions);
         }
 
         if (parts.length > 0) {
@@ -164,19 +196,19 @@ function convertToExtractionResult(rawData) {
 
         productName: extracted(productName, productNameSource),
 
-        sku: item.sku !== null
-          ? extracted(item.sku, `Row ${index + 1}`)
+        sku: validatedItem.sku !== null
+          ? extracted(validatedItem.sku, `Row ${index + 1}`)
           : notFound(),
 
         // ============================================
-        // UNIT PRICE - WITH CONFIDENCE & ESTIMATED FLAG
+        // UNIT PRICE - WITH CONFIDENCE & ESTIMATED FLAG (VALIDATED)
         // ============================================
-        unitPrice: item.unitPrice !== null
+        unitPrice: validatedItem.unitPrice !== null
           ? extracted(
-              item.unitPrice,
+              validatedItem.unitPrice,
               `Row ${index + 1}`,
-              item.priceConfidence || 'medium', // Default to medium if not provided
-              item.priceEstimated || false
+              validatedItem.priceConfidence || 'medium', // May be downgraded by validation
+              validatedItem.priceEstimated || false      // May be flagged by validation
             )
           : notFound(),
 
@@ -185,30 +217,34 @@ function convertToExtractionResult(rawData) {
         // ============================================
         // MOQ - WITH CONFIDENCE
         // ============================================
-        moq: item.moq !== null
+        moq: validatedItem.moq !== null
           ? extracted(
-              item.moq,
+              validatedItem.moq,
               `Row ${index + 1}`,
-              item.moqConfidence || 'medium' // Default to medium if not provided
+              validatedItem.moqConfidence || 'medium' // Default to medium if not provided
             )
           : notFound(),
 
-        quantity: item.quantity !== null
-          ? extracted(item.quantity, `Row ${index + 1}`)
+        quantity: validatedItem.quantity !== null
+          ? extracted(validatedItem.quantity, `Row ${index + 1}`)
           : notFound(),
 
-        dimensions: item.dimensions !== null
-          ? extracted(item.dimensions, `Row ${index + 1}`)
+        dimensions: validatedItem.dimensions !== null
+          ? extracted(validatedItem.dimensions, `Row ${index + 1}`)
           : notFound(),
 
-        packing: item.packing !== null
-          ? extracted(item.packing, `Row ${index + 1}`)
+        packing: validatedItem.packing !== null
+          ? extracted(validatedItem.packing, `Row ${index + 1}`)
           : notFound(),
 
-        // Skip weight, cartonSize, cbm (not MVP critical)
+        // Extract CBM for validation purposes (detect price/CBM confusion)
+        cbm: validatedItem.cbm !== null
+          ? extracted(validatedItem.cbm, `Row ${index + 1}`)
+          : notFound(),
+
+        // Skip weight, cartonSize (not MVP critical)
         weight: notFound(),
         cartonSize: notFound(),
-        cbm: notFound(),
       };
     });
 
