@@ -26,7 +26,7 @@ const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
 function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
   const { state, actions } = useAppContext();
-  const { settings } = state;
+  const { settings, products } = state;
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -275,6 +275,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
                           <th style={styles.th}>Weight (g)</th>
                           <th style={styles.th}>Packing (pcs/ctn)</th>
                           <th style={styles.th}>CBM</th>
+                          <th style={styles.th}>Link to Product</th>
                           <th style={styles.thActions}></th>
                         </tr>
                       </thead>
@@ -348,6 +349,20 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
                                 onChange={(e) => updateLineItem(index, 'cbm_per_carton', e.target.value)}
                                 style={{...styles.tableInput, width: '70px'}}
                               />
+                            </td>
+                            <td style={styles.td}>
+                              <select
+                                value={item.linkedProductId || ''}
+                                onChange={(e) => updateLineItem(index, 'linkedProductId', e.target.value || null)}
+                                style={{...styles.tableInput, width: '180px'}}
+                              >
+                                <option value="">-- Select Product --</option>
+                                {products.map(product => (
+                                  <option key={product.id} value={product.id}>
+                                    {product.name}
+                                  </option>
+                                ))}
+                              </select>
                             </td>
                             <td style={styles.tdActions}>
                               <button
