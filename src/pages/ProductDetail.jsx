@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
-import QuoteUploadModal from '../components/QuoteUploadModal';
+import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
@@ -108,17 +108,11 @@ function ProductDetail() {
     navigate('/comparison');
   };
 
-  // Handle quote save from upload modal
-  const handleUploadSave = async (quoteData) => {
-    try {
-      await actions.addQuote({
-        ...quoteData,
-        productId: id,
-        product_id: id,
-      });
-    } catch (error) {
-      alert('Error saving quote: ' + error.message);
-    }
+  // Handle quote save from upload modal (multi-item)
+  const handleUploadSuccess = async (result) => {
+    console.log('✅ [ProductDetail] Quote saved successfully:', result);
+    // Refresh data to show new quotes (future: will query line items)
+    await actions.refreshData();
   };
 
   if (!product) {
@@ -386,13 +380,11 @@ function ProductDetail() {
         </div>
       )}
 
-      {/* Quote Upload Modal */}
-      <QuoteUploadModal
+      {/* Multi-Item Quote Upload Modal */}
+      <MultiItemQuoteUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onSave={handleUploadSave}
-        productId={id}
-        productName={product?.name || 'Product'}
+        onSuccess={handleUploadSuccess}
       />
     </div>
   );

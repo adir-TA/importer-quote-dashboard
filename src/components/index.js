@@ -15,3 +15,4 @@ export { default as PriceAlerts } from './PriceAlerts';
 export { default as QuoteReminders } from './QuoteReminders';
 export { default as OrderCostTracking } from './OrderCostTracking';
 export { default as QuoteUploadModal } from './QuoteUploadModal';
+export { default as MultiItemQuoteUploadModal } from './MultiItemQuoteUploadModal';
