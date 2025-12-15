@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
@@ -15,7 +15,8 @@ function ProductDetail() {
   const { confirm } = useModal();
 
   const product = computed.getProductById(id);
-  const quotes = computed.getProductQuotes(id);
+  const quotes = computed.getProductQuotes(id); // Old quotes
+  const [lineItems, setLineItems] = useState([]); // New line items
 
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -27,6 +28,18 @@ function ProductDetail() {
     moq: '',
     incoterm: 'FOB',
   });
+
+  // Load line items for this product
+  useEffect(() => {
+    const loadLineItems = async () => {
+      const items = await computed.getLineItemsForProduct(id);
+      setLineItems(items);
+      console.log(`[ProductDetail] Loaded ${items.length} line items for product ${id}`);
+    };
+    if (id) {
+      loadLineItems();
+    }
+  }, [id, computed]);
 
   const resetForm = () => {
     setFormData({
@@ -111,8 +124,10 @@ function ProductDetail() {
   // Handle quote save from upload modal (multi-item)
   const handleUploadSuccess = async (result) => {
     console.log('✅ [ProductDetail] Quote saved successfully:', result);
-    // Refresh data to show new quotes (future: will query line items)
+    // Refresh data and reload line items
     await actions.refreshData();
+    const items = await computed.getLineItemsForProduct(id);
+    setLineItems(items);
   };
 
   if (!product) {
@@ -147,7 +162,7 @@ function ProductDetail() {
           </div>
         </div>
         <div className="header-actions">
-          {quotes.length >= 2 && (
+          {(quotes.length + lineItems.length) >= 2 && (
             <button className="btn btn-secondary" onClick={handleCompare}>
               Compare All Quotes
             </button>
@@ -177,11 +192,11 @@ function ProductDetail() {
           <div className="card-header">
             <span className="card-title">
               <FileText size={18} style={{ marginRight: '8px' }} />
-              Supplier Quotes ({quotes.length})
+              Supplier Quotes ({quotes.length + lineItems.length})
             </span>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
-            {quotes.length === 0 ? (
+            {(quotes.length + lineItems.length) === 0 ? (
               <div className="empty-state" style={{ padding: '48px 24px' }}>
                 <DollarSign size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
                 <h3>No quotes yet</h3>
@@ -207,6 +222,7 @@ function ProductDetail() {
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Old quotes (from quotes_old table) */}
                   {quotes.map((quote) => {
                     const landed = computed.calculateLandedCost(quote);
                     return (
@@ -238,6 +254,43 @@ function ProductDetail() {
                               <Trash2 size={16} />
                             </button>
                           </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {/* New line items (from supplier_quotes + quote_line_items) */}
+                  {lineItems.map((item) => {
+                    // Transform line item to quote format for landed cost calc
+                    const quoteFormat = {
+                      supplierName: item.supplierName,
+                      unitPrice: item.unit_price,
+                      currency: item.currency,
+                      moq: item.moq,
+                      incoterm: item.incoterm,
+                    };
+                    const landed = computed.calculateLandedCost(quoteFormat);
+
+                    return (
+                      <tr key={item.id} style={{ background: '#f0fdf4' }}>
+                        <td style={{ fontWeight: 500 }}>
+                          {item.supplierName}
+                          <div style={{ fontSize: '0.85rem', color: '#059669', marginTop: '2px' }}>
+                            {item.product_name}
+                          </div>
+                        </td>
+                        <td>
+                          {item.currency} {parseFloat(item.unit_price).toFixed(2)}
+                        </td>
+                        <td>{item.moq ? parseInt(item.moq).toLocaleString() : '-'}</td>
+                        <td>{item.incoterm || '-'}</td>
+                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
+                          {landed.isValid ? `${item.currency} ${landed.landed_per_unit.toFixed(2)}` : '-'}
+                        </td>
+                        <td>
+                          <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 500 }}>
+                            From Upload
+                          </span>
                         </td>
                       </tr>
                     );
