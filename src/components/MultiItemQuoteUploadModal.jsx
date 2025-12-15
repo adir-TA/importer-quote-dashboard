@@ -77,10 +77,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
 
   const handleSave = async () => {
     const data = getQuoteData();
-    if (!data) return;
+    if (!data) {
+      alert('Please fill in all required fields');
+      return;
+    }
 
     setSaving(true);
     try {
+      console.log('[Modal] Saving quote data:', data);
       const result = await actions.addSupplierQuote(data.supplierQuote, data.lineItems);
       console.log('✅ [Modal] Saved supplier quote:', result);
 
@@ -88,7 +92,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
       handleClose();
     } catch (err) {
       console.error('❌ [Modal] Save failed:', err);
-      alert(`Failed to save quote: ${err.message}`);
+      alert(`Failed to save quote:\n\n${err.message}\n\nCheck console for details.`);
     } finally {
       setSaving(false);
     }
