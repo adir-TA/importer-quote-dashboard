@@ -319,8 +319,9 @@ export function AppProvider({ children }) {
     // Step 2: Insert all line items with supplier_quote_id FK
     const lineItemsToInsert = lineItems.map(item => ({
       supplier_quote_id: quoteData.id,
-      product_name: item.productName,
+      raw_item_name: item.productName, // Exact name from supplier
       sku: item.sku || null,
+      product_dimensions_text: item.dimensions || null, // Raw dimensions string
       unit_price: parseFloat(item.unitPrice),
       price_unit: item.priceUnit || 'per pc',
       moq: item.moq ? parseInt(item.moq) : null,
@@ -330,9 +331,8 @@ export function AppProvider({ children }) {
       carton_width_cm: item.carton_width_cm ? parseFloat(item.carton_width_cm) : null,
       carton_height_cm: item.carton_height_cm ? parseFloat(item.carton_height_cm) : null,
       cbm_per_carton: item.cbm_per_carton ? parseFloat(item.cbm_per_carton) : null,
-      dimensions_text: item.dimensions || null,
       extracted_confidence: item.priceConfidence || null,
-      linked_product_id: item.linkedProductId || null,
+      linked_buying_intent_id: item.linkedBuyingIntentId || null, // Human-assigned link
     }));
 
     const { data: lineItemsData, error: lineItemsError } = await supabase
@@ -601,15 +601,15 @@ export function AppProvider({ children }) {
   const getDocumentCategories = useCallback(() => [...new Set(documents.map(d => d.category).filter(Boolean))], [documents]);
 
   /**
-   * Get all line items for a product with supplier info
+   * Get all line items linked to a BuyingIntent
    * Returns: Array of line items with supplier details
    */
-  const getLineItemsForProduct = useCallback(async (productId) => {
+  const getLineItemsForBuyingIntent = useCallback(async (buyingIntentId) => {
     if (!user) return [];
 
-    // Query line items where linked_product_id = productId
+    // Query line items where linked_buying_intent_id = buyingIntentId
     // Join with supplier_quotes to get supplier info
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from('quote_line_items')
       .select(`
         *,
@@ -628,7 +628,7 @@ export function AppProvider({ children }) {
           created_at
         )
       `)
-      .eq('linked_product_id', productId)
+      .eq('linked_buying_intent_id', buyingIntentId)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -645,6 +645,9 @@ export function AppProvider({ children }) {
       supplier: item.supplier_quote,
     }));
   }, [user]);
+
+  // Legacy alias for backwards compatibility
+  const getLineItemsForProduct = getLineItemsForBuyingIntent;
 
   const value = {
     state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },

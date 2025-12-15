@@ -275,7 +275,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
                           <th style={styles.th}>Weight (g)</th>
                           <th style={styles.th}>Packing (pcs/ctn)</th>
                           <th style={styles.th}>CBM</th>
-                          <th style={styles.th}>Link to Product</th>
+                          <th style={styles.th}>Link to Buying Intent</th>
                           <th style={styles.thActions}></th>
                         </tr>
                       </thead>
@@ -352,11 +352,11 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
                             </td>
                             <td style={styles.td}>
                               <select
-                                value={item.linkedProductId || ''}
-                                onChange={(e) => updateLineItem(index, 'linkedProductId', e.target.value || null)}
+                                value={item.linkedBuyingIntentId || ''}
+                                onChange={(e) => updateLineItem(index, 'linkedBuyingIntentId', e.target.value || null)}
                                 style={{...styles.tableInput, width: '180px'}}
                               >
-                                <option value="">-- Select Product --</option>
+                                <option value="">-- Select Buying Intent --</option>
                                 {products.map(product => (
                                   <option key={product.id} value={product.id}>
                                     {product.name}

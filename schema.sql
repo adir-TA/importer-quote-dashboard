@@ -4,11 +4,12 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
 
--- Products table
+-- Products table (Conceptually: BuyingIntents)
+-- What the importer is trying to buy, independent of suppliers
 create table products (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade,
-  name text not null,
+  name text not null, -- Human-readable target spec (e.g., "Aluminum container 225×175×42")
   category text,
   description text,
   created_at timestamp with time zone default now()
@@ -49,12 +50,13 @@ create table supplier_quotes (
   updated_at timestamp with time zone default now()
 );
 
--- Quote Line Items table (line-level)
+-- Quote Line Items table (raw supplier data - never auto-normalized)
 create table quote_line_items (
   id uuid primary key default uuid_generate_v4(),
   supplier_quote_id uuid references supplier_quotes(id) on delete cascade not null,
-  product_name text not null,
+  raw_item_name text not null, -- Exact name from supplier quote
   sku text,
+  product_dimensions_text text, -- Raw dimensions string
   unit_price numeric not null,
   price_unit text default 'per pc',
   moq integer,
@@ -64,9 +66,8 @@ create table quote_line_items (
   carton_width_cm numeric,
   carton_height_cm numeric,
   cbm_per_carton numeric,
-  dimensions_text text,
   extracted_confidence text,
-  linked_product_id uuid references products(id) on delete set null,
+  linked_buying_intent_id uuid references products(id) on delete set null, -- Human-assigned link
   created_at timestamp with time zone default now()
 );
 

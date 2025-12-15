@@ -148,7 +148,7 @@ export function useMultiItemQuoteExtraction(apiKey) {
         carton_width_cm: getValue(item.carton_width_cm) !== null ? String(getValue(item.carton_width_cm)) : '',
         carton_height_cm: getValue(item.carton_height_cm) !== null ? String(getValue(item.carton_height_cm)) : '',
         cbm_per_carton: getValue(item.cbm_per_carton) !== null ? String(getValue(item.cbm_per_carton)) : '',
-        linkedProductId: null, // For future: link to existing products
+        linkedBuyingIntentId: null, // Human-assigned link to BuyingIntent
       }));
 
       setEditableLineItems(items);
@@ -213,7 +213,7 @@ export function useMultiItemQuoteExtraction(apiKey) {
         carton_width_cm: item.carton_width_cm ? parseFloat(item.carton_width_cm) : null,
         carton_height_cm: item.carton_height_cm ? parseFloat(item.carton_height_cm) : null,
         cbm_per_carton: item.cbm_per_carton ? parseFloat(item.cbm_per_carton) : null,
-        linkedProductId: item.linkedProductId,
+        linkedBuyingIntentId: item.linkedBuyingIntentId,
       })),
     };
   }, [canSave, supplierFields, editableLineItems, extraction]);
