@@ -17,19 +17,27 @@
 /**
  * Confidence levels - be honest about what we found
  * @typedef {'extracted' | 'not_found'} FieldStatus
- * 
+ * @typedef {'high' | 'medium' | 'low'} ConfidenceLevel
+ *
  * RULES:
  * - extracted: Field was clearly found in document
  * - not_found: Field was NOT found - DO NOT GUESS
+ *
+ * CONFIDENCE:
+ * - high: Clearly labeled (e.g., column header "Price/PC")
+ * - medium: Inferable from context but not labeled
+ * - low: Ambiguous, unclear, or conflicting info
  */
 
 /**
- * An extracted field with status
+ * An extracted field with status and confidence
  * @template T
  * @typedef {Object} ExtractedField
  * @property {T | null} value - The value, or null if not found
  * @property {FieldStatus} status - Was it found or not?
  * @property {string} [source] - Where it came from (for debugging)
+ * @property {ConfidenceLevel} [confidence] - How confident we are (for critical fields)
+ * @property {boolean} [estimated] - True if value was calculated/inferred (for prices)
  */
 
 /**
@@ -123,16 +131,28 @@ export function notFound() {
 /**
  * Create a field that WAS extracted
  * @template T
- * @param {T} value 
- * @param {string} [source] 
+ * @param {T} value
+ * @param {string} [source]
+ * @param {ConfidenceLevel} [confidence]
+ * @param {boolean} [estimated]
  * @returns {ExtractedField<T>}
  */
-export function extracted(value, source = null) {
-  return {
+export function extracted(value, source = null, confidence = null, estimated = false) {
+  const field = {
     value,
     status: 'extracted',
     source,
   };
+
+  if (confidence) {
+    field.confidence = confidence;
+  }
+
+  if (estimated) {
+    field.estimated = true;
+  }
+
+  return field;
 }
 
 /**

@@ -61,46 +61,100 @@ app.post('/api/extract-quote', async (req, res) => {
               },
               {
                 type: 'text',
-                text: `You are a quote data extractor for importers. Extract supplier quote information from this image.
+                text: `You are a PRODUCTION quote extractor for real importers. Correctness matters MORE than completeness.
 
+═══════════════════════════════════════════════════════════════
 CRITICAL RULES - NEVER BREAK THESE:
-1. ONLY extract data that is EXPLICITLY VISIBLE in the document
-2. NEVER guess, infer, or invent ANY data
-3. If a field is not clearly visible, use null
-4. For tables with multiple rows, extract ALL rows as separate line items
-5. Be extremely precise with numbers - no rounding, no estimates
-6. Extract exact company names, SKUs, and values as written
+═══════════════════════════════════════════════════════════════
 
-Return ONLY valid JSON in this exact structure (no markdown, no explanation):
+1. ONLY extract data that is EXPLICITLY VISIBLE
+2. NEVER guess, calculate, or infer ANY data
+3. If unclear → use null and set confidence to "low"
+4. Extract ALL table rows as separate line items
+5. NO rounding, NO unit conversions, NO calculations
+
+═══════════════════════════════════════════════════════════════
+PRICE EXTRACTION RULES (MOST CRITICAL):
+═══════════════════════════════════════════════════════════════
+
+A. ALWAYS distinguish "per piece" vs "per carton":
+   - If doc says "USD 0.05 / PC" → unitPrice = 0.05
+   - If doc says "USD 5.00 / CTN" → unitPrice = null (not per piece)
+   - If doc shows BOTH → extract the per-piece price ONLY
+
+B. NEVER multiply or divide prices unless document explicitly shows calculation
+
+C. Use table ROW ALIGNMENT over visual proximity:
+   - Match price to SKU by same table row, NOT by proximity
+   - Trust column headers (Price/PC, Price/CTN, etc.)
+
+D. Mark ambiguous prices:
+   - If unit unclear → set "priceConfidence": "low" and "priceEstimated": true
+   - If document shows conflicting prices → use the per-piece one
+
+═══════════════════════════════════════════════════════════════
+PRODUCT NAME GENERATION:
+═══════════════════════════════════════════════════════════════
+
+NEVER use "Unknown product" or null for productName.
+
+Auto-generate using this pattern:
+"<Material/Category> - <SKU> - <Dimensions>"
+
+Examples:
+- "Aluminium Foil Container - LS-NC323 - 323×265×48mm"
+- "Plastic Takeaway Box - TB-500 - 500ml"
+- "Paper Cup - PC-16OZ - 16oz"
+
+If no product name visible:
+1. Try to extract material/category from context
+2. ALWAYS include SKU if available
+3. ALWAYS include dimensions if available
+4. Minimum: "<SKU> - <Dimensions>"
+
+═══════════════════════════════════════════════════════════════
+CONFIDENCE SCORING:
+═══════════════════════════════════════════════════════════════
+
+For unitPrice and moq, add confidence scores:
+
+"high" = clearly labeled in document (e.g., column header "Price/PC: 0.05")
+"medium" = inferable from context but not explicitly labeled
+"low" = ambiguous, unclear, or conflicting information
+
+═══════════════════════════════════════════════════════════════
+JSON STRUCTURE (return ONLY this, no markdown):
+═══════════════════════════════════════════════════════════════
+
 {
-  "supplierName": "exact company name from document" or null,
-  "supplierContact": "contact person name" or null,
-  "supplierEmail": "email address" or null,
+  "supplierName": "exact company name" or null,
+  "supplierContact": "contact person" or null,
+  "supplierEmail": "email" or null,
   "currency": "USD" or "EUR" or "CNY" etc. or null,
-  "incoterm": "FOB Shanghai" or "CIF Los Angeles" etc. or null,
-  "validUntil": "date quote expires" or null,
-  "paymentTerms": "exact payment terms" or null,
+  "incoterm": "FOB Shanghai" or "CIF LA" etc. or null,
+  "validUntil": "date" or null,
+  "paymentTerms": "exact terms" or null,
   "leadTime": "exact lead time" or null,
-  "notes": "any important notes/remarks" or null,
+  "notes": "important notes" or null,
   "lineItems": [
     {
-      "productName": "exact product name" or null,
+      "productName": "auto-generated or extracted name (NEVER null)",
       "sku": "model/item number" or null,
-      "unitPrice": 1.23 (number only, no currency symbol) or null,
+      "unitPrice": 1.23 (per PIECE only, no symbol) or null,
+      "priceConfidence": "high" or "medium" or "low",
+      "priceEstimated": true or false,
       "moq": 1000 (number only) or null,
-      "quantity": 5000 (number from quote) or null,
-      "dimensions": "exact dimensions text" or null,
-      "weight": "exact weight" or null,
-      "packing": "packing description" or null,
-      "cartonSize": "carton dimensions" or null,
-      "cbm": 0.123 (number only) or null
+      "moqConfidence": "high" or "medium" or "low",
+      "quantity": 5000 or null,
+      "dimensions": "exact text" or null,
+      "packing": "packing desc" or null
     }
   ]
 }
 
-If the document has a table with multiple rows, create a separate line item for EACH row.
-Extract ALL columns from the table.
-Use exact values - don't convert units or round numbers.
+PRIORITY ORDER: SKU → unitPrice → currency → incoterm → MOQ
+Skip: weight, cartonSize, cbm (not MVP critical)
+
 Return ONLY the JSON object, nothing else.`
               }
             ]

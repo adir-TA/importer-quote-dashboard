@@ -349,6 +349,19 @@ function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
             {missingFields.includes('unitPrice') && (
               <span className="error-hint">Required field</span>
             )}
+            {/* Confidence Warning */}
+            {selectedItem?.unitPrice?.confidence === 'low' && (
+              <div className="confidence-warning" style={{ marginTop: '8px', padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.85rem', color: '#92400e' }}>
+                <AlertCircle size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                <strong>Low Confidence:</strong> Price extraction was ambiguous. Please verify this is the correct per-piece price.
+              </div>
+            )}
+            {selectedItem?.unitPrice?.estimated && (
+              <div className="confidence-warning" style={{ marginTop: '8px', padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.85rem', color: '#92400e' }}>
+                <AlertCircle size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                <strong>Estimated Price:</strong> This price may have been calculated. Confirm accuracy before proceeding.
+              </div>
+            )}
           </div>
 
           {/* Currency */}
@@ -377,6 +390,13 @@ function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
             />
             {missingFields.includes('moq') && (
               <span className="error-hint">Not found in document — enter manually</span>
+            )}
+            {/* Confidence Warning for MOQ */}
+            {selectedItem?.moq?.confidence === 'low' && !missingFields.includes('moq') && (
+              <div className="confidence-warning" style={{ marginTop: '8px', padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.85rem', color: '#92400e' }}>
+                <AlertCircle size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+                <strong>Low Confidence:</strong> MOQ extraction was unclear. Please verify this value.
+              </div>
             )}
           </div>
 

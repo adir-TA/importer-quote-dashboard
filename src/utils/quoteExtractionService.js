@@ -124,51 +124,93 @@ function convertToExtractionResult(rawData) {
 
   // Convert line items
   if (Array.isArray(rawData.lineItems) && rawData.lineItems.length > 0) {
-    result.lineItems = rawData.lineItems.map((item, index) => ({
-      id: `item-${Date.now()}-${index}`,
+    result.lineItems = rawData.lineItems.map((item, index) => {
+      // ============================================
+      // SMART PRODUCT NAME GENERATION
+      // ============================================
+      // NEVER show "Unknown product" or null
+      // Auto-generate: "<Material/Category> - <SKU> - <Dimensions>"
+      let productName = item.productName;
+      let productNameSource = `Row ${index + 1}`;
 
-      productName: item.productName !== null
-        ? extracted(item.productName, `Row ${index + 1}`)
-        : notFound(),
+      if (!productName || productName === 'Unknown product') {
+        // Generate smart name from available data
+        const parts = [];
 
-      sku: item.sku !== null
-        ? extracted(item.sku, `Row ${index + 1}`)
-        : notFound(),
+        // Try to add material/category if available
+        // (Claude might include it in packing or other fields)
 
-      unitPrice: item.unitPrice !== null
-        ? extracted(item.unitPrice, `Row ${index + 1}`)
-        : notFound(),
+        // Always add SKU if available
+        if (item.sku) {
+          parts.push(item.sku);
+        }
 
-      currency: result.currency, // Inherit from document level
+        // Always add dimensions if available
+        if (item.dimensions) {
+          parts.push(item.dimensions);
+        }
 
-      moq: item.moq !== null
-        ? extracted(item.moq, `Row ${index + 1}`)
-        : notFound(),
+        if (parts.length > 0) {
+          productName = parts.join(' - ');
+          productNameSource = 'Generated from SKU + Dimensions';
+        } else {
+          productName = `Product ${index + 1}`;
+          productNameSource = 'Auto-generated';
+        }
+      }
 
-      quantity: item.quantity !== null
-        ? extracted(item.quantity, `Row ${index + 1}`)
-        : notFound(),
+      return {
+        id: `item-${Date.now()}-${index}`,
 
-      dimensions: item.dimensions !== null
-        ? extracted(item.dimensions, `Row ${index + 1}`)
-        : notFound(),
+        productName: extracted(productName, productNameSource),
 
-      weight: item.weight !== null
-        ? extracted(item.weight, `Row ${index + 1}`)
-        : notFound(),
+        sku: item.sku !== null
+          ? extracted(item.sku, `Row ${index + 1}`)
+          : notFound(),
 
-      packing: item.packing !== null
-        ? extracted(item.packing, `Row ${index + 1}`)
-        : notFound(),
+        // ============================================
+        // UNIT PRICE - WITH CONFIDENCE & ESTIMATED FLAG
+        // ============================================
+        unitPrice: item.unitPrice !== null
+          ? extracted(
+              item.unitPrice,
+              `Row ${index + 1}`,
+              item.priceConfidence || 'medium', // Default to medium if not provided
+              item.priceEstimated || false
+            )
+          : notFound(),
 
-      cartonSize: item.cartonSize !== null
-        ? extracted(item.cartonSize, `Row ${index + 1}`)
-        : notFound(),
+        currency: result.currency, // Inherit from document level
 
-      cbm: item.cbm !== null
-        ? extracted(item.cbm, `Row ${index + 1}`)
-        : notFound(),
-    }));
+        // ============================================
+        // MOQ - WITH CONFIDENCE
+        // ============================================
+        moq: item.moq !== null
+          ? extracted(
+              item.moq,
+              `Row ${index + 1}`,
+              item.moqConfidence || 'medium' // Default to medium if not provided
+            )
+          : notFound(),
+
+        quantity: item.quantity !== null
+          ? extracted(item.quantity, `Row ${index + 1}`)
+          : notFound(),
+
+        dimensions: item.dimensions !== null
+          ? extracted(item.dimensions, `Row ${index + 1}`)
+          : notFound(),
+
+        packing: item.packing !== null
+          ? extracted(item.packing, `Row ${index + 1}`)
+          : notFound(),
+
+        // Skip weight, cartonSize, cbm (not MVP critical)
+        weight: notFound(),
+        cartonSize: notFound(),
+        cbm: notFound(),
+      };
+    });
 
     result.hasMultipleItems = result.lineItems.length > 1;
   }
