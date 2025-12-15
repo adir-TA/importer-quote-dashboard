@@ -25,7 +25,7 @@ app.get('/api/health', (req, res) => {
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
   // UNIQUE LOG - Verify server code updated
-  console.log('🔥 [EXTRACTION v2025-12-15-v4] Server code is ACTIVE - Using Claude 3.5 Sonnet');
+  console.log('🔥 [EXTRACTION v2025-12-15-v6] ULTRA-EXPLICIT PROMPT - Back to Haiku');
 
   try {
     const { image, mediaType, apiKey } = req.body;
@@ -47,7 +47,7 @@ app.post('/api/extract-quote', async (req, res) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620',
+        model: 'claude-3-haiku-20240307',
         max_tokens: 4000,
         temperature: 0,
         messages: [
@@ -64,56 +64,56 @@ app.post('/api/extract-quote', async (req, res) => {
               },
               {
                 type: 'text',
-                text: `CRITICAL: You are extracting supplier quotes. WRONG PRICES = BUSINESS FAILURE.
+                text: `You extract supplier quote data from images. Follow these steps EXACTLY.
 
-═══════════════════════════════════════════════════════════════
-EXAMPLE OF CORRECT VS WRONG EXTRACTION:
-═══════════════════════════════════════════════════════════════
+STEP-BY-STEP INSTRUCTIONS (DO NOT SKIP):
 
-TYPICAL QUOTE TABLE:
-| Item No | Unit Price | Meas/CBM |
-| LS-323  | USD0.0389/PC | 0.077   |
-| LS-399  | USD0.0933/PC | 0.104   |
+STEP 1: IDENTIFY THE TABLE
+- Look at the image
+- Find the table with product/quote information
 
-✓ CORRECT: unitPrice = 0.0389 (from "Unit Price" column)
-✗ WRONG: unitPrice = 0.077 (this is CBM, NOT price!)
+STEP 2: IDENTIFY COLUMN HEADERS
+- Read the FIRST ROW of the table (column headers)
+- Write down which column is which
 
-RULE: Extract price from the column labeled "Price" or "Unit Price" or "/PC"
-NEVER extract from "CBM" or "Meas" columns (those are volume measurements)
+STEP 3: FIND THE PRICE COLUMN
+- Which column header contains these words: "Unit Price" OR "Price" OR "/PC" OR "USD"?
+- That is the PRICE column
+- Remember which column number it is (1st? 2nd? 3rd?)
 
-═══════════════════════════════════════════════════════════════
-EXTRACTION ALGORITHM:
-═══════════════════════════════════════════════════════════════
+STEP 4: FIND COLUMNS TO IGNORE
+- Which columns say "CBM" OR "Meas" OR "Volume"?
+- Those are NOT price columns - they are measurement columns
+- NEVER use these columns for unitPrice
 
-FOR EACH ROW:
+STEP 5: EXTRACT EACH ROW
+For each data row in the table:
+a) Go to the PRICE column (from Step 3)
+b) Extract the number from that column
+c) That number is the unitPrice
+d) DO NOT use numbers from other columns
 
-1. Find the column with header containing: "Unit Price", "Price", "USD/PC", "/PC"
-2. Extract the numeric value from THAT column ONLY
-3. Ignore all other numeric columns (especially CBM/Meas/Volume)
+EXAMPLE (THIS IS YOUR ACTUAL QUOTE):
+Row 1 headers: [Item No] [Unit Price] [Meas/CBM]
+Row 2 data:    [LS-323]  [USD0.0389/PC] [0.077]
 
-NEVER extract from columns with these headers:
-- "CBM"
-- "Meas"
-- "Measurement"
-- "Volume"
-- "M³"
-- "Carton Size"
+CORRECT EXTRACTION FOR ROW 2:
+- unitPrice = 0.0389 (from column 2 "Unit Price")
+- cbm = 0.077 (from column 3 "Meas/CBM")
 
-These columns contain measurements, NOT prices.
+WRONG EXTRACTION (DO NOT DO THIS):
+- unitPrice = 0.077 ← WRONG! This is from the CBM column, not the price column!
 
-IF you extract a value < 0.5:
-→ STOP and verify it came from a "Price" column, not a "CBM" column
-→ If from CBM column, set unitPrice = null instead
+VERIFICATION STEP:
+After extracting unitPrice, ask yourself:
+"Did I get this number from a column that says Price/Unit Price/USD/PC?"
+If NO → You extracted from the wrong column! Set unitPrice = null instead.
 
-═══════════════════════════════════════════════════════════════
 CRITICAL RULES:
-═══════════════════════════════════════════════════════════════
-
-1. ONLY extract data that is EXPLICITLY VISIBLE
-2. NEVER guess or calculate
-3. Extract ALL table rows as separate line items
-4. NO rounding, NO unit conversions
-5. Column header determines field type (header is law)
+1. Column header determines what data is in that column
+2. If header says "CBM" or "Meas", that column is NOT unitPrice
+3. Only extract from columns labeled with price-related words
+4. Extract ALL rows in the table
 
 ═══════════════════════════════════════════════════════════════
 PRODUCT NAME GENERATION:

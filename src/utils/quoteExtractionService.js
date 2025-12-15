@@ -29,7 +29,7 @@ import {
  */
 async function extractFromImage(file, apiKey) {
   // UNIQUE LOG - Verify client code updated
-  console.log('🚀 [CLIENT v2025-12-15-v4] Extraction service loaded - Upgraded to Sonnet');
+  console.log('🚀 [CLIENT v2025-12-15-v6] ULTRA-EXPLICIT prompt - Step-by-step algorithm');
 
   if (!apiKey) {
     throw new Error('Anthropic API key required. Add it in Settings.');
