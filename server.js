@@ -25,7 +25,7 @@ app.get('/api/health', (req, res) => {
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
   // UNIQUE LOG - Verify server code updated
-  console.log('🔥 [EXTRACTION v2025-12-15-v7] TRYING CLAUDE SONNET 3.5 (Oct 2024)');
+  console.log('🔥 [EXTRACTION v2025-12-15-v8] Haiku + CLIENT-SIDE SAFETY NET');
 
   try {
     const { image, mediaType, apiKey } = req.body;
@@ -38,9 +38,9 @@ app.post('/api/extract-quote', async (req, res) => {
       return res.status(400).json({ error: 'Anthropic API key required' });
     }
 
-    // Try latest Claude 3.5 Sonnet model
-    const MODEL = 'claude-3-5-sonnet-20241022';
-    console.log(`[API] Attempting to use model: ${MODEL}`);
+    // Use Haiku (only model available to user's API key)
+    const MODEL = 'claude-3-haiku-20240307';
+    console.log(`[API] Using model: ${MODEL} (Sonnet not available for this API key)`);
 
     // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {

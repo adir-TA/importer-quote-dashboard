@@ -29,7 +29,7 @@ import {
  */
 async function extractFromImage(file, apiKey) {
   // UNIQUE LOG - Verify client code updated
-  console.log('🚀 [CLIENT v2025-12-15-v7] Trying Claude 3.5 Sonnet (Oct 2024) with detailed error logs');
+  console.log('🚀 [CLIENT v2025-12-15-v8] SAFETY NET ACTIVE - Auto-rejecting CBM-range prices');
 
   if (!apiKey) {
     throw new Error('Anthropic API key required. Add it in Settings.');
@@ -130,25 +130,28 @@ function convertToExtractionResult(rawData) {
   // ============================================
 
   /**
-   * Sanity check: Detect if unitPrice looks like CBM
+   * SAFETY NET: Detect if unitPrice looks like CBM and REJECT it
    * CBM range: 0.01 - 0.5
    * Typical prices: > $0.50
+   *
+   * This is a HARD SAFETY NET that prevents CBM values from being used as prices.
    */
   function validatePriceVsCBM(item) {
     const price = item.unitPrice;
     const cbm = item.cbm;
 
-    // If both price and CBM exist
-    if (price !== null && cbm !== null) {
-      // If price is in typical CBM range
-      if (price > 0 && price < 0.6) {
-        console.warn(`[VALIDATION] Price ${price} is in CBM range. CBM value: ${cbm}. Flagging as low confidence.`);
-        return {
-          ...item,
-          priceConfidence: 'low',
-          priceEstimated: true,
-        };
-      }
+    // SAFETY NET: If both price and CBM exist AND price is in CBM range
+    if (price !== null && cbm !== null && price > 0 && price < 0.6) {
+      console.error(`❌ [SAFETY NET] REJECTED price ${price} - looks like CBM! (CBM value: ${cbm})`);
+      console.error(`   Setting unitPrice to NULL. User must enter manually.`);
+
+      // REJECT THE PRICE - set to null
+      return {
+        ...item,
+        unitPrice: null, // ← CRITICAL: Nullify the bad price
+        priceConfidence: null,
+        priceEstimated: null,
+      };
     }
 
     return item;
