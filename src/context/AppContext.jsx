@@ -61,7 +61,7 @@ export function AppProvider({ children }) {
     try {
       const [productsRes, quotesRes, suppliersRes, ordersRes, documentsRes, settingsRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
-        supabase.from('quotes').select('*').order('created_at', { ascending: false }),
+        supabase.from('quotes_old').select('*').order('created_at', { ascending: false }),
         supabase.from('suppliers').select('*').order('created_at', { ascending: false }),
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
@@ -196,7 +196,7 @@ export function AppProvider({ children }) {
     }
 
     const { data, error } = await supabase
-      .from('quotes')
+      .from('quotes_old')
       .insert({
         user_id: user.id,
         product_id: newQuote.product_id,
@@ -239,7 +239,7 @@ export function AppProvider({ children }) {
     }
 
     const { data, error } = await supabase
-      .from('quotes')
+      .from('quotes_old')
       .update({
         supplier_name: updatedQuote.supplierName,
         fields: {
@@ -275,7 +275,7 @@ export function AppProvider({ children }) {
       return;
     }
 
-    const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
+    const { error } = await supabase.from('quotes_old').delete().eq('id', quoteId);
     if (error) throw error;
     setQuotes(prev => prev.filter(q => q.id !== quoteId));
     setSelectedQuotes(prev => prev.filter(id => id !== quoteId));
