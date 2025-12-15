@@ -25,7 +25,7 @@ app.get('/api/health', (req, res) => {
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
   // UNIQUE LOG - Verify server code updated
-  console.log('🔥🔥🔥 [EXTRACTION v2025-12-15-SONNET45] UPGRADED TO SONNET 4.5! 🔥🔥🔥');
+  console.log('🚀🚀🚀 [EXTRACTION v2025-12-15-FIX929] SONNET 4.5 MODEL FIX 🚀🚀🚀');
 
   try {
     const { image, mediaType, apiKey } = req.body;
@@ -39,7 +39,7 @@ app.post('/api/extract-quote', async (req, res) => {
     }
 
     // Use Sonnet 4.5 (most accurate model available)
-    const MODEL = 'claude-sonnet-4-5-20250514';
+    const MODEL = 'claude-sonnet-4-5-20250929';
     console.log(`[API] Using model: ${MODEL} (UPGRADED TO SONNET 4.5!)`);
 
     // Call Anthropic API
