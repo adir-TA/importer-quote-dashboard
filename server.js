@@ -25,7 +25,7 @@ app.get('/api/health', (req, res) => {
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
   // UNIQUE LOG - Verify server code updated
-  console.log('🔥 [EXTRACTION v2025-12-15-v6] ULTRA-EXPLICIT PROMPT - Back to Haiku');
+  console.log('🔥 [EXTRACTION v2025-12-15-v7] TRYING CLAUDE SONNET 3.5 (Oct 2024)');
 
   try {
     const { image, mediaType, apiKey } = req.body;
@@ -38,6 +38,10 @@ app.post('/api/extract-quote', async (req, res) => {
       return res.status(400).json({ error: 'Anthropic API key required' });
     }
 
+    // Try latest Claude 3.5 Sonnet model
+    const MODEL = 'claude-3-5-sonnet-20241022';
+    console.log(`[API] Attempting to use model: ${MODEL}`);
+
     // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -47,7 +51,7 @@ app.post('/api/extract-quote', async (req, res) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: MODEL,
         max_tokens: 4000,
         temperature: 0,
         messages: [
@@ -210,9 +214,15 @@ Return ONLY the JSON object, nothing else.`
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[API Error]', error);
+      console.error('[API Error] Status:', response.status);
+      console.error('[API Error] Full error:', JSON.stringify(error, null, 2));
+      console.error('[API Error] Model attempted:', MODEL);
+      console.error('[API Error] Error type:', error.error?.type);
+      console.error('[API Error] Error message:', error.error?.message);
+
+      // Return detailed error to help diagnose
       return res.status(response.status).json({
-        error: error.error?.message || 'Claude API request failed'
+        error: `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}. Check server logs for details.`
       });
     }
 

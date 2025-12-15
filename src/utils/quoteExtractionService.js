@@ -29,7 +29,7 @@ import {
  */
 async function extractFromImage(file, apiKey) {
   // UNIQUE LOG - Verify client code updated
-  console.log('🚀 [CLIENT v2025-12-15-v6] ULTRA-EXPLICIT prompt - Step-by-step algorithm');
+  console.log('🚀 [CLIENT v2025-12-15-v7] Trying Claude 3.5 Sonnet (Oct 2024) with detailed error logs');
 
   if (!apiKey) {
     throw new Error('Anthropic API key required. Add it in Settings.');
