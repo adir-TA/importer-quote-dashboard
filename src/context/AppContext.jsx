@@ -600,6 +600,52 @@ export function AppProvider({ children }) {
   const getActiveOrders = useCallback(() => orders.filter(o => o.status !== 'delivered'), [orders]);
   const getDocumentCategories = useCallback(() => [...new Set(documents.map(d => d.category).filter(Boolean))], [documents]);
 
+  /**
+   * Get all line items for a product with supplier info
+   * Returns: Array of line items with supplier details
+   */
+  const getLineItemsForProduct = useCallback(async (productId) => {
+    if (!user) return [];
+
+    // Query line items where linked_product_id = productId
+    // Join with supplier_quotes to get supplier info
+    const { data, error } = await supabase
+      .from('quote_line_items')
+      .select(`
+        *,
+        supplier_quote:supplier_quotes(
+          id,
+          supplier_name,
+          supplier_contact,
+          supplier_email,
+          currency,
+          incoterm,
+          quote_date,
+          valid_until,
+          payment_terms,
+          lead_time,
+          notes,
+          created_at
+        )
+      `)
+      .eq('linked_product_id', productId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('[AppContext] Error fetching line items:', error);
+      return [];
+    }
+
+    // Transform to usable format
+    return (data || []).map(item => ({
+      ...item,
+      supplierName: item.supplier_quote?.supplier_name,
+      currency: item.supplier_quote?.currency || 'USD',
+      incoterm: item.supplier_quote?.incoterm || '',
+      supplier: item.supplier_quote,
+    }));
+  }, [user]);
+
   const value = {
     state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },
     actions: {
@@ -616,6 +662,7 @@ export function AppProvider({ children }) {
     },
     computed: {
       getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
+      getLineItemsForProduct, // NEW: Query line items by product
       calculateLandedCost,
     },
   };
