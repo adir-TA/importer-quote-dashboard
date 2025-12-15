@@ -274,11 +274,80 @@ export function AppProvider({ children }) {
       setSelectedQuotes(prev => prev.filter(id => id !== quoteId));
       return;
     }
-    
+
     const { error } = await supabase.from('quotes').delete().eq('id', quoteId);
     if (error) throw error;
     setQuotes(prev => prev.filter(q => q.id !== quoteId));
     setSelectedQuotes(prev => prev.filter(id => id !== quoteId));
+  };
+
+  // ============================================
+  // MULTI-ITEM SUPPLIER QUOTE ACTIONS (NEW SCHEMA)
+  // ============================================
+  /**
+   * Save a supplier quote with all its line items
+   * @param {Object} supplierQuote - Document-level fields
+   * @param {Array} lineItems - Array of line item objects
+   * @returns {Object} The created supplier quote with line items
+   */
+  const addSupplierQuote = async (supplierQuote, lineItems) => {
+    if (!user) throw new Error('User not authenticated');
+
+    // Step 1: Insert supplier_quote (document-level)
+    const { data: quoteData, error: quoteError } = await supabase
+      .from('supplier_quotes')
+      .insert({
+        user_id: user.id,
+        supplier_name: supplierQuote.supplierName,
+        supplier_contact: supplierQuote.supplierContact || null,
+        supplier_email: supplierQuote.supplierEmail || null,
+        currency: supplierQuote.currency || 'USD',
+        incoterm: supplierQuote.incoterm || null,
+        quote_date: supplierQuote.quoteDate || null,
+        valid_until: supplierQuote.validUntil || null,
+        payment_terms: supplierQuote.paymentTerms || null,
+        lead_time: supplierQuote.leadTime || null,
+        notes: supplierQuote.notes || null,
+        original_file_name: supplierQuote.fileName || null,
+        file_type: supplierQuote.fileType || null,
+      })
+      .select()
+      .single();
+
+    if (quoteError) throw quoteError;
+
+    // Step 2: Insert all line items with supplier_quote_id FK
+    const lineItemsToInsert = lineItems.map(item => ({
+      supplier_quote_id: quoteData.id,
+      product_name: item.productName,
+      sku: item.sku || null,
+      unit_price: parseFloat(item.unitPrice),
+      price_unit: item.priceUnit || 'per pc',
+      moq: item.moq ? parseInt(item.moq) : null,
+      weight_g: item.weight_g ? parseInt(item.weight_g) : null,
+      packing_pcs_per_ctn: item.packing_pcs_per_ctn ? parseInt(item.packing_pcs_per_ctn) : null,
+      carton_length_cm: item.carton_length_cm ? parseFloat(item.carton_length_cm) : null,
+      carton_width_cm: item.carton_width_cm ? parseFloat(item.carton_width_cm) : null,
+      carton_height_cm: item.carton_height_cm ? parseFloat(item.carton_height_cm) : null,
+      cbm_per_carton: item.cbm_per_carton ? parseFloat(item.cbm_per_carton) : null,
+      dimensions_text: item.dimensions || null,
+      extracted_confidence: item.priceConfidence || null,
+      linked_product_id: item.linkedProductId || null,
+    }));
+
+    const { data: lineItemsData, error: lineItemsError } = await supabase
+      .from('quote_line_items')
+      .insert(lineItemsToInsert)
+      .select();
+
+    if (lineItemsError) throw lineItemsError;
+
+    console.log(`✅ [AppContext] Saved supplier quote with ${lineItemsData.length} line items`);
+
+    return {
+      ...quoteData,
+      lineItems: lineItemsData,
+    };
   };
 
   // Fee actions
@@ -536,6 +605,7 @@ export function AppProvider({ children }) {
     actions: {
       addProduct, updateProduct, deleteProduct,
       addQuote, updateQuote, deleteQuote,
+      addSupplierQuote, // NEW: Multi-item quote support
       addSupplier, updateSupplier, deleteSupplier,
       addOrder, updateOrder, deleteOrder,
       addDocument, updateDocument, deleteDocument,
@@ -544,7 +614,7 @@ export function AppProvider({ children }) {
       refreshData: fetchAllData,
       clearAllSeedData,
     },
-    computed: { 
+    computed: {
       getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
       calculateLandedCost,
     },
