@@ -155,15 +155,15 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
           matchBreakdown: null,
         };
 
-        // AUTO-MATCH to Buying Intent
+        // Find suggested Buying Intent match (but don't auto-apply)
         if (buyingIntents && buyingIntents.length > 0) {
           const bestMatch = findBestMatch(lineItemData, buyingIntents);
           if (bestMatch) {
-            lineItemData.linkedBuyingIntentId = bestMatch.intent.id;
+            // Store as SUGGESTION only, never auto-apply
+            lineItemData.suggestedBuyingIntentId = bestMatch.intent.id;
             lineItemData.matchConfidence = bestMatch.matchResult.confidence;
             lineItemData.matchConfidenceLevel = bestMatch.matchResult.confidenceLevel;
             lineItemData.matchBreakdown = bestMatch.matchResult.breakdown;
-            lineItemData.autoMatched = bestMatch.matchResult.autoSelect;
           }
         }
 

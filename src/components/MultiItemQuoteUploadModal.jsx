@@ -22,29 +22,29 @@ import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
 
 const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
-// Confidence Badge Component - Trust-First
-function ConfidenceBadge({ level, confidence, isLocked }) {
+// Confidence Badge Component - Suggestions Only
+function ConfidenceBadge({ level, confidence }) {
   const badges = {
     high: {
-      label: isLocked ? 'Auto-confirmed' : 'Confident Match',
-      icon: isLocked ? Lock : CheckCircle,
-      bg: '#dcfce7',
-      text: '#15803d',
-      border: '#86efac',
+      label: 'Strong Suggestion',
+      icon: Info,
+      bg: '#eff6ff',
+      text: '#1e40af',
+      border: '#bfdbfe',
     },
     medium: {
-      label: 'Likely Match',
+      label: 'Suggested',
       icon: Info,
       bg: '#fef3c7',
       text: '#a16207',
       border: '#fcd34d',
     },
     low: {
-      label: 'Review Required',
+      label: 'Weak Suggestion',
       icon: AlertCircle,
-      bg: '#fee2e2',
-      text: '#b91c1c',
-      border: '#fca5a5',
+      bg: '#f3f4f6',
+      text: '#6b7280',
+      border: '#d1d5db',
     },
   };
 
@@ -75,14 +75,14 @@ function ConfidenceBadge({ level, confidence, isLocked }) {
 function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, confidenceLevel, onClose }) {
   if (!buyingIntent || !matchBreakdown) return null;
 
-  // Trust-building message based on confidence
-  const getTrustMessage = () => {
+  // Match explanation (factual, not confident)
+  const getMatchExplanation = () => {
     if (confidenceLevel === 'high') {
-      return "✓ This product matches all physical specifications. Any differences are cosmetic only.";
+      return "Dimensions and weight match. Any other differences are labeling only.";
     } else if (confidenceLevel === 'medium') {
-      return "✓ This product matches all physical specifications. Any differences are cosmetic.";
+      return "Physical specs are similar. Review the breakdown below to confirm.";
     } else {
-      return "This match has lower confidence. Please verify the specifications match your requirements.";
+      return "Some specs differ. Check the breakdown before accepting this suggestion.";
     }
   };
 
@@ -92,8 +92,8 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
         <div style={{ padding: '16px', fontSize: '0.85rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <div>
-              <div style={{ fontWeight: 600, marginBottom: '4px' }}>
-                Matched to: {buyingIntent.name}
+              <div style={{ fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+                Suggested: {buyingIntent.name}
               </div>
               {buyingIntent.category && (
                 <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
@@ -103,13 +103,13 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
               <div style={{
                 marginTop: '8px',
                 padding: '8px 12px',
-                background: confidenceLevel === 'high' ? '#dcfce7' : confidenceLevel === 'medium' ? '#fef3c7' : '#fee2e2',
-                borderLeft: `3px solid ${confidenceLevel === 'high' ? '#15803d' : confidenceLevel === 'medium' ? '#a16207' : '#b91c1c'}`,
+                background: '#f3f4f6',
+                borderLeft: '3px solid #9ca3af',
                 borderRadius: '4px',
                 fontSize: '0.8rem',
-                color: '#1f2937',
+                color: '#374151',
               }}>
-                {getTrustMessage()}
+                {getMatchExplanation()}
               </div>
             </div>
             <button
@@ -140,17 +140,17 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
               Match Breakdown
             </div>
 
-            {/* Physical Match Section */}
+            {/* Physical Specs Section */}
             <div style={{ marginBottom: '16px' }}>
               <div style={{
                 fontSize: '0.7rem',
                 fontWeight: 600,
                 marginBottom: '6px',
-                color: '#15803d',
+                color: '#374151',
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
               }}>
-                ✓ Physical Match
+                Physical Specifications
               </div>
               <div style={{ display: 'grid', gap: '8px' }}>
                 {['dimensions', 'weight'].map(key => {
@@ -207,17 +207,17 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
               </div>
             </div>
 
-            {/* Non-Critical Differences Section */}
+            {/* Other Attributes Section */}
             <div>
               <div style={{
                 fontSize: '0.7rem',
                 fontWeight: 600,
                 marginBottom: '6px',
-                color: '#a16207',
+                color: '#374151',
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
               }}>
-                ⚠️ Non-Critical Differences
+                Material & Naming
               </div>
               <div style={{ display: 'grid', gap: '8px' }}>
                 {['material', 'name'].map(key => {
@@ -403,18 +403,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }
   };
 
-  // Count matches by confidence level
-  const matchStats = {
-    high: editableLineItems.filter(i => i.matchConfidenceLevel === 'high').length,
-    medium: editableLineItems.filter(i => i.matchConfidenceLevel === 'medium').length,
-    low: editableLineItems.filter(i => i.matchConfidenceLevel === 'low').length,
-    total: editableLineItems.filter(i => i.linkedBuyingIntentId).length,
+  // Count suggestions and selections
+  const suggestionStats = {
+    high: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'high').length,
+    medium: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'medium').length,
+    low: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'low').length,
+    totalSuggestions: editableLineItems.filter(i => i.suggestedBuyingIntentId).length,
+    totalSelected: editableLineItems.filter(i => i.linkedBuyingIntentId).length,
   };
-
-  const needsReview = matchStats.medium + matchStats.low;
-  const hasLockedItems = editableLineItems.some(item =>
-    item.matchConfidenceLevel === 'high' && item.autoMatched
-  );
 
   // ============================================
   // RENDER
@@ -605,16 +601,12 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                       <tbody>
                         {editableLineItems.map((item, index) => {
                           const selectedIntent = products.find(p => p.id === item.linkedBuyingIntentId);
+                          const suggestedIntent = products.find(p => p.id === item.suggestedBuyingIntentId);
                           const showDetails = expandedMatchDetails[index];
-                          const isHighConfidence = item.matchConfidenceLevel === 'high';
-                          const isLocked = isHighConfidence && item.autoMatched;
 
                           return (
                             <React.Fragment key={item.id}>
-                              <tr style={{
-                                ...styles.tr,
-                                background: isLocked ? '#f0fdf4' : 'white',
-                              }}>
+                              <tr style={styles.tr}>
                                 <td style={styles.td}>
                                   <input
                                     type="text"
@@ -667,51 +659,63 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                   />
                                 </td>
                                 <td style={styles.td}>
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                    {isLocked ? (
-                                      // High confidence - locked and auto-confirmed
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                    {/* Suggestion with Apply button (if available) */}
+                                    {suggestedIntent && !selectedIntent && (
                                       <div style={{
                                         display: 'flex',
                                         alignItems: 'center',
+                                        gap: '6px',
                                         padding: '6px 8px',
-                                        background: '#dcfce7',
-                                        border: '1px solid #86efac',
+                                        background: '#f9fafb',
+                                        border: '1px solid #e5e7eb',
                                         borderRadius: '4px',
-                                        fontSize: '0.8rem',
-                                        fontWeight: 500,
-                                        color: '#15803d',
                                       }}>
-                                        <Lock size={14} style={{ marginRight: '6px' }} />
-                                        {selectedIntent?.name || 'Matched'}
+                                        <span style={{ fontSize: '0.75rem', color: '#64748b', flex: 1 }}>
+                                          Suggested: {suggestedIntent.name}
+                                        </span>
+                                        <button
+                                          onClick={() => handleBuyingIntentChange(index, suggestedIntent.id)}
+                                          style={{
+                                            padding: '4px 8px',
+                                            fontSize: '0.7rem',
+                                            background: '#3b82f6',
+                                            color: 'white',
+                                            border: 'none',
+                                            borderRadius: '3px',
+                                            cursor: 'pointer',
+                                            fontWeight: 500,
+                                          }}
+                                          title="Apply this suggestion"
+                                        >
+                                          Apply
+                                        </button>
                                       </div>
-                                    ) : (
-                                      // Medium/Low confidence - editable dropdown
-                                      <select
-                                        value={item.linkedBuyingIntentId || ''}
-                                        onChange={(e) => handleBuyingIntentChange(index, e.target.value)}
-                                        style={{
-                                          ...styles.tableInput,
-                                          width: '200px',
-                                          background: item.matchConfidenceLevel === 'medium' ? '#fef3c7' : 'white',
-                                          borderColor: item.matchConfidenceLevel === 'medium' ? '#fcd34d' : '#e5e7eb',
-                                        }}
-                                      >
-                                        <option value="">-- Select --</option>
-                                        {products.map(product => (
-                                          <option key={product.id} value={product.id}>
-                                            {product.name}
-                                          </option>
-                                        ))}
-                                      </select>
                                     )}
 
-                                    {/* Confidence Badge + Details Toggle */}
-                                    {item.matchConfidence && (
+                                    {/* Always-editable dropdown */}
+                                    <select
+                                      value={item.linkedBuyingIntentId || ''}
+                                      onChange={(e) => handleBuyingIntentChange(index, e.target.value)}
+                                      style={{
+                                        ...styles.tableInput,
+                                        width: '100%',
+                                      }}
+                                    >
+                                      <option value="">-- Select Buying Intent --</option>
+                                      {products.map(product => (
+                                        <option key={product.id} value={product.id}>
+                                          {product.name}
+                                        </option>
+                                      ))}
+                                    </select>
+
+                                    {/* Suggestion badge + Details button */}
+                                    {suggestedIntent && (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                         <ConfidenceBadge
                                           level={item.matchConfidenceLevel}
                                           confidence={item.matchConfidence}
-                                          isLocked={isLocked}
                                         />
                                         <button
                                           onClick={() => toggleMatchDetails(index)}
@@ -727,10 +731,10 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                             fontSize: '0.75rem',
                                             color: '#64748b',
                                           }}
-                                          title={showDetails ? "Hide details" : "Show match details"}
+                                          title={showDetails ? "Hide details" : "Why suggested?"}
                                         >
                                           {showDetails ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                                          <span>Details</span>
+                                          <span>Why?</span>
                                         </button>
                                       </div>
                                     )}
@@ -748,10 +752,10 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                               </tr>
 
                               {/* Inline Match Details */}
-                              {showDetails && (
+                              {showDetails && suggestedIntent && (
                                 <InlineMatchDetails
                                   item={item}
-                                  buyingIntent={selectedIntent}
+                                  buyingIntent={suggestedIntent}
                                   matchBreakdown={item.matchBreakdown}
                                   confidence={item.matchConfidence}
                                   confidenceLevel={item.matchConfidenceLevel}
@@ -767,44 +771,36 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                 )}
               </div>
 
-              {/* Auto-Match Summary - Directive */}
-              {editableLineItems.length > 0 && matchStats.total > 0 && (
+              {/* Suggestion Summary - Informational */}
+              {editableLineItems.length > 0 && suggestionStats.totalSuggestions > 0 && (
                 <div style={{
-                  background: matchStats.high > 0 ? '#dcfce7' : '#fef3c7',
-                  border: `1px solid ${matchStats.high > 0 ? '#86efac' : '#fcd34d'}`,
+                  background: '#f9fafb',
+                  border: '1px solid #e5e7eb',
                   borderRadius: '8px',
                   padding: '14px 18px',
-                  fontSize: '0.9rem',
+                  fontSize: '0.85rem',
                   marginTop: '16px',
                 }}>
                   <div style={{
-                    fontWeight: 600,
+                    fontWeight: 500,
                     marginBottom: '6px',
-                    color: matchStats.high > 0 ? '#15803d' : '#a16207',
+                    color: '#374151',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
                   }}>
-                    <CheckCircle size={18} />
-                    {matchStats.high > 0 ? (
-                      <span>
-                        {matchStats.high} {matchStats.high === 1 ? 'item' : 'items'} confidently matched.
-                        {needsReview > 0 ? ` Review ${needsReview} flagged ${needsReview === 1 ? 'item' : 'items'} below.` : ' No review needed.'}
-                      </span>
-                    ) : (
-                      <span>
-                        {matchStats.total} {matchStats.total === 1 ? 'item' : 'items'} matched.
-                        Review suggested matches below.
-                      </span>
-                    )}
+                    <Info size={16} />
+                    <span>
+                      Found {suggestionStats.totalSuggestions} possible {suggestionStats.totalSuggestions === 1 ? 'match' : 'matches'}.
+                      {suggestionStats.totalSelected > 0 && ` ${suggestionStats.totalSelected} selected.`}
+                    </span>
                   </div>
                   <div style={{
-                    fontSize: '0.8rem',
-                    color: matchStats.high > 0 ? '#166534' : '#92400e',
+                    fontSize: '0.75rem',
+                    color: '#6b7280',
                     marginTop: '4px',
                   }}>
-                    {hasLockedItems && '🔒 Auto-confirmed items are locked. '}
-                    Click "Details" on any item to see match breakdown.
+                    Click "Why?" to see how each suggestion was calculated. Apply suggestions manually or select from the dropdown.
                   </div>
                 </div>
               )}
