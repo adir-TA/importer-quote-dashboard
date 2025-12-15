@@ -77,52 +77,66 @@ CRITICAL RULES - NEVER BREAK THESE:
 PRICE EXTRACTION RULES (MOST CRITICAL):
 ═══════════════════════════════════════════════════════════════
 
-A. STRICT COLUMN HEADER SEMANTICS (NON-NEGOTIABLE):
+DECISION TREE FOR PRICE EXTRACTION:
 
-   unitPrice may ONLY come from columns with headers containing:
+STEP 1: IDENTIFY PRICE COLUMNS (HIGHEST PRIORITY)
+
+   Look for columns with headers containing ANY of these keywords:
    ✓ "Unit Price"
    ✓ "Price"
-   ✓ "USD / PC"
-   ✓ "/ PC"
+   ✓ "USD" (when paired with /PC or /piece)
+   ✓ "/ PC" or "/PC"
    ✓ "Price/PC"
    ✓ "Unit Cost"
+   ✓ "Cost"
 
-   EXPLICITLY EXCLUDE columns containing:
+   If ANY of these columns exist → Extract unitPrice ONLY from those columns.
+   Ignore all other numeric columns.
+
+STEP 2: HARD EXCLUSIONS (NEVER EXTRACT FROM THESE)
+
+   NEVER extract unitPrice from columns containing:
    ✗ "CBM"
-   ✗ "Meas"
+   ✗ "Meas" or "Measurement"
    ✗ "Volume"
    ✗ "Carton Size"
    ✗ "Cube"
-   ✗ "Measurement"
+   ✗ "M³" or "m3"
+   ✗ "Dimension"
 
-   IF a numeric value is under a CBM/Meas/Volume column:
-   → Store it as "cbm", NEVER as "unitPrice"
-   → Set unitPrice to null
+   Even if no price column exists, NEVER use these columns for unitPrice.
+   These columns contain CBM/measurement data, not prices.
 
-B. PRICE SANITY VALIDATION:
+STEP 3: FALLBACK LOGIC (ONLY IF NO PRICE COLUMN EXISTS)
 
-   IF extracted unitPrice is in typical CBM range (0.01 - 0.5) AND
-   A CBM/Meas column exists in the same row:
+   If NO price column found in Step 1:
+   → Look for numeric values that make sense as per-piece prices
+   → Typical per-piece price range: $0.50 - $500
+   → Extract those values as unitPrice
+   → Set "priceConfidence": "medium" (not from labeled column)
+
+   BUT: Still exclude Step 2 columns (CBM/Meas/Volume)
+
+STEP 4: SANITY VALIDATION
+
+   After extraction, validate:
+
+   IF unitPrice < $0.60 AND a CBM/Meas column exists:
    → Set "priceConfidence": "low"
    → Set "priceEstimated": true
-   → Add note: "Value may be CBM, not price"
+   → This triggers a warning for user to verify
 
-   Typical price ranges by product:
-   - Consumer goods: $0.50 - $50
-   - Industrial parts: $1 - $500
-   - CBM values: 0.01 - 0.5
+STEP 5: PER-PIECE vs PER-CARTON
 
-C. ALWAYS distinguish "per piece" vs "per carton":
    - If doc says "USD 0.05 / PC" → unitPrice = 0.05
    - If doc says "USD 5.00 / CTN" → unitPrice = null (not per piece)
-   - If doc shows BOTH → extract the per-piece price ONLY
+   - If BOTH exist → extract per-piece price ONLY
 
-D. NEVER multiply or divide prices unless document explicitly shows calculation
-
-E. Use table ROW ALIGNMENT over visual proximity:
-   - Match price to SKU by same table row, NOT by proximity
-   - Column position determines field type (header is law)
-   - If header says "CBM", the column contains CBM data ONLY
+CRITICAL RULES:
+- NEVER multiply or divide prices
+- Use table ROW ALIGNMENT (match price to SKU by same row)
+- Column header determines field type (header is law)
+- If header says "CBM" or "Meas", that column is CBM data, period.
 
 ═══════════════════════════════════════════════════════════════
 PRODUCT NAME GENERATION:
