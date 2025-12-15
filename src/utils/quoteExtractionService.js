@@ -28,6 +28,9 @@ import {
  * NEVER returns fake data - only what's actually in the document
  */
 async function extractFromImage(file, apiKey) {
+  // UNIQUE LOG - Verify client code updated
+  console.log('🚀 [CLIENT v2025-12-15-v4] Extraction service loaded - Upgraded to Sonnet');
+
   if (!apiKey) {
     throw new Error('Anthropic API key required. Add it in Settings.');
   }

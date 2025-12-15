@@ -24,6 +24,9 @@ app.get('/api/health', (req, res) => {
 
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
+  // UNIQUE LOG - Verify server code updated
+  console.log('🔥 [EXTRACTION v2025-12-15-v4] Server code is ACTIVE - Using Claude 3.5 Sonnet');
+
   try {
     const { image, mediaType, apiKey } = req.body;
 
@@ -44,7 +47,7 @@ app.post('/api/extract-quote', async (req, res) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-haiku-20240307',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 4000,
         temperature: 0,
         messages: [
