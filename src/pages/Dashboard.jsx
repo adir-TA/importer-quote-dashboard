@@ -77,7 +77,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
               </span>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>Select a product...</span>
+            <span style={{ color: 'var(--text-muted)' }}>Select a buying intent...</span>
           )}
         </span>
         <ChevronDown size={18} className={`trigger-chevron ${isOpen ? 'open' : ''}`} />
@@ -90,7 +90,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search products..."
+              placeholder="Search buying intents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -103,7 +103,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
           </div>
           <div className="product-selector-options">
             {filteredProducts.length === 0 ? (
-              <div className="product-selector-empty">No products found</div>
+              <div className="product-selector-empty">No buying intents found</div>
             ) : (
               filteredProducts.map(product => (
                 <button
@@ -198,7 +198,7 @@ function Dashboard() {
   }, [selectedProductId, quotes]);
 
   const stats = [
-    { label: 'Products', value: products.length, icon: Package, color: '#7c5cfc', bgColor: 'rgba(124, 92, 252, 0.1)' },
+    { label: 'Buying Intents', value: products.length, icon: Package, color: '#7c5cfc', bgColor: 'rgba(124, 92, 252, 0.1)' },
     { label: 'Quotes', value: quotes.length, icon: FileText, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' },
     { label: 'Fees Configured', value: fees.length, icon: Calculator, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)' },
   ];
@@ -221,12 +221,12 @@ function Dashboard() {
             <div className="hero-icon">📦</div>
             <div className="hero-text">
               <h3>Start Finding the Best Quote</h3>
-              <p>Add your product, collect supplier quotes, and compare landed costs</p>
+              <p>Define what you want to buy, collect supplier quotes, and compare landed costs</p>
             </div>
           </div>
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/products')}>
             <Plus size={18} />
-            Add Product & Quotes
+            Add Buying Intent
           </button>
         </div>
 
@@ -235,8 +235,8 @@ function Dashboard() {
           <div className="workflow-step" onClick={() => navigate('/products')}>
             <div className="step-number">1</div>
             <div className="step-content">
-              <h4>Products</h4>
-              <p>Add products you want to import</p>
+              <h4>Buying Intents</h4>
+              <p>Define what you want to buy</p>
             </div>
             <ArrowRight size={16} className="step-arrow" />
           </div>
@@ -244,7 +244,7 @@ function Dashboard() {
             <div className="step-number">2</div>
             <div className="step-content">
               <h4>Quotes</h4>
-              <p>Add supplier quotes for each product</p>
+              <p>Upload supplier quotes for each intent</p>
             </div>
             <ArrowRight size={16} className="step-arrow" />
           </div>
@@ -297,9 +297,9 @@ function Dashboard() {
               color: 'var(--text-muted)', 
               textTransform: 'uppercase', 
               letterSpacing: '0.05em',
-              marginBottom: '8px' 
+              marginBottom: '8px'
             }}>
-              Select Product
+              Select Buying Intent
             </label>
             <ProductSelector
               products={products}
@@ -369,7 +369,7 @@ function Dashboard() {
               borderRadius: 'var(--radius-md)'
             }}>
               <Package size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>Select a product above to see best landed cost</p>
+              <p style={{ margin: 0 }}>Select a buying intent above to see best landed cost</p>
             </div>
           )}
         </div>
@@ -378,7 +378,7 @@ function Dashboard() {
         <div className="quick-actions-grid">
           <button className="quick-action-card" onClick={() => navigate('/products')}>
             <Package size={24} />
-            <span>Manage Products</span>
+            <span>Buying Intents</span>
           </button>
           <button className="quick-action-card" onClick={() => navigate('/landed-cost')}>
             <Calculator size={24} />

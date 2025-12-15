@@ -96,9 +96,9 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
   const productsWithCounts = useMemo(() => {
     return products.map(product => ({
       ...product,
-      quoteCount: quotes.filter(q => q.product_id === product.id).length,
+      quoteCount: 0, // Will be updated when we load line items
     }));
-  }, [products, quotes]);
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm.trim()) return productsWithCounts;
@@ -125,7 +125,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
               </span>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>Select a product to compare...</span>
+            <span style={{ color: 'var(--text-muted)' }}>Select a buying intent to compare...</span>
           )}
         </span>
         <ChevronDown size={18} className={`trigger-chevron ${isOpen ? 'open' : ''}`} />
@@ -138,7 +138,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search products..."
+              placeholder="Search buying intents..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
@@ -151,7 +151,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
           </div>
           <div className="product-selector-options">
             {filteredProducts.length === 0 ? (
-              <div className="product-selector-empty">No products found</div>
+              <div className="product-selector-empty">No buying intents found</div>
             ) : (
               filteredProducts.map(product => (
                 <button
@@ -264,8 +264,9 @@ function calculateLandedCost(quote, fees) {
 // ============================================
 function QuoteComparison() {
   const navigate = useNavigate();
-  const { state } = useAppContext();
-  const { quotes, products, fees } = state;
+  const { state, computed } = useAppContext();
+  const { products, fees } = state;
+  const [lineItems, setLineItems] = React.useState([]);
 
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedSupplierId, setSelectedSupplierId] = useState(null);
@@ -274,45 +275,69 @@ function QuoteComparison() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState('');
 
+  // Load line items when product changes
+  React.useEffect(() => {
+    const loadLineItems = async () => {
+      if (!selectedProductId) {
+        setLineItems([]);
+        return;
+      }
+      const items = await computed.getLineItemsForBuyingIntent(selectedProductId);
+      setLineItems(items);
+    };
+    loadLineItems();
+  }, [selectedProductId, computed]);
+
   // Selected product
   const selectedProduct = useMemo(() => {
     return products.find(p => p.id === selectedProductId);
   }, [products, selectedProductId]);
 
   // ============================================
-  // CALCULATE LANDED COSTS FOR ALL PRODUCT QUOTES
+  // CALCULATE LANDED COSTS FOR ALL LINE ITEMS
   // ============================================
   const quotesWithLanded = useMemo(() => {
-    if (!selectedProductId) return [];
-    
-    // Filter quotes by selected product ONLY
-    const productQuotes = quotes.filter(q => q.product_id === selectedProductId);
-    
-    // Calculate landed cost for each quote
-    const calculated = productQuotes.map(quote => {
-      const calc = calculateLandedCost(quote, fees);
+    if (!selectedProductId || lineItems.length === 0) return [];
+
+    // Transform line items to quote format for landed cost calculation
+    const calculated = lineItems.map(item => {
+      const quoteFormat = {
+        id: item.id,
+        supplierName: item.supplierName || item.supplier?.supplier_name,
+        unitPrice: item.unit_price,
+        currency: item.currency || 'USD',
+        moq: item.moq || 1,
+        incoterm: item.incoterm || 'FOB',
+      };
+      const calc = calculateLandedCost(quoteFormat, fees);
       return {
-        ...quote,
+        ...item,
         ...calc,
-        supplierName: quote.supplierName,
-        incoterm: quote.incoterm || 'FOB',
+        supplierName: quoteFormat.supplierName,
+        incoterm: quoteFormat.incoterm,
+        unitPrice: item.unit_price,
       };
     });
-    
+
     // Filter out invalid quotes and sort by landed_per_unit (lowest first = best)
     return calculated
       .filter(q => q.isValid)
       .sort((a, b) => a.landed_per_unit - b.landed_per_unit);
-  }, [quotes, selectedProductId, fees]);
+  }, [lineItems, selectedProductId, fees]);
 
   // Invalid quotes (for warning)
   const invalidQuotes = useMemo(() => {
-    if (!selectedProductId) return [];
-    const productQuotes = quotes.filter(q => q.product_id === selectedProductId);
-    return productQuotes
-      .map(quote => ({ ...quote, ...calculateLandedCost(quote, fees) }))
+    if (!selectedProductId || lineItems.length === 0) return [];
+    return lineItems
+      .map(item => {
+        const quoteFormat = {
+          unitPrice: item.unit_price,
+          moq: item.moq || 1,
+        };
+        return { ...item, ...calculateLandedCost(quoteFormat, fees) };
+      })
       .filter(q => !q.isValid);
-  }, [quotes, selectedProductId, fees]);
+  }, [lineItems, selectedProductId, fees]);
 
   // Best quote = lowest landed_per_unit
   const bestQuote = quotesWithLanded[0];
@@ -382,9 +407,9 @@ function QuoteComparison() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2>Compare Quotes</h2>
+            <h2>Item-Level Comparison</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
-              Compare suppliers and select the best landed cost for your business
+              Compare suppliers for one buying intent and select the best landed cost
             </p>
           </div>
         </div>
@@ -413,20 +438,20 @@ function QuoteComparison() {
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-header">
             <span className="card-title">
-              <Package size={18} /> Select Product to Compare
+              <Package size={18} /> Select Buying Intent to Compare
             </span>
           </div>
           <div className="card-body">
             <ProductSelector
               products={products}
-              quotes={quotes}
+              quotes={[]}
               selectedProductId={selectedProductId}
               onSelect={handleProductChange}
             />
             {!selectedProductId && (
               <div className="info-message" style={{ marginTop: '12px' }}>
                 <AlertCircle size={16} />
-                <span>Select a product to compare its supplier quotes</span>
+                <span>Select a buying intent to compare supplier quotes</span>
               </div>
             )}
           </div>
@@ -701,8 +726,8 @@ function QuoteComparison() {
           <div className="disabled-overlay">
             <div className="disabled-content">
               <Package size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
-              <h3>Select a Product to Compare</h3>
-              <p>Choose a product above to see and compare its quotes.</p>
+              <h3>Select a Buying Intent to Compare</h3>
+              <p>Choose a buying intent above to see and compare supplier quotes.</p>
             </div>
           </div>
         )}

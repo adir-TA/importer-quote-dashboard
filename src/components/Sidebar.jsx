@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Package,
   GitCompare,
+  TrendingDown,
   Calculator,
   Settings,
   LogOut,
@@ -28,8 +29,9 @@ function Sidebar() {
   const navItems = [
     { section: 'Workflow', items: [
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/products', icon: Package, label: 'Products' },
-      { path: '/comparison', icon: GitCompare, label: 'Compare Quotes' },
+      { path: '/products', icon: Package, label: 'Buying Intents' },
+      { path: '/comparison', icon: GitCompare, label: 'Item-Level' },
+      { path: '/portfolio', icon: TrendingDown, label: 'Portfolio' },
       { path: '/landed-cost', icon: Calculator, label: 'Landed Cost' },
     ]},
     { section: 'System', items: [

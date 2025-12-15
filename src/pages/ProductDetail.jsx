@@ -135,9 +135,9 @@ function ProductDetail() {
       <div className="page">
         <div className="content">
           <div className="empty-state">
-            <h3>Product not found</h3>
+            <h3>Buying Intent not found</h3>
             <button className="btn btn-primary" onClick={() => navigate('/products')}>
-              Back to Products
+              Back to Buying Intents
             </button>
           </div>
         </div>
@@ -164,7 +164,7 @@ function ProductDetail() {
         <div className="header-actions">
           {(quotes.length + lineItems.length) >= 2 && (
             <button className="btn btn-secondary" onClick={handleCompare}>
-              Compare All Quotes
+              Item-Level Comparison
             </button>
           )}
           <button className="btn btn-secondary" onClick={() => setIsUploadModalOpen(true)}>
@@ -187,12 +187,12 @@ function ProductDetail() {
           </div>
         )}
 
-        {/* Quotes List */}
+        {/* Quotes for this Buying Intent */}
         <div className="card">
           <div className="card-header">
             <span className="card-title">
               <FileText size={18} style={{ marginRight: '8px' }} />
-              Supplier Quotes ({quotes.length + lineItems.length})
+              Supplier Quotes for this Intent ({quotes.length + lineItems.length})
             </span>
           </div>
           <div className="card-body" style={{ padding: 0 }}>
@@ -276,7 +276,7 @@ function ProductDetail() {
                         <td style={{ fontWeight: 500 }}>
                           {item.supplierName}
                           <div style={{ fontSize: '0.85rem', color: '#059669', marginTop: '2px' }}>
-                            {item.product_name}
+                            {item.raw_item_name}
                           </div>
                         </td>
                         <td>
@@ -302,7 +302,7 @@ function ProductDetail() {
         </div>
 
         {/* Quick Action */}
-        {quotes.length >= 2 && (
+        {(quotes.length + lineItems.length) >= 2 && (
           <div
             className="card"
             style={{
@@ -314,10 +314,10 @@ function ProductDetail() {
             <div className="card-body" style={{ textAlign: 'center', padding: '24px' }}>
               <h3 style={{ marginBottom: '8px' }}>Ready to Compare?</h3>
               <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                You have {quotes.length} quotes. See which supplier offers the best landed cost.
+                You have {quotes.length + lineItems.length} quotes for this intent. See which supplier offers the best landed cost.
               </p>
               <button className="btn btn-primary" onClick={handleCompare}>
-                Compare Landed Costs
+                Item-Level Comparison
               </button>
             </div>
           </div>

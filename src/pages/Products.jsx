@@ -39,7 +39,7 @@ function Products() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) { alert('Please enter a product name'); return; }
+    if (!formData.name.trim()) { alert('Please enter a buying intent name'); return; }
     try {
       if (editingProduct) {
         await actions.updateProduct({ ...editingProduct, ...formData });
@@ -53,16 +53,16 @@ function Products() {
       }
       handleCloseModal();
     } catch (error) {
-      console.error('Error saving product:', error);
-      alert('Error saving product');
+      console.error('Error saving buying intent:', error);
+      alert('Error saving buying intent');
     }
   };
 
   const handleDelete = async (productId) => {
     const quoteCount = computed.getProductQuotes(productId).length;
     const confirmed = await confirm({
-      title: 'Delete Product',
-      message: `Are you sure you want to delete this product${quoteCount > 0 ? ` and its ${quoteCount} quotes` : ''}?`,
+      title: 'Delete Buying Intent',
+      message: `Are you sure you want to delete this buying intent${quoteCount > 0 ? ` and its ${quoteCount} linked quotes` : ''}?`,
       type: 'danger',
       confirmText: 'Delete'
     });
@@ -72,25 +72,25 @@ function Products() {
   return (
     <div className="page">
       <div className="header">
-        <h2>Products</h2>
+        <h2>Buying Intents</h2>
         <div className="header-actions">
           <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-            <Plus size={16} /> Add Product
+            <Plus size={16} /> New Buying Intent
           </button>
         </div>
       </div>
 
       <div className="content">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search products..." />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
 
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Package size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-            <h3>{search ? 'No products match your search' : 'No products yet'}</h3>
-            <p>{search ? 'Try a different search term' : 'Add your first product to get started'}</p>
+            <h3>{search ? 'No buying intents match your search' : 'No buying intents yet'}</h3>
+            <p>{search ? 'Try a different search term' : 'Define what you want to buy to start comparing quotes'}</p>
             {!search && (
               <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => handleOpenModal()}>
-                <Plus size={16} /> Add Product
+                <Plus size={16} /> New Buying Intent
               </button>
             )}
           </div>
@@ -114,24 +114,24 @@ function Products() {
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
-              <span className="modal-title">📦 {editingProduct ? 'Edit Product' : 'New Product'}</span>
+              <span className="modal-title">🎯 {editingProduct ? 'Edit Buying Intent' : 'New Buying Intent'}</span>
               <button className="icon-btn" onClick={handleCloseModal}><X size={20} /></button>
             </div>
             <div className="modal-body">
               <div className="form-section">
-                <div className="form-section-title"><Package size={18} color="var(--accent)" /> Product Details</div>
+                <div className="form-section-title"><Package size={18} color="var(--accent)" /> What You Want to Buy</div>
                 <div className="form-group">
-                  <label className="form-label">Product Name *</label>
-                  <input type="text" className="form-input" placeholder="e.g., Aluminum Tray 450ml" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                  <p className="form-hint">Enter a clear, descriptive name for easy identification</p>
+                  <label className="form-label">Intent Name *</label>
+                  <input type="text" className="form-input" placeholder="e.g., Aluminum Container 225×175×42mm" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+                  <p className="form-hint">Describe what you're trying to buy (independent of suppliers)</p>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Category</label>
-                  <input type="text" className="form-input" placeholder="e.g., Packaging, Electronics" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+                  <input type="text" className="form-input" placeholder="e.g., Aluminum, Plastic, Packaging" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Description</label>
-                  <textarea className="form-input" rows={3} placeholder="Specifications, requirements..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                  <label className="form-label">Target Specifications</label>
+                  <textarea className="form-input" rows={3} placeholder="Dimensions, material, target price range, quality requirements..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
                 </div>
               </div>
             </div>
