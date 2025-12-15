@@ -172,6 +172,33 @@ For unitPrice and moq, add confidence scores:
 "low" = ambiguous, unclear, conflicting, or sanity-flagged
 
 ═══════════════════════════════════════════════════════════════
+LOGISTICS FIELDS (CRITICAL FOR LANDED COST):
+═══════════════════════════════════════════════════════════════
+
+Extract these fields for EACH line item (required for landed cost calculation):
+
+1. weight_g: Product weight in grams (number only)
+   - "50g" → 50
+   - "0.05kg" → 50
+   - "Weight: 100g" → 100
+
+2. packing_pcs_per_ctn: How many pieces per carton (number only)
+   - "600 pcs/ctn" → 600
+   - "Packing: 1000pcs/carton" → 1000
+
+3. Carton dimensions (numbers only, in cm):
+   - carton_length_cm: "45×35×30cm" → 45
+   - carton_width_cm: "45×35×30cm" → 35
+   - carton_height_cm: "45×35×30cm" → 30
+
+4. cbm_per_carton: CBM value (number only)
+   - "Meas: 0.077" → 0.077
+   - "CBM: 0.104" → 0.104
+
+If logistics fields are in separate columns, extract them all.
+If not found → set to null (do NOT guess).
+
+═══════════════════════════════════════════════════════════════
 JSON STRUCTURE (return ONLY this, no markdown):
 ═══════════════════════════════════════════════════════════════
 
@@ -181,7 +208,8 @@ JSON STRUCTURE (return ONLY this, no markdown):
   "supplierEmail": "email" or null,
   "currency": "USD" or "EUR" or "CNY" etc. or null,
   "incoterm": "FOB Shanghai" or "CIF LA" etc. or null,
-  "validUntil": "date" or null,
+  "quoteDate": "YYYY-MM-DD" or null,
+  "validUntil": "YYYY-MM-DD" or null,
   "paymentTerms": "exact terms" or null,
   "leadTime": "exact lead time" or null,
   "notes": "important notes" or null,
@@ -195,14 +223,18 @@ JSON STRUCTURE (return ONLY this, no markdown):
       "moq": 1000 (number only) or null,
       "moqConfidence": "high" or "medium" or "low",
       "quantity": 5000 or null,
-      "dimensions": "exact text" or null,
-      "packing": "packing desc" or null
+      "dimensions": "225×175×42mm" (exact text) or null,
+      "weight_g": 50 (grams, number only) or null,
+      "packing_pcs_per_ctn": 600 (number only) or null,
+      "carton_length_cm": 45.5 (cm, number only) or null,
+      "carton_width_cm": 35.0 (cm, number only) or null,
+      "carton_height_cm": 30.0 (cm, number only) or null,
+      "cbm_per_carton": 0.077 (number only) or null
     }
   ]
 }
 
-PRIORITY ORDER: SKU → unitPrice → currency → incoterm → MOQ
-Skip: weight, cartonSize, cbm (not MVP critical)
+PRIORITY: Extract ALL line items. Extract ALL logistics fields for landed cost.
 
 Return ONLY the JSON object, nothing else.`
               }

@@ -51,6 +51,16 @@
  * @property {ExtractedField<number>} moq
  * @property {ExtractedField<number>} quantity
  * @property {ExtractedField<string>} dimensions
+ *
+ * Logistics fields (CRITICAL for landed cost)
+ * @property {ExtractedField<number>} weight_g - Weight in grams
+ * @property {ExtractedField<number>} packing_pcs_per_ctn - Pieces per carton
+ * @property {ExtractedField<number>} carton_length_cm - Carton length in cm
+ * @property {ExtractedField<number>} carton_width_cm - Carton width in cm
+ * @property {ExtractedField<number>} carton_height_cm - Carton height in cm
+ * @property {ExtractedField<number>} cbm_per_carton - CBM per carton
+ *
+ * Legacy fields (deprecated)
  * @property {ExtractedField<string>} weight
  * @property {ExtractedField<string>} packing
  * @property {ExtractedField<string>} cartonSize
@@ -63,20 +73,23 @@
  * @property {boolean} success
  * @property {string} fileName
  * @property {string} fileType
- * 
+ *
+ * Document-level fields
  * @property {ExtractedField<string>} supplierName
  * @property {ExtractedField<string>} supplierContact
  * @property {ExtractedField<string>} supplierEmail
  * @property {ExtractedField<string>} currency
  * @property {ExtractedField<string>} incoterm
+ * @property {ExtractedField<string>} quoteDate
  * @property {ExtractedField<string>} validUntil
  * @property {ExtractedField<string>} paymentTerms
  * @property {ExtractedField<string>} leadTime
  * @property {ExtractedField<string>} notes
- * 
+ *
+ * Line-level fields
  * @property {ExtractedLineItem[]} lineItems
  * @property {boolean} hasMultipleItems
- * 
+ *
  * @property {Object} meta
  * @property {number} meta.fieldsFound
  * @property {number} meta.fieldsMissing

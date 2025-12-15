@@ -28,16 +28,45 @@ create table suppliers (
   created_at timestamp with time zone default now()
 );
 
--- Quotes table
-create table quotes (
+-- Supplier Quotes table (document-level)
+create table supplier_quotes (
   id uuid primary key default uuid_generate_v4(),
-  user_id uuid references auth.users(id) on delete cascade,
-  product_id uuid references products(id) on delete cascade,
-  supplier_id uuid references suppliers(id) on delete set null,
-  supplier_name text,
-  fields jsonb default '{}',
-  tags text[] default '{}',
+  user_id uuid references auth.users(id) on delete cascade not null,
+  supplier_name text not null,
+  supplier_contact text,
+  supplier_email text,
+  currency text default 'USD',
+  incoterm text,
+  quote_date date,
+  valid_until date,
+  payment_terms text,
+  lead_time text,
   notes text,
+  original_file_url text,
+  original_file_name text,
+  file_type text,
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now()
+);
+
+-- Quote Line Items table (line-level)
+create table quote_line_items (
+  id uuid primary key default uuid_generate_v4(),
+  supplier_quote_id uuid references supplier_quotes(id) on delete cascade not null,
+  product_name text not null,
+  sku text,
+  unit_price numeric not null,
+  price_unit text default 'per pc',
+  moq integer,
+  weight_g integer,
+  packing_pcs_per_ctn integer,
+  carton_length_cm numeric,
+  carton_width_cm numeric,
+  carton_height_cm numeric,
+  cbm_per_carton numeric,
+  dimensions_text text,
+  extracted_confidence text,
+  linked_product_id uuid references products(id) on delete set null,
   created_at timestamp with time zone default now()
 );
 
@@ -83,7 +112,8 @@ create table user_settings (
 
 alter table products enable row level security;
 alter table suppliers enable row level security;
-alter table quotes enable row level security;
+alter table supplier_quotes enable row level security;
+alter table quote_line_items enable row level security;
 alter table orders enable row level security;
 alter table documents enable row level security;
 alter table user_settings enable row level security;
@@ -100,11 +130,21 @@ create policy "Users can insert own suppliers" on suppliers for insert with chec
 create policy "Users can update own suppliers" on suppliers for update using (auth.uid() = user_id);
 create policy "Users can delete own suppliers" on suppliers for delete using (auth.uid() = user_id);
 
--- Quotes policies
-create policy "Users can view own quotes" on quotes for select using (auth.uid() = user_id);
-create policy "Users can insert own quotes" on quotes for insert with check (auth.uid() = user_id);
-create policy "Users can update own quotes" on quotes for update using (auth.uid() = user_id);
-create policy "Users can delete own quotes" on quotes for delete using (auth.uid() = user_id);
+-- Supplier Quotes policies
+create policy "Users can view own supplier quotes" on supplier_quotes for select using (auth.uid() = user_id);
+create policy "Users can insert own supplier quotes" on supplier_quotes for insert with check (auth.uid() = user_id);
+create policy "Users can update own supplier quotes" on supplier_quotes for update using (auth.uid() = user_id);
+create policy "Users can delete own supplier quotes" on supplier_quotes for delete using (auth.uid() = user_id);
+
+-- Quote Line Items policies (inherit permissions from parent quote)
+create policy "Users can view line items of own quotes" on quote_line_items for select
+  using (exists (select 1 from supplier_quotes where supplier_quotes.id = quote_line_items.supplier_quote_id and supplier_quotes.user_id = auth.uid()));
+create policy "Users can insert line items to own quotes" on quote_line_items for insert
+  with check (exists (select 1 from supplier_quotes where supplier_quotes.id = quote_line_items.supplier_quote_id and supplier_quotes.user_id = auth.uid()));
+create policy "Users can update line items of own quotes" on quote_line_items for update
+  using (exists (select 1 from supplier_quotes where supplier_quotes.id = quote_line_items.supplier_quote_id and supplier_quotes.user_id = auth.uid()));
+create policy "Users can delete line items of own quotes" on quote_line_items for delete
+  using (exists (select 1 from supplier_quotes where supplier_quotes.id = quote_line_items.supplier_quote_id and supplier_quotes.user_id = auth.uid()));
 
 -- Orders policies
 create policy "Users can view own orders" on orders for select using (auth.uid() = user_id);

@@ -105,6 +105,10 @@ function convertToExtractionResult(rawData) {
       ? extracted(rawData.incoterm, 'Terms section')
       : notFound(),
 
+    quoteDate: rawData.quoteDate !== null
+      ? extracted(rawData.quoteDate, 'Header')
+      : notFound(),
+
     validUntil: rawData.validUntil !== null
       ? extracted(rawData.validUntil, 'Header')
       : notFound(),
@@ -240,16 +244,40 @@ function convertToExtractionResult(rawData) {
           ? extracted(validatedItem.dimensions, `Row ${index + 1}`)
           : notFound(),
 
+        // ============================================
+        // LOGISTICS FIELDS (CRITICAL FOR LANDED COST)
+        // ============================================
+        weight_g: validatedItem.weight_g !== null
+          ? extracted(validatedItem.weight_g, `Row ${index + 1}`)
+          : notFound(),
+
+        packing_pcs_per_ctn: validatedItem.packing_pcs_per_ctn !== null
+          ? extracted(validatedItem.packing_pcs_per_ctn, `Row ${index + 1}`)
+          : notFound(),
+
+        carton_length_cm: validatedItem.carton_length_cm !== null
+          ? extracted(validatedItem.carton_length_cm, `Row ${index + 1}`)
+          : notFound(),
+
+        carton_width_cm: validatedItem.carton_width_cm !== null
+          ? extracted(validatedItem.carton_width_cm, `Row ${index + 1}`)
+          : notFound(),
+
+        carton_height_cm: validatedItem.carton_height_cm !== null
+          ? extracted(validatedItem.carton_height_cm, `Row ${index + 1}`)
+          : notFound(),
+
+        cbm_per_carton: validatedItem.cbm_per_carton !== null
+          ? extracted(validatedItem.cbm_per_carton, `Row ${index + 1}`)
+          : notFound(),
+
+        // Legacy fields (deprecated, kept for backwards compatibility)
         packing: validatedItem.packing !== null
           ? extracted(validatedItem.packing, `Row ${index + 1}`)
           : notFound(),
-
-        // Extract CBM for validation purposes (detect price/CBM confusion)
-        cbm: validatedItem.cbm !== null
-          ? extracted(validatedItem.cbm, `Row ${index + 1}`)
+        cbm: validatedItem.cbm_per_carton !== null || validatedItem.cbm !== null
+          ? extracted(validatedItem.cbm_per_carton || validatedItem.cbm, `Row ${index + 1}`)
           : notFound(),
-
-        // Skip weight, cartonSize (not MVP critical)
         weight: notFound(),
         cartonSize: notFound(),
       };
