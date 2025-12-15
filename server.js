@@ -61,82 +61,56 @@ app.post('/api/extract-quote', async (req, res) => {
               },
               {
                 type: 'text',
-                text: `You are a PRODUCTION quote extractor for real importers. Correctness matters MORE than completeness.
+                text: `CRITICAL: You are extracting supplier quotes. WRONG PRICES = BUSINESS FAILURE.
 
 ═══════════════════════════════════════════════════════════════
-CRITICAL RULES - NEVER BREAK THESE:
+EXAMPLE OF CORRECT VS WRONG EXTRACTION:
+═══════════════════════════════════════════════════════════════
+
+TYPICAL QUOTE TABLE:
+| Item No | Unit Price | Meas/CBM |
+| LS-323  | USD0.0389/PC | 0.077   |
+| LS-399  | USD0.0933/PC | 0.104   |
+
+✓ CORRECT: unitPrice = 0.0389 (from "Unit Price" column)
+✗ WRONG: unitPrice = 0.077 (this is CBM, NOT price!)
+
+RULE: Extract price from the column labeled "Price" or "Unit Price" or "/PC"
+NEVER extract from "CBM" or "Meas" columns (those are volume measurements)
+
+═══════════════════════════════════════════════════════════════
+EXTRACTION ALGORITHM:
+═══════════════════════════════════════════════════════════════
+
+FOR EACH ROW:
+
+1. Find the column with header containing: "Unit Price", "Price", "USD/PC", "/PC"
+2. Extract the numeric value from THAT column ONLY
+3. Ignore all other numeric columns (especially CBM/Meas/Volume)
+
+NEVER extract from columns with these headers:
+- "CBM"
+- "Meas"
+- "Measurement"
+- "Volume"
+- "M³"
+- "Carton Size"
+
+These columns contain measurements, NOT prices.
+
+IF you extract a value < 0.5:
+→ STOP and verify it came from a "Price" column, not a "CBM" column
+→ If from CBM column, set unitPrice = null instead
+
+═══════════════════════════════════════════════════════════════
+CRITICAL RULES:
 ═══════════════════════════════════════════════════════════════
 
 1. ONLY extract data that is EXPLICITLY VISIBLE
-2. NEVER guess, calculate, or infer ANY data
-3. If unclear → use null and set confidence to "low"
-4. Extract ALL table rows as separate line items
-5. NO rounding, NO unit conversions, NO calculations
-
-═══════════════════════════════════════════════════════════════
-PRICE EXTRACTION RULES (MOST CRITICAL):
-═══════════════════════════════════════════════════════════════
-
-DECISION TREE FOR PRICE EXTRACTION:
-
-STEP 1: IDENTIFY PRICE COLUMNS (HIGHEST PRIORITY)
-
-   Look for columns with headers containing ANY of these keywords:
-   ✓ "Unit Price"
-   ✓ "Price"
-   ✓ "USD" (when paired with /PC or /piece)
-   ✓ "/ PC" or "/PC"
-   ✓ "Price/PC"
-   ✓ "Unit Cost"
-   ✓ "Cost"
-
-   If ANY of these columns exist → Extract unitPrice ONLY from those columns.
-   Ignore all other numeric columns.
-
-STEP 2: HARD EXCLUSIONS (NEVER EXTRACT FROM THESE)
-
-   NEVER extract unitPrice from columns containing:
-   ✗ "CBM"
-   ✗ "Meas" or "Measurement"
-   ✗ "Volume"
-   ✗ "Carton Size"
-   ✗ "Cube"
-   ✗ "M³" or "m3"
-   ✗ "Dimension"
-
-   Even if no price column exists, NEVER use these columns for unitPrice.
-   These columns contain CBM/measurement data, not prices.
-
-STEP 3: FALLBACK LOGIC (ONLY IF NO PRICE COLUMN EXISTS)
-
-   If NO price column found in Step 1:
-   → Look for numeric values that make sense as per-piece prices
-   → Typical per-piece price range: $0.50 - $500
-   → Extract those values as unitPrice
-   → Set "priceConfidence": "medium" (not from labeled column)
-
-   BUT: Still exclude Step 2 columns (CBM/Meas/Volume)
-
-STEP 4: SANITY VALIDATION
-
-   After extraction, validate:
-
-   IF unitPrice < $0.60 AND a CBM/Meas column exists:
-   → Set "priceConfidence": "low"
-   → Set "priceEstimated": true
-   → This triggers a warning for user to verify
-
-STEP 5: PER-PIECE vs PER-CARTON
-
-   - If doc says "USD 0.05 / PC" → unitPrice = 0.05
-   - If doc says "USD 5.00 / CTN" → unitPrice = null (not per piece)
-   - If BOTH exist → extract per-piece price ONLY
-
-CRITICAL RULES:
-- NEVER multiply or divide prices
-- Use table ROW ALIGNMENT (match price to SKU by same row)
-- Column header determines field type (header is law)
-- If header says "CBM" or "Meas", that column is CBM data, period.
+2. NEVER guess or calculate
+3. Extract ALL table rows as separate line items
+4. NO rounding, NO unit conversions
+5. Column header determines field type (header is law)
 
 ═══════════════════════════════════════════════════════════════
 PRODUCT NAME GENERATION:
