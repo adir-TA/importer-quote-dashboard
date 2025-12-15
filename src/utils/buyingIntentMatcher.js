@@ -217,7 +217,7 @@ function compareMaterials(text1, text2) {
 /**
  * Calculate match confidence between a line item and a buying intent
  *
- * @param {Object} lineItem - Quote line item with raw_item_name, product_dimensions_text, weight_g
+ * @param {Object} lineItem - Quote line item with product_name/productName, dimensions_text/dimensions, weight_g
  * @param {Object} buyingIntent - Buying intent with name, description
  * @returns {Object} - { confidence: 0-100, breakdown: {}, autoSelect: boolean }
  */
@@ -271,7 +271,7 @@ export function calculateMatchConfidence(lineItem, buyingIntent) {
   }
 
   // 3. MATERIAL/CATEGORY (20% weight)
-  const lineItemText = (lineItem.raw_item_name || lineItem.productName || '') + ' ' + (lineItem.product_dimensions_text || '');
+  const lineItemText = (lineItem.product_name || lineItem.productName || '') + ' ' + (lineItem.dimensions_text || lineItem.dimensions || '');
   const intentText = buyingIntent.name + ' ' + (buyingIntent.description || '') + ' ' + (buyingIntent.category || '');
 
   const materialComparison = compareMaterials(lineItemText, intentText);
@@ -280,7 +280,7 @@ export function calculateMatchConfidence(lineItem, buyingIntent) {
 
   // 4. NAME SIMILARITY (15% weight)
   const nameSimilarity = stringSimilarity(
-    lineItem.raw_item_name || lineItem.productName || '',
+    lineItem.product_name || lineItem.productName || '',
     buyingIntent.name
   );
   breakdown.name.score = nameSimilarity;

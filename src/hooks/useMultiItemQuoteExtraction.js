@@ -139,7 +139,6 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
         const lineItemData = {
           id: item.id || `item-${index}`,
           productName: getValue(item.productName) || '',
-          raw_item_name: getValue(item.productName) || '',
           sku: getValue(item.sku) || '',
           unitPrice: getValue(item.unitPrice) !== null ? String(getValue(item.unitPrice)) : '',
           priceConfidence: item.unitPrice?.confidence || null,

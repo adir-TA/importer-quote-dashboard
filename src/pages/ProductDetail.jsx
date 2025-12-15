@@ -276,7 +276,7 @@ function ProductDetail() {
                         <td style={{ fontWeight: 500 }}>
                           {item.supplierName}
                           <div style={{ fontSize: '0.85rem', color: '#059669', marginTop: '2px' }}>
-                            {item.raw_item_name}
+                            {item.product_name}
                           </div>
                         </td>
                         <td>

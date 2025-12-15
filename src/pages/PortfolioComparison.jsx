@@ -386,7 +386,7 @@ function PortfolioComparison() {
                                   {metric.items.map(item => (
                                     <tr key={item.id}>
                                       <td style={{ fontWeight: 500 }}>{item.buyingIntentName}</td>
-                                      <td>{item.raw_item_name}</td>
+                                      <td>{item.product_name}</td>
                                       <td>{item.sku || '-'}</td>
                                       <td style={{ fontWeight: 600 }}>
                                         {item.currency || 'USD'} {parseFloat(item.unit_price).toFixed(2)}

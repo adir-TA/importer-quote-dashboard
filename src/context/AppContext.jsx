@@ -319,7 +319,7 @@ export function AppProvider({ children }) {
     // Step 2: Insert all line items with supplier_quote_id FK
     const lineItemsToInsert = lineItems.map(item => ({
       supplier_quote_id: quoteData.id,
-      raw_item_name: item.productName, // Exact name from supplier
+      product_name: item.productName, // Exact name from supplier
       sku: item.sku || null,
       dimensions_text: item.dimensions || null, // Raw dimensions string
       unit_price: parseFloat(item.unitPrice),
