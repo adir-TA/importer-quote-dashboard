@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
   X, Upload, FileText, Image, AlertCircle, CheckCircle, Loader,
-  Trash2, Plus, Info, ChevronDown, ChevronRight
+  Trash2, Plus, Info, ChevronDown, ChevronRight, Lock, Check
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
@@ -11,108 +11,189 @@ import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
 // MULTI-ITEM QUOTE UPLOAD MODAL
 // ============================================
 //
-// Features:
-// 1. Auto-matching line items to Buying Intents with confidence scoring
-// 2. Confidence badges (High/Medium/Low)
-// 3. Match preview/breakdown panel
-// 4. No auto-close dropdowns (only close on selection or Escape)
+// Trust-First UX Principles:
+// 1. Hide percentages - use human-readable labels
+// 2. Auto-lock high confidence (no dropdown)
+// 3. Trust-building copy in match details
+// 4. Inline expandable match details (not floating)
+// 5. Directive auto-match summary
+// 6. Dropdowns only close on selection or Escape
 // ============================================
 
 const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
-// Confidence Badge Component
-function ConfidenceBadge({ level, confidence }) {
-  const colors = {
-    high: { bg: '#dcfce7', text: '#15803d', border: '#86efac' },
-    medium: { bg: '#fef3c7', text: '#a16207', border: '#fcd34d' },
-    low: { bg: '#fee2e2', text: '#b91c1c', border: '#fca5a5' },
+// Confidence Badge Component - Trust-First
+function ConfidenceBadge({ level, confidence, isLocked }) {
+  const badges = {
+    high: {
+      label: isLocked ? 'Auto-confirmed' : 'Confident Match',
+      icon: isLocked ? Lock : CheckCircle,
+      bg: '#dcfce7',
+      text: '#15803d',
+      border: '#86efac',
+    },
+    medium: {
+      label: 'Likely Match',
+      icon: Info,
+      bg: '#fef3c7',
+      text: '#a16207',
+      border: '#fcd34d',
+    },
+    low: {
+      label: 'Review Required',
+      icon: AlertCircle,
+      bg: '#fee2e2',
+      text: '#b91c1c',
+      border: '#fca5a5',
+    },
   };
 
-  const color = colors[level] || colors.low;
-
-  return (
-    <span style={{
-      display: 'inline-block',
-      padding: '2px 8px',
-      fontSize: '0.75rem',
-      fontWeight: 600,
-      borderRadius: '4px',
-      background: color.bg,
-      color: color.text,
-      border: `1px solid ${color.border}`,
-      textTransform: 'uppercase',
-      marginLeft: '6px',
-    }}>
-      {level} ({confidence}%)
-    </span>
-  );
-}
-
-// Match Preview Panel Component
-function MatchPreviewPanel({ item, buyingIntent, matchBreakdown, onClose }) {
-  if (!buyingIntent || !matchBreakdown) return null;
+  const badge = badges[level] || badges.low;
+  const Icon = badge.icon;
 
   return (
     <div style={{
-      position: 'absolute',
-      top: '100%',
-      left: 0,
-      right: 0,
-      marginTop: '4px',
-      background: '#f9fafb',
-      border: '1px solid #e5e7eb',
-      borderRadius: '6px',
-      padding: '12px',
-      zIndex: 1000,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '4px',
+      padding: '4px 10px',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      borderRadius: '4px',
+      background: badge.bg,
+      color: badge.text,
+      border: `1px solid ${badge.border}`,
+      marginLeft: '6px',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-        <strong style={{ fontSize: '0.85rem' }}>Match Details</strong>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>
-          <X size={14} />
-        </button>
-      </div>
+      <Icon size={12} />
+      <span>{badge.label}</span>
+    </div>
+  );
+}
 
-      <div style={{ fontSize: '0.8rem', marginBottom: '12px' }}>
-        <div><strong>Buying Intent:</strong> {buyingIntent.name}</div>
-        {buyingIntent.category && <div style={{ color: '#64748b' }}>Category: {buyingIntent.category}</div>}
-      </div>
+// Inline Match Details Component
+function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, confidenceLevel, onClose }) {
+  if (!buyingIntent || !matchBreakdown) return null;
 
-      <div style={{ fontSize: '0.75rem' }}>
-        <div style={{ fontWeight: 600, marginBottom: '6px' }}>Match Breakdown:</div>
-        {Object.entries(matchBreakdown).map(([key, data]) => {
-          const scorePercent = data.score;
-          const barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+  // Trust-building message based on confidence
+  const getTrustMessage = () => {
+    if (confidenceLevel === 'high') {
+      return "✓ This product matches all physical specifications. Any differences are cosmetic only.";
+    } else if (confidenceLevel === 'medium') {
+      return "This product matches most specifications. Review the breakdown below to confirm.";
+    } else {
+      return "This match has lower confidence. Please verify the specifications match your requirements.";
+    }
+  };
 
-          return (
-            <div key={key} style={{ marginBottom: '8px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
-                <span style={{ textTransform: 'capitalize' }}>{key}</span>
-                <span style={{ color: '#64748b' }}>{data.weight}% weight</span>
+  return (
+    <tr>
+      <td colSpan="8" style={{ padding: 0, background: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
+        <div style={{ padding: '16px', fontSize: '0.85rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: '4px' }}>
+                Matched to: {buyingIntent.name}
               </div>
-              <div style={{
-                height: '6px',
-                background: '#e5e7eb',
-                borderRadius: '3px',
-                overflow: 'hidden',
-              }}>
-                <div style={{
-                  height: '100%',
-                  width: `${scorePercent}%`,
-                  background: barColor,
-                  transition: 'width 0.3s',
-                }} />
-              </div>
-              {data.detail && (
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
-                  {data.detail.explanation || JSON.stringify(data.detail)}
+              {buyingIntent.category && (
+                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  Category: {buyingIntent.category}
                 </div>
               )}
+              <div style={{
+                marginTop: '8px',
+                padding: '8px 12px',
+                background: confidenceLevel === 'high' ? '#dcfce7' : confidenceLevel === 'medium' ? '#fef3c7' : '#fee2e2',
+                borderLeft: `3px solid ${confidenceLevel === 'high' ? '#15803d' : confidenceLevel === 'medium' ? '#a16207' : '#b91c1c'}`,
+                borderRadius: '4px',
+                fontSize: '0.8rem',
+                color: '#1f2937',
+              }}>
+                {getTrustMessage()}
+              </div>
             </div>
-          );
-        })}
-      </div>
-    </div>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '4px',
+                color: '#64748b',
+              }}
+              title="Close details"
+            >
+              <X size={16} />
+            </button>
+          </div>
+
+          {/* Match Breakdown */}
+          <div style={{ marginTop: '16px' }}>
+            <div style={{
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              marginBottom: '8px',
+              color: '#64748b',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+            }}>
+              Match Breakdown (Confidence: {confidence}%)
+            </div>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {Object.entries(matchBreakdown).map(([key, data]) => {
+                const scorePercent = data.score;
+                const barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+
+                return (
+                  <div key={key} style={{
+                    background: 'white',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{
+                        textTransform: 'capitalize',
+                        fontWeight: 500,
+                        fontSize: '0.8rem',
+                      }}>
+                        {key}
+                      </span>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        color: '#64748b',
+                      }}>
+                        {data.weight}% weight
+                      </span>
+                    </div>
+                    <div style={{
+                      height: '8px',
+                      background: '#e5e7eb',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      marginBottom: '4px',
+                    }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${scorePercent}%`,
+                        background: barColor,
+                        transition: 'width 0.3s',
+                        borderRadius: '4px',
+                      }} />
+                    </div>
+                    {data.detail && (
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        {data.detail.explanation || JSON.stringify(data.detail)}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </td>
+    </tr>
   );
 }
 
@@ -122,7 +203,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [expandedMatchPreviews, setExpandedMatchPreviews] = useState({});
+  const [expandedMatchDetails, setExpandedMatchDetails] = useState({});
 
   const {
     step,
@@ -193,12 +274,12 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   const handleClose = () => {
     reset();
-    setExpandedMatchPreviews({});
+    setExpandedMatchDetails({});
     onClose();
   };
 
-  const toggleMatchPreview = (index) => {
-    setExpandedMatchPreviews(prev => ({
+  const toggleMatchDetails = (index) => {
+    setExpandedMatchDetails(prev => ({
       ...prev,
       [index]: !prev[index],
     }));
@@ -227,13 +308,23 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }
   };
 
+  // Count matches by confidence level
+  const matchStats = {
+    high: editableLineItems.filter(i => i.matchConfidenceLevel === 'high').length,
+    medium: editableLineItems.filter(i => i.matchConfidenceLevel === 'medium').length,
+    low: editableLineItems.filter(i => i.matchConfidenceLevel === 'low').length,
+    total: editableLineItems.filter(i => i.linkedBuyingIntentId).length,
+  };
+
+  const needsReview = matchStats.medium + matchStats.low;
+
   // ============================================
   // RENDER
   // ============================================
 
   return (
     <div style={styles.overlay} onClick={(e) => {
-      // Only close on overlay click, not on dropdown interactions
+      // Only close on explicit overlay click, not on dropdown interactions
       if (e.target === e.currentTarget) {
         handleClose();
       }
@@ -391,9 +482,6 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
               <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>
                   Line Items ({editableLineItems.length})
-                  <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b', marginLeft: '12px' }}>
-                    {editableLineItems.filter(i => i.autoMatched).length} auto-matched
-                  </span>
                 </h3>
 
                 {editableLineItems.length === 0 ? (
@@ -412,131 +500,167 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                           <th style={styles.th}>MOQ</th>
                           <th style={styles.th}>Dimensions</th>
                           <th style={styles.th}>Weight (g)</th>
-                          <th style={styles.th}>Buying Intent (Auto-matched)</th>
+                          <th style={styles.th}>Buying Intent</th>
                           <th style={styles.thActions}></th>
                         </tr>
                       </thead>
                       <tbody>
                         {editableLineItems.map((item, index) => {
                           const selectedIntent = products.find(p => p.id === item.linkedBuyingIntentId);
-                          const showMatchPreview = expandedMatchPreviews[index];
+                          const showDetails = expandedMatchDetails[index];
+                          const isHighConfidence = item.matchConfidenceLevel === 'high';
+                          const isLocked = isHighConfidence && item.autoMatched;
 
                           return (
-                            <tr key={item.id} style={styles.tr}>
-                              <td style={styles.td}>
-                                <input
-                                  type="text"
-                                  value={item.productName}
-                                  onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
-                                  style={styles.tableInput}
-                                  placeholder="Required"
-                                />
-                              </td>
-                              <td style={styles.td}>
-                                <input
-                                  type="text"
-                                  value={item.sku}
-                                  onChange={(e) => updateLineItem(index, 'sku', e.target.value)}
-                                  style={styles.tableInput}
-                                />
-                              </td>
-                              <td style={styles.td}>
-                                <input
-                                  type="number"
-                                  step="0.01"
-                                  value={item.unitPrice}
-                                  onChange={(e) => updateLineItem(index, 'unitPrice', e.target.value)}
-                                  style={{...styles.tableInput, width: '80px'}}
-                                  placeholder="Required"
-                                />
-                              </td>
-                              <td style={styles.td}>
-                                <input
-                                  type="number"
-                                  value={item.moq}
-                                  onChange={(e) => updateLineItem(index, 'moq', e.target.value)}
-                                  style={{...styles.tableInput, width: '70px'}}
-                                />
-                              </td>
-                              <td style={styles.td}>
-                                <input
-                                  type="text"
-                                  value={item.dimensions}
-                                  onChange={(e) => updateLineItem(index, 'dimensions', e.target.value)}
-                                  style={styles.tableInput}
-                                />
-                              </td>
-                              <td style={styles.td}>
-                                <input
-                                  type="number"
-                                  value={item.weight_g}
-                                  onChange={(e) => updateLineItem(index, 'weight_g', e.target.value)}
-                                  style={{...styles.tableInput, width: '70px'}}
-                                />
-                              </td>
-                              <td style={{...styles.td, position: 'relative'}}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                  <select
-                                    value={item.linkedBuyingIntentId || ''}
-                                    onChange={(e) => handleBuyingIntentChange(index, e.target.value)}
-                                    style={{
-                                      ...styles.tableInput,
-                                      width: '200px',
-                                      background: item.autoMatched ? '#dcfce7' : 'white',
-                                      borderColor: item.autoMatched ? '#86efac' : '#e5e7eb',
-                                    }}
-                                  >
-                                    <option value="">-- Select --</option>
-                                    {products.map(product => (
-                                      <option key={product.id} value={product.id}>
-                                        {product.name}
-                                      </option>
-                                    ))}
-                                  </select>
-                                  {item.matchConfidence && (
-                                    <>
-                                      <ConfidenceBadge
-                                        level={item.matchConfidenceLevel}
-                                        confidence={item.matchConfidence}
-                                      />
-                                      <button
-                                        onClick={() => toggleMatchPreview(index)}
-                                        style={{
-                                          background: 'none',
-                                          border: 'none',
-                                          cursor: 'pointer',
-                                          padding: '4px',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                        }}
-                                        title="Show match details"
-                                      >
-                                        {showMatchPreview ? <ChevronDown size={16} /> : <Info size={16} />}
-                                      </button>
-                                    </>
-                                  )}
-                                </div>
-
-                                {/* Match Preview Panel */}
-                                {showMatchPreview && (
-                                  <MatchPreviewPanel
-                                    item={item}
-                                    buyingIntent={selectedIntent}
-                                    matchBreakdown={item.matchBreakdown}
-                                    onClose={() => toggleMatchPreview(index)}
+                            <React.Fragment key={item.id}>
+                              <tr style={{
+                                ...styles.tr,
+                                background: isLocked ? '#f0fdf4' : 'white',
+                              }}>
+                                <td style={styles.td}>
+                                  <input
+                                    type="text"
+                                    value={item.productName}
+                                    onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
+                                    style={styles.tableInput}
+                                    placeholder="Required"
                                   />
-                                )}
-                              </td>
-                              <td style={styles.tdActions}>
-                                <button
-                                  onClick={() => deleteLineItem(index)}
-                                  style={styles.deleteButton}
-                                  title="Delete line item"
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
+                                </td>
+                                <td style={styles.td}>
+                                  <input
+                                    type="text"
+                                    value={item.sku}
+                                    onChange={(e) => updateLineItem(index, 'sku', e.target.value)}
+                                    style={styles.tableInput}
+                                  />
+                                </td>
+                                <td style={styles.td}>
+                                  <input
+                                    type="number"
+                                    step="0.01"
+                                    value={item.unitPrice}
+                                    onChange={(e) => updateLineItem(index, 'unitPrice', e.target.value)}
+                                    style={{...styles.tableInput, width: '80px'}}
+                                    placeholder="Required"
+                                  />
+                                </td>
+                                <td style={styles.td}>
+                                  <input
+                                    type="number"
+                                    value={item.moq}
+                                    onChange={(e) => updateLineItem(index, 'moq', e.target.value)}
+                                    style={{...styles.tableInput, width: '70px'}}
+                                  />
+                                </td>
+                                <td style={styles.td}>
+                                  <input
+                                    type="text"
+                                    value={item.dimensions}
+                                    onChange={(e) => updateLineItem(index, 'dimensions', e.target.value)}
+                                    style={styles.tableInput}
+                                  />
+                                </td>
+                                <td style={styles.td}>
+                                  <input
+                                    type="number"
+                                    value={item.weight_g}
+                                    onChange={(e) => updateLineItem(index, 'weight_g', e.target.value)}
+                                    style={{...styles.tableInput, width: '70px'}}
+                                  />
+                                </td>
+                                <td style={styles.td}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                    {isLocked ? (
+                                      // High confidence - locked and auto-confirmed
+                                      <div style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '6px 8px',
+                                        background: '#dcfce7',
+                                        border: '1px solid #86efac',
+                                        borderRadius: '4px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 500,
+                                        color: '#15803d',
+                                      }}>
+                                        <Lock size={14} style={{ marginRight: '6px' }} />
+                                        {selectedIntent?.name || 'Matched'}
+                                      </div>
+                                    ) : (
+                                      // Medium/Low confidence - editable dropdown
+                                      <select
+                                        value={item.linkedBuyingIntentId || ''}
+                                        onChange={(e) => handleBuyingIntentChange(index, e.target.value)}
+                                        style={{
+                                          ...styles.tableInput,
+                                          width: '200px',
+                                          background: item.matchConfidenceLevel === 'medium' ? '#fef3c7' : 'white',
+                                          borderColor: item.matchConfidenceLevel === 'medium' ? '#fcd34d' : '#e5e7eb',
+                                        }}
+                                      >
+                                        <option value="">-- Select --</option>
+                                        {products.map(product => (
+                                          <option key={product.id} value={product.id}>
+                                            {product.name}
+                                          </option>
+                                        ))}
+                                      </select>
+                                    )}
+
+                                    {/* Confidence Badge + Details Toggle */}
+                                    {item.matchConfidence && (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <ConfidenceBadge
+                                          level={item.matchConfidenceLevel}
+                                          confidence={item.matchConfidence}
+                                          isLocked={isLocked}
+                                        />
+                                        <button
+                                          onClick={() => toggleMatchDetails(index)}
+                                          style={{
+                                            background: 'none',
+                                            border: '1px solid #e5e7eb',
+                                            borderRadius: '4px',
+                                            cursor: 'pointer',
+                                            padding: '4px 8px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontSize: '0.75rem',
+                                            color: '#64748b',
+                                          }}
+                                          title={showDetails ? "Hide details" : "Show match details"}
+                                        >
+                                          {showDetails ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                                          <span>Details</span>
+                                        </button>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                                <td style={styles.tdActions}>
+                                  <button
+                                    onClick={() => deleteLineItem(index)}
+                                    style={styles.deleteButton}
+                                    title="Delete line item"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </td>
+                              </tr>
+
+                              {/* Inline Match Details */}
+                              {showDetails && (
+                                <InlineMatchDetails
+                                  item={item}
+                                  buyingIntent={selectedIntent}
+                                  matchBreakdown={item.matchBreakdown}
+                                  confidence={item.matchConfidence}
+                                  confidenceLevel={item.matchConfidenceLevel}
+                                  onClose={() => toggleMatchDetails(index)}
+                                />
+                              )}
+                            </React.Fragment>
                           );
                         })}
                       </tbody>
@@ -545,27 +669,44 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                 )}
               </div>
 
-              {/* Auto-Match Summary */}
-              {editableLineItems.length > 0 && (
+              {/* Auto-Match Summary - Directive */}
+              {editableLineItems.length > 0 && matchStats.total > 0 && (
                 <div style={{
-                  background: '#eff6ff',
-                  border: '1px solid #3b82f6',
+                  background: matchStats.high > 0 ? '#dcfce7' : '#fef3c7',
+                  border: `1px solid ${matchStats.high > 0 ? '#86efac' : '#fcd34d'}`,
                   borderRadius: '8px',
-                  padding: '12px 16px',
-                  fontSize: '0.85rem',
+                  padding: '14px 18px',
+                  fontSize: '0.9rem',
                   marginTop: '16px',
                 }}>
-                  <div style={{ fontWeight: 600, marginBottom: '4px', color: '#1e40af' }}>
-                    ✨ Auto-Matching Summary
+                  <div style={{
+                    fontWeight: 600,
+                    marginBottom: '6px',
+                    color: matchStats.high > 0 ? '#15803d' : '#a16207',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}>
+                    <CheckCircle size={18} />
+                    {matchStats.high > 0 ? (
+                      <span>
+                        {matchStats.high} {matchStats.high === 1 ? 'item' : 'items'} confidently matched.
+                        {needsReview > 0 ? ` Review ${needsReview} flagged ${needsReview === 1 ? 'item' : 'items'} below.` : ' No review needed.'}
+                      </span>
+                    ) : (
+                      <span>
+                        {matchStats.total} {matchStats.total === 1 ? 'item' : 'items'} matched.
+                        Review suggested matches below.
+                      </span>
+                    )}
                   </div>
-                  <div style={{ color: '#1e3a8a' }}>
-                    • {editableLineItems.filter(i => i.linkedBuyingIntentId).length} of {editableLineItems.length} items matched
-                    • {editableLineItems.filter(i => i.matchConfidenceLevel === 'high').length} high confidence
-                    • {editableLineItems.filter(i => i.matchConfidenceLevel === 'medium').length} medium confidence
-                    • {editableLineItems.filter(i => i.matchConfidenceLevel === 'low').length} low confidence
-                  </div>
-                  <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '6px' }}>
-                    💡 Review and adjust matches using the dropdowns. Click <Info size={12} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> to see match details.
+                  <div style={{
+                    fontSize: '0.8rem',
+                    color: matchStats.high > 0 ? '#166534' : '#92400e',
+                    marginTop: '4px',
+                  }}>
+                    {isLocked && '🔒 Auto-confirmed items are locked. '}
+                    Click "Details" on any item to see match breakdown.
                   </div>
                 </div>
               )}
