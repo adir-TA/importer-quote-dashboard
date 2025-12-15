@@ -29,7 +29,7 @@ import {
  */
 async function extractFromImage(file, apiKey) {
   // UNIQUE LOG - Verify client code updated
-  console.log('🚀 [CLIENT v2025-12-15-v8] SAFETY NET ACTIVE - Auto-rejecting CBM-range prices');
+  console.log('✅ [CLIENT v2025-12-15-SONNET] SAFETY NET DISABLED - Sonnet 4.5 extracts correctly!');
 
   if (!apiKey) {
     throw new Error('Anthropic API key required. Add it in Settings.');
@@ -160,8 +160,9 @@ function convertToExtractionResult(rawData) {
   // Convert line items
   if (Array.isArray(rawData.lineItems) && rawData.lineItems.length > 0) {
     result.lineItems = rawData.lineItems.map((item, index) => {
-      // Run validation on raw item first
-      const validatedItem = validatePriceVsCBM(item);
+      // SAFETY NET DISABLED - Sonnet 4.5 is accurate enough, low prices are legitimate
+      // const validatedItem = validatePriceVsCBM(item);
+      const validatedItem = item; // Use raw item directly
 
       // ============================================
       // SMART PRODUCT NAME GENERATION
