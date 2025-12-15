@@ -1,35 +1,128 @@
 import React, { useRef, useState } from 'react';
 import {
   X, Upload, FileText, Image, AlertCircle, CheckCircle, Loader,
-  Trash2, Plus
+  Trash2, Plus, Info, ChevronDown, ChevronRight
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
+import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
 
 // ============================================
 // MULTI-ITEM QUOTE UPLOAD MODAL
 // ============================================
 //
-// NEW FLOW:
-// 1. Upload quote file
-// 2. Review supplier info + ALL line items in table
-// 3. Edit any field inline
-// 4. One "Confirm & Save Quote" button
-// 5. Saves SupplierQuote + all QuoteLineItems to DB
-//
-// NO MORE:
-// - "Select one item" flow
-// - Product linking (not MVP)
+// Features:
+// 1. Auto-matching line items to Buying Intents with confidence scoring
+// 2. Confidence badges (High/Medium/Low)
+// 3. Match preview/breakdown panel
+// 4. No auto-close dropdowns (only close on selection or Escape)
 // ============================================
 
 const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
-function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
+// Confidence Badge Component
+function ConfidenceBadge({ level, confidence }) {
+  const colors = {
+    high: { bg: '#dcfce7', text: '#15803d', border: '#86efac' },
+    medium: { bg: '#fef3c7', text: '#a16207', border: '#fcd34d' },
+    low: { bg: '#fee2e2', text: '#b91c1c', border: '#fca5a5' },
+  };
+
+  const color = colors[level] || colors.low;
+
+  return (
+    <span style={{
+      display: 'inline-block',
+      padding: '2px 8px',
+      fontSize: '0.75rem',
+      fontWeight: 600,
+      borderRadius: '4px',
+      background: color.bg,
+      color: color.text,
+      border: `1px solid ${color.border}`,
+      textTransform: 'uppercase',
+      marginLeft: '6px',
+    }}>
+      {level} ({confidence}%)
+    </span>
+  );
+}
+
+// Match Preview Panel Component
+function MatchPreviewPanel({ item, buyingIntent, matchBreakdown, onClose }) {
+  if (!buyingIntent || !matchBreakdown) return null;
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: '100%',
+      left: 0,
+      right: 0,
+      marginTop: '4px',
+      background: '#f9fafb',
+      border: '1px solid #e5e7eb',
+      borderRadius: '6px',
+      padding: '12px',
+      zIndex: 1000,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+        <strong style={{ fontSize: '0.85rem' }}>Match Details</strong>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 4px' }}>
+          <X size={14} />
+        </button>
+      </div>
+
+      <div style={{ fontSize: '0.8rem', marginBottom: '12px' }}>
+        <div><strong>Buying Intent:</strong> {buyingIntent.name}</div>
+        {buyingIntent.category && <div style={{ color: '#64748b' }}>Category: {buyingIntent.category}</div>}
+      </div>
+
+      <div style={{ fontSize: '0.75rem' }}>
+        <div style={{ fontWeight: 600, marginBottom: '6px' }}>Match Breakdown:</div>
+        {Object.entries(matchBreakdown).map(([key, data]) => {
+          const scorePercent = data.score;
+          const barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+
+          return (
+            <div key={key} style={{ marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2px' }}>
+                <span style={{ textTransform: 'capitalize' }}>{key}</span>
+                <span style={{ color: '#64748b' }}>{data.weight}% weight</span>
+              </div>
+              <div style={{
+                height: '6px',
+                background: '#e5e7eb',
+                borderRadius: '3px',
+                overflow: 'hidden',
+              }}>
+                <div style={{
+                  height: '100%',
+                  width: `${scorePercent}%`,
+                  background: barColor,
+                  transition: 'width 0.3s',
+                }} />
+              </div>
+              {data.detail && (
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '2px' }}>
+                  {data.detail.explanation || JSON.stringify(data.detail)}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyingIntentId = null }) {
   const { state, actions } = useAppContext();
   const { settings, products } = state;
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [expandedMatchPreviews, setExpandedMatchPreviews] = useState({});
 
   const {
     step,
@@ -46,7 +139,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
     deleteLineItem,
     getQuoteData,
     reset,
-  } = useMultiItemQuoteExtraction(settings.apiKey);
+  } = useMultiItemQuoteExtraction(settings.apiKey, products);
 
   if (!isOpen) return null;
 
@@ -100,7 +193,38 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
 
   const handleClose = () => {
     reset();
+    setExpandedMatchPreviews({});
     onClose();
+  };
+
+  const toggleMatchPreview = (index) => {
+    setExpandedMatchPreviews(prev => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
+  };
+
+  const handleBuyingIntentChange = (index, intentId) => {
+    updateLineItem(index, 'linkedBuyingIntentId', intentId || null);
+
+    // Recalculate match confidence if a new intent is selected
+    if (intentId) {
+      const item = editableLineItems[index];
+      const intent = products.find(p => p.id === intentId);
+      if (intent) {
+        const matchResult = calculateMatchConfidence(item, intent);
+        updateLineItem(index, 'matchConfidence', matchResult.confidence);
+        updateLineItem(index, 'matchConfidenceLevel', matchResult.confidenceLevel);
+        updateLineItem(index, 'matchBreakdown', matchResult.breakdown);
+        updateLineItem(index, 'autoMatched', false); // Manual override
+      }
+    } else {
+      // Clear match data if deselected
+      updateLineItem(index, 'matchConfidence', null);
+      updateLineItem(index, 'matchConfidenceLevel', null);
+      updateLineItem(index, 'matchBreakdown', null);
+      updateLineItem(index, 'autoMatched', false);
+    }
   };
 
   // ============================================
@@ -108,11 +232,23 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
   // ============================================
 
   return (
-    <div style={styles.overlay} onClick={handleClose}>
+    <div style={styles.overlay} onClick={(e) => {
+      // Only close on overlay click, not on dropdown interactions
+      if (e.target === e.currentTarget) {
+        handleClose();
+      }
+    }}>
       <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>
-          <h2 style={styles.title}>Upload Supplier Quote</h2>
+          <h2 style={styles.title}>
+            Upload Supplier Quote
+            {preselectedBuyingIntentId && (
+              <span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#64748b', marginLeft: '12px' }}>
+                (Auto-linking to selected intent)
+              </span>
+            )}
+          </h2>
           <button onClick={handleClose} style={styles.closeButton}>
             <X size={20} />
           </button>
@@ -255,6 +391,9 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
               <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>
                   Line Items ({editableLineItems.length})
+                  <span style={{ fontSize: '0.75rem', fontWeight: 400, color: '#64748b', marginLeft: '12px' }}>
+                    {editableLineItems.filter(i => i.autoMatched).length} auto-matched
+                  </span>
                 </h3>
 
                 {editableLineItems.length === 0 ? (
@@ -273,113 +412,163 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess }) {
                           <th style={styles.th}>MOQ</th>
                           <th style={styles.th}>Dimensions</th>
                           <th style={styles.th}>Weight (g)</th>
-                          <th style={styles.th}>Packing (pcs/ctn)</th>
-                          <th style={styles.th}>CBM</th>
-                          <th style={styles.th}>Link to Buying Intent</th>
+                          <th style={styles.th}>Buying Intent (Auto-matched)</th>
                           <th style={styles.thActions}></th>
                         </tr>
                       </thead>
                       <tbody>
-                        {editableLineItems.map((item, index) => (
-                          <tr key={item.id} style={styles.tr}>
-                            <td style={styles.td}>
-                              <input
-                                type="text"
-                                value={item.productName}
-                                onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
-                                style={styles.tableInput}
-                                placeholder="Required"
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="text"
-                                value={item.sku}
-                                onChange={(e) => updateLineItem(index, 'sku', e.target.value)}
-                                style={styles.tableInput}
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.unitPrice}
-                                onChange={(e) => updateLineItem(index, 'unitPrice', e.target.value)}
-                                style={{...styles.tableInput, width: '80px'}}
-                                placeholder="Required"
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="number"
-                                value={item.moq}
-                                onChange={(e) => updateLineItem(index, 'moq', e.target.value)}
-                                style={{...styles.tableInput, width: '70px'}}
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="text"
-                                value={item.dimensions}
-                                onChange={(e) => updateLineItem(index, 'dimensions', e.target.value)}
-                                style={styles.tableInput}
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="number"
-                                value={item.weight_g}
-                                onChange={(e) => updateLineItem(index, 'weight_g', e.target.value)}
-                                style={{...styles.tableInput, width: '70px'}}
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="number"
-                                value={item.packing_pcs_per_ctn}
-                                onChange={(e) => updateLineItem(index, 'packing_pcs_per_ctn', e.target.value)}
-                                style={{...styles.tableInput, width: '70px'}}
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <input
-                                type="number"
-                                step="0.001"
-                                value={item.cbm_per_carton}
-                                onChange={(e) => updateLineItem(index, 'cbm_per_carton', e.target.value)}
-                                style={{...styles.tableInput, width: '70px'}}
-                              />
-                            </td>
-                            <td style={styles.td}>
-                              <select
-                                value={item.linkedBuyingIntentId || ''}
-                                onChange={(e) => updateLineItem(index, 'linkedBuyingIntentId', e.target.value || null)}
-                                style={{...styles.tableInput, width: '180px'}}
-                              >
-                                <option value="">-- Select Buying Intent --</option>
-                                {products.map(product => (
-                                  <option key={product.id} value={product.id}>
-                                    {product.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </td>
-                            <td style={styles.tdActions}>
-                              <button
-                                onClick={() => deleteLineItem(index)}
-                                style={styles.deleteButton}
-                                title="Delete line item"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {editableLineItems.map((item, index) => {
+                          const selectedIntent = products.find(p => p.id === item.linkedBuyingIntentId);
+                          const showMatchPreview = expandedMatchPreviews[index];
+
+                          return (
+                            <tr key={item.id} style={styles.tr}>
+                              <td style={styles.td}>
+                                <input
+                                  type="text"
+                                  value={item.productName}
+                                  onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
+                                  style={styles.tableInput}
+                                  placeholder="Required"
+                                />
+                              </td>
+                              <td style={styles.td}>
+                                <input
+                                  type="text"
+                                  value={item.sku}
+                                  onChange={(e) => updateLineItem(index, 'sku', e.target.value)}
+                                  style={styles.tableInput}
+                                />
+                              </td>
+                              <td style={styles.td}>
+                                <input
+                                  type="number"
+                                  step="0.01"
+                                  value={item.unitPrice}
+                                  onChange={(e) => updateLineItem(index, 'unitPrice', e.target.value)}
+                                  style={{...styles.tableInput, width: '80px'}}
+                                  placeholder="Required"
+                                />
+                              </td>
+                              <td style={styles.td}>
+                                <input
+                                  type="number"
+                                  value={item.moq}
+                                  onChange={(e) => updateLineItem(index, 'moq', e.target.value)}
+                                  style={{...styles.tableInput, width: '70px'}}
+                                />
+                              </td>
+                              <td style={styles.td}>
+                                <input
+                                  type="text"
+                                  value={item.dimensions}
+                                  onChange={(e) => updateLineItem(index, 'dimensions', e.target.value)}
+                                  style={styles.tableInput}
+                                />
+                              </td>
+                              <td style={styles.td}>
+                                <input
+                                  type="number"
+                                  value={item.weight_g}
+                                  onChange={(e) => updateLineItem(index, 'weight_g', e.target.value)}
+                                  style={{...styles.tableInput, width: '70px'}}
+                                />
+                              </td>
+                              <td style={{...styles.td, position: 'relative'}}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  <select
+                                    value={item.linkedBuyingIntentId || ''}
+                                    onChange={(e) => handleBuyingIntentChange(index, e.target.value)}
+                                    style={{
+                                      ...styles.tableInput,
+                                      width: '200px',
+                                      background: item.autoMatched ? '#dcfce7' : 'white',
+                                      borderColor: item.autoMatched ? '#86efac' : '#e5e7eb',
+                                    }}
+                                  >
+                                    <option value="">-- Select --</option>
+                                    {products.map(product => (
+                                      <option key={product.id} value={product.id}>
+                                        {product.name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {item.matchConfidence && (
+                                    <>
+                                      <ConfidenceBadge
+                                        level={item.matchConfidenceLevel}
+                                        confidence={item.matchConfidence}
+                                      />
+                                      <button
+                                        onClick={() => toggleMatchPreview(index)}
+                                        style={{
+                                          background: 'none',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          padding: '4px',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                        }}
+                                        title="Show match details"
+                                      >
+                                        {showMatchPreview ? <ChevronDown size={16} /> : <Info size={16} />}
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+
+                                {/* Match Preview Panel */}
+                                {showMatchPreview && (
+                                  <MatchPreviewPanel
+                                    item={item}
+                                    buyingIntent={selectedIntent}
+                                    matchBreakdown={item.matchBreakdown}
+                                    onClose={() => toggleMatchPreview(index)}
+                                  />
+                                )}
+                              </td>
+                              <td style={styles.tdActions}>
+                                <button
+                                  onClick={() => deleteLineItem(index)}
+                                  style={styles.deleteButton}
+                                  title="Delete line item"
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 )}
               </div>
+
+              {/* Auto-Match Summary */}
+              {editableLineItems.length > 0 && (
+                <div style={{
+                  background: '#eff6ff',
+                  border: '1px solid #3b82f6',
+                  borderRadius: '8px',
+                  padding: '12px 16px',
+                  fontSize: '0.85rem',
+                  marginTop: '16px',
+                }}>
+                  <div style={{ fontWeight: 600, marginBottom: '4px', color: '#1e40af' }}>
+                    ✨ Auto-Matching Summary
+                  </div>
+                  <div style={{ color: '#1e3a8a' }}>
+                    • {editableLineItems.filter(i => i.linkedBuyingIntentId).length} of {editableLineItems.length} items matched
+                    • {editableLineItems.filter(i => i.matchConfidenceLevel === 'high').length} high confidence
+                    • {editableLineItems.filter(i => i.matchConfidenceLevel === 'medium').length} medium confidence
+                    • {editableLineItems.filter(i => i.matchConfidenceLevel === 'low').length} low confidence
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: '#3b82f6', marginTop: '6px' }}>
+                    💡 Review and adjust matches using the dropdowns. Click <Info size={12} style={{ display: 'inline', verticalAlign: 'text-bottom' }} /> to see match details.
+                  </div>
+                </div>
+              )}
 
               {/* Validation Errors */}
               {!canSave && (
@@ -503,6 +692,7 @@ const styles = {
   link: {
     color: '#3b82f6',
     textDecoration: 'underline',
+    cursor: 'pointer',
   },
   dropzoneHint: {
     marginTop: '8px',
@@ -510,7 +700,10 @@ const styles = {
     color: '#94a3b8',
   },
   loading: {
-    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: '60px 20px',
   },
   spinner: {
@@ -518,26 +711,32 @@ const styles = {
   },
   loadingText: {
     marginTop: '16px',
-    color: '#64748b',
+    fontSize: '16px',
+    color: '#475569',
   },
   error: {
-    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
     padding: '60px 20px',
   },
   errorText: {
     marginTop: '16px',
-    color: '#ef4444',
     fontSize: '16px',
+    color: '#475569',
+    textAlign: 'center',
   },
   retryButton: {
     marginTop: '24px',
     padding: '10px 20px',
-    backgroundColor: '#3b82f6',
+    background: '#3b82f6',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
   },
   review: {
     display: 'flex',
@@ -545,7 +744,7 @@ const styles = {
     gap: '24px',
   },
   section: {
-    backgroundColor: '#f8fafc',
+    border: '1px solid #e5e7eb',
     borderRadius: '8px',
     padding: '20px',
   },
@@ -553,7 +752,6 @@ const styles = {
     margin: '0 0 16px 0',
     fontSize: '16px',
     fontWeight: 600,
-    color: '#1e293b',
   },
   grid: {
     display: 'grid',
@@ -563,31 +761,31 @@ const styles = {
   field: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '6px',
   },
   label: {
-    fontSize: '13px',
+    fontSize: '14px',
     fontWeight: 500,
-    color: '#475569',
+    marginBottom: '6px',
+    color: '#374151',
   },
   required: {
     color: '#ef4444',
   },
   input: {
     padding: '8px 12px',
-    border: '1px solid #cbd5e1',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
     fontSize: '14px',
   },
   errorHint: {
     fontSize: '12px',
     color: '#ef4444',
+    marginTop: '4px',
   },
   tableContainer: {
     overflowX: 'auto',
-    backgroundColor: 'white',
-    borderRadius: '6px',
     border: '1px solid #e5e7eb',
+    borderRadius: '6px',
   },
   table: {
     width: '100%',
@@ -595,25 +793,27 @@ const styles = {
     fontSize: '13px',
   },
   th: {
-    padding: '12px 8px',
-    backgroundColor: '#f1f5f9',
+    padding: '10px',
+    background: '#f9fafb',
     borderBottom: '2px solid #e5e7eb',
     textAlign: 'left',
     fontWeight: 600,
-    color: '#475569',
+    fontSize: '12px',
+    color: '#374151',
     whiteSpace: 'nowrap',
   },
   thActions: {
-    padding: '12px 8px',
-    backgroundColor: '#f1f5f9',
+    padding: '10px',
+    background: '#f9fafb',
     borderBottom: '2px solid #e5e7eb',
-    width: '40px',
+    width: '50px',
   },
   tr: {
     borderBottom: '1px solid #e5e7eb',
   },
   td: {
     padding: '8px',
+    verticalAlign: 'middle',
   },
   tdActions: {
     padding: '8px',
@@ -621,7 +821,7 @@ const styles = {
   },
   tableInput: {
     padding: '6px 8px',
-    border: '1px solid #cbd5e1',
+    border: '1px solid #e5e7eb',
     borderRadius: '4px',
     fontSize: '13px',
     width: '100%',
@@ -634,18 +834,20 @@ const styles = {
     padding: '4px',
   },
   noItems: {
-    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
     padding: '40px',
     color: '#94a3b8',
   },
   validationError: {
-    padding: '12px 16px',
-    backgroundColor: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    color: '#dc2626',
     display: 'flex',
     gap: '12px',
+    padding: '12px',
+    background: '#fef2f2',
+    border: '1px solid #fecaca',
+    borderRadius: '6px',
+    color: '#b91c1c',
     fontSize: '14px',
   },
   footer: {
@@ -657,27 +859,29 @@ const styles = {
   },
   cancelButton: {
     padding: '10px 20px',
-    backgroundColor: 'white',
-    color: '#64748b',
-    border: '1px solid #cbd5e1',
+    background: 'white',
+    border: '1px solid #d1d5db',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    color: '#374151',
   },
   saveButton: {
     padding: '10px 20px',
-    backgroundColor: '#10b981',
+    background: '#3b82f6',
     color: 'white',
     border: 'none',
     borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '14px',
+    fontWeight: 500,
+    cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
   },
   saveButtonDisabled: {
-    backgroundColor: '#cbd5e1',
+    background: '#cbd5e1',
     cursor: 'not-allowed',
   },
 };

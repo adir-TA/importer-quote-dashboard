@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { extractQuoteFromFile, wasFound, getValue } from '../utils/quoteExtractionService';
+import { findBestMatch } from '../utils/buyingIntentMatcher';
 
 // ============================================
 // useMultiItemQuoteExtraction Hook
@@ -18,7 +19,7 @@ import { extractQuoteFromFile, wasFound, getValue } from '../utils/quoteExtracti
 // - Save ALL items in one transaction
 // ============================================
 
-export function useMultiItemQuoteExtraction(apiKey) {
+export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
   // ============================================
   // STATE
   // ============================================
@@ -133,23 +134,43 @@ export function useMultiItemQuoteExtraction(apiKey) {
         notes: getValue(result.notes) || '',
       });
 
-      // Pre-fill ALL line items as editable
-      const items = (result.lineItems || []).map((item, index) => ({
-        id: item.id || `item-${index}`,
-        productName: getValue(item.productName) || '',
-        sku: getValue(item.sku) || '',
-        unitPrice: getValue(item.unitPrice) !== null ? String(getValue(item.unitPrice)) : '',
-        priceConfidence: item.unitPrice?.confidence || null,
-        moq: getValue(item.moq) !== null ? String(getValue(item.moq)) : '',
-        dimensions: getValue(item.dimensions) || '',
-        weight_g: getValue(item.weight_g) !== null ? String(getValue(item.weight_g)) : '',
-        packing_pcs_per_ctn: getValue(item.packing_pcs_per_ctn) !== null ? String(getValue(item.packing_pcs_per_ctn)) : '',
-        carton_length_cm: getValue(item.carton_length_cm) !== null ? String(getValue(item.carton_length_cm)) : '',
-        carton_width_cm: getValue(item.carton_width_cm) !== null ? String(getValue(item.carton_width_cm)) : '',
-        carton_height_cm: getValue(item.carton_height_cm) !== null ? String(getValue(item.carton_height_cm)) : '',
-        cbm_per_carton: getValue(item.cbm_per_carton) !== null ? String(getValue(item.cbm_per_carton)) : '',
-        linkedBuyingIntentId: null, // Human-assigned link to BuyingIntent
-      }));
+      // Pre-fill ALL line items as editable + AUTO-MATCH to Buying Intents
+      const items = (result.lineItems || []).map((item, index) => {
+        const lineItemData = {
+          id: item.id || `item-${index}`,
+          productName: getValue(item.productName) || '',
+          raw_item_name: getValue(item.productName) || '',
+          sku: getValue(item.sku) || '',
+          unitPrice: getValue(item.unitPrice) !== null ? String(getValue(item.unitPrice)) : '',
+          priceConfidence: item.unitPrice?.confidence || null,
+          moq: getValue(item.moq) !== null ? String(getValue(item.moq)) : '',
+          dimensions: getValue(item.dimensions) || '',
+          product_dimensions_text: getValue(item.dimensions) || '',
+          weight_g: getValue(item.weight_g) !== null ? String(getValue(item.weight_g)) : '',
+          packing_pcs_per_ctn: getValue(item.packing_pcs_per_ctn) !== null ? String(getValue(item.packing_pcs_per_ctn)) : '',
+          carton_length_cm: getValue(item.carton_length_cm) !== null ? String(getValue(item.carton_length_cm)) : '',
+          carton_width_cm: getValue(item.carton_width_cm) !== null ? String(getValue(item.carton_width_cm)) : '',
+          carton_height_cm: getValue(item.carton_height_cm) !== null ? String(getValue(item.carton_height_cm)) : '',
+          cbm_per_carton: getValue(item.cbm_per_carton) !== null ? String(getValue(item.cbm_per_carton)) : '',
+          linkedBuyingIntentId: null, // Will be auto-matched
+          matchConfidence: null,
+          matchBreakdown: null,
+        };
+
+        // AUTO-MATCH to Buying Intent
+        if (buyingIntents && buyingIntents.length > 0) {
+          const bestMatch = findBestMatch(lineItemData, buyingIntents);
+          if (bestMatch) {
+            lineItemData.linkedBuyingIntentId = bestMatch.intent.id;
+            lineItemData.matchConfidence = bestMatch.matchResult.confidence;
+            lineItemData.matchConfidenceLevel = bestMatch.matchResult.confidenceLevel;
+            lineItemData.matchBreakdown = bestMatch.matchResult.breakdown;
+            lineItemData.autoMatched = bestMatch.matchResult.autoSelect;
+          }
+        }
+
+        return lineItemData;
+      });
 
       setEditableLineItems(items);
       setStep('review');
