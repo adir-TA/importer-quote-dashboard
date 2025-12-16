@@ -541,18 +541,24 @@ export function AppProvider({ children }) {
     setOrders(prev => prev.filter(o => o.id !== orderId));
   };
 
-  // Document actions (kept but not exposed in nav)
+  // Document actions - Proforma Invoices & Quotes storage
   const addDocument = async (doc) => {
+    if (!doc.type || !doc.buyingIntentId || !doc.supplierQuoteId) {
+      throw new Error('Document must have type, buyingIntentId, and supplierQuoteId');
+    }
+
     const { data, error } = await supabase
       .from('documents')
       .insert({
         user_id: user.id,
-        name: doc.name,
-        category: doc.category || null,
-        notes: doc.notes || null,
-        file_url: doc.data || null,
-        file_size: doc.size || null,
-        file_type: doc.type || null,
+        type: doc.type,
+        buying_intent_id: doc.buyingIntentId,
+        supplier_quote_id: doc.supplierQuoteId,
+        quote_line_item_id: doc.quoteLineItemId || null,
+        file_url: doc.fileUrl,
+        file_name: doc.fileName,
+        file_type: doc.fileType,
+        file_size: doc.fileSize || null,
       })
       .select()
       .single();
@@ -561,15 +567,18 @@ export function AppProvider({ children }) {
     return data;
   };
 
-  const updateDocument = async (doc) => {
+  const updateDocument = async (docId, updates) => {
     const { data, error } = await supabase
       .from('documents')
-      .update({ name: doc.name, category: doc.category, notes: doc.notes })
-      .eq('id', doc.id)
+      .update({
+        type: updates.type,
+        quote_line_item_id: updates.quoteLineItemId,
+      })
+      .eq('id', docId)
       .select()
       .single();
     if (error) throw error;
-    setDocuments(prev => prev.map(d => d.id === doc.id ? data : d));
+    setDocuments(prev => prev.map(d => d.id === docId ? data : d));
     return data;
   };
 
@@ -578,6 +587,26 @@ export function AppProvider({ children }) {
     if (error) throw error;
     setDocuments(prev => prev.filter(d => d.id !== docId));
   };
+
+  // Get documents for a specific Buying Intent
+  const getDocumentsForBuyingIntent = useCallback(async (buyingIntentId) => {
+    if (!user) return [];
+
+    const { data, error } = await supabase
+      .from('documents')
+      .select(`
+        *,
+        supplier_quote:supplier_quotes(
+          id,
+          supplier_name
+        )
+      `)
+      .eq('buying_intent_id', buyingIntentId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }, [user]);
 
   const updateSettings = async (newSettings) => {
     const { data: existing } = await supabase.from('user_settings').select('id').eq('user_id', user.id).single();
@@ -667,6 +696,7 @@ export function AppProvider({ children }) {
       getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
       getLineItemsForProduct, // Legacy alias
       getLineItemsForBuyingIntent, // Query line items by buying intent
+      getDocumentsForBuyingIntent, // Query documents by buying intent
       calculateLandedCost,
     },
   };

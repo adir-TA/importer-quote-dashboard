@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
+import DocumentsTab from '../components/DocumentsTab';
+import UploadDocumentModal from '../components/UploadDocumentModal';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
@@ -18,8 +20,10 @@ function ProductDetail() {
   const quotes = computed.getProductQuotes(id); // Old quotes
   const [lineItems, setLineItems] = useState([]); // New line items
 
+  const [activeTab, setActiveTab] = useState('quotes'); // 'quotes' | 'documents'
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [editingQuote, setEditingQuote] = useState(null);
   const [formData, setFormData] = useState({
     supplierName: '',
@@ -187,15 +191,53 @@ function ProductDetail() {
           </div>
         )}
 
-        {/* Quotes for this Buying Intent */}
+        {/* Tabs: Quotes & Documents */}
         <div className="card">
-          <div className="card-header">
-            <span className="card-title">
-              <FileText size={18} style={{ marginRight: '8px' }} />
-              Supplier Quotes for this Intent ({quotes.length + lineItems.length})
-            </span>
+          <div className="card-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
+            <div style={{ display: 'flex', gap: '8px', borderBottom: '1px solid var(--border)' }}>
+              <button
+                style={{
+                  padding: '12px 16px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: activeTab === 'quotes' ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: activeTab === 'quotes' ? 'var(--primary)' : 'var(--text-secondary)',
+                  fontWeight: activeTab === 'quotes' ? 600 : 400,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                }}
+                onClick={() => setActiveTab('quotes')}
+              >
+                <FileText size={16} />
+                Quotes ({quotes.length + lineItems.length})
+              </button>
+              <button
+                style={{
+                  padding: '12px 16px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: activeTab === 'documents' ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: activeTab === 'documents' ? 'var(--primary)' : 'var(--text-secondary)',
+                  fontWeight: activeTab === 'documents' ? 600 : 400,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s',
+                }}
+                onClick={() => setActiveTab('documents')}
+              >
+                <File size={16} />
+                Documents
+              </button>
+            </div>
           </div>
-          <div className="card-body" style={{ padding: 0 }}>
+
+          {activeTab === 'quotes' ? (
+            <div className="card-body" style={{ padding: 0 }}>
             {(quotes.length + lineItems.length) === 0 ? (
               <div className="empty-state" style={{ padding: '48px 24px' }}>
                 <DollarSign size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -299,6 +341,12 @@ function ProductDetail() {
               </table>
             )}
           </div>
+          ) : (
+            <DocumentsTab
+              buyingIntentId={id}
+              onUploadClick={() => setIsDocumentModalOpen(true)}
+            />
+          )}
         </div>
 
         {/* Quick Action */}
@@ -438,6 +486,13 @@ function ProductDetail() {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onSuccess={handleUploadSuccess}
+      />
+
+      {/* Upload Document Modal */}
+      <UploadDocumentModal
+        isOpen={isDocumentModalOpen}
+        onClose={() => setIsDocumentModalOpen(false)}
+        buyingIntentId={id}
       />
     </div>
   );
