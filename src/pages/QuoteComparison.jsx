@@ -70,7 +70,7 @@ Best regards,
 // ============================================
 // SEARCHABLE PRODUCT SELECTOR
 // ============================================
-function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
+function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteCounts }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef(null);
@@ -96,9 +96,9 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
   const productsWithCounts = useMemo(() => {
     return products.map(product => ({
       ...product,
-      quoteCount: 0, // Will be updated when we load line items
+      quoteCount: quoteCounts[product.id] || 0,
     }));
-  }, [products]);
+  }, [products, quoteCounts]);
 
   const filteredProducts = useMemo(() => {
     if (!searchTerm.trim()) return productsWithCounts;
@@ -267,6 +267,7 @@ function QuoteComparison() {
   const { state, computed } = useAppContext();
   const { products, fees } = state;
   const [lineItems, setLineItems] = React.useState([]);
+  const [quoteCounts, setQuoteCounts] = React.useState({});
 
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedSupplierId, setSelectedSupplierId] = useState(null);
@@ -274,6 +275,21 @@ function QuoteComparison() {
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState('');
+
+  // Load quote counts for all products
+  React.useEffect(() => {
+    const loadQuoteCounts = async () => {
+      const counts = {};
+      for (const product of products) {
+        const items = await computed.getLineItemsForBuyingIntent(product.id);
+        counts[product.id] = items.length;
+      }
+      setQuoteCounts(counts);
+    };
+    if (products.length > 0) {
+      loadQuoteCounts();
+    }
+  }, [products, computed]);
 
   // Load line items when product changes
   React.useEffect(() => {
@@ -447,6 +463,7 @@ function QuoteComparison() {
               quotes={[]}
               selectedProductId={selectedProductId}
               onSelect={handleProductChange}
+              quoteCounts={quoteCounts}
             />
             {!selectedProductId && (
               <div className="info-message" style={{ marginTop: '12px' }}>

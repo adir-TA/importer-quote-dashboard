@@ -665,7 +665,8 @@ export function AppProvider({ children }) {
     },
     computed: {
       getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
-      getLineItemsForProduct, // NEW: Query line items by product
+      getLineItemsForProduct, // Legacy alias
+      getLineItemsForBuyingIntent, // Query line items by buying intent
       calculateLandedCost,
     },
   };
