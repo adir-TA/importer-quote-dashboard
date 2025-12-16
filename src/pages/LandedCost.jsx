@@ -27,7 +27,7 @@ const formatNumber = (num) => {
 // ============================================
 // SEARCHABLE PRODUCT SELECTOR COMPONENT
 // ============================================
-function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
+function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteCounts }) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef(null);
@@ -54,9 +54,9 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
   const productsWithCounts = useMemo(() => {
     return products.map(product => ({
       ...product,
-      quoteCount: quotes.filter(q => q.product_id === product.id).length,
+      quoteCount: quoteCounts[product.id] || 0,
     }));
-  }, [products, quotes]);
+  }, [products, quoteCounts]);
 
   // Filter by search (case-insensitive)
   const filteredProducts = useMemo(() => {
@@ -257,24 +257,61 @@ function QuoteSelector({ quotes, selectedQuoteId, onSelect, productName }) {
 // ============================================
 function LandedCost() {
   const navigate = useNavigate();
-  const { state, actions } = useAppContext();
-  const { fees, quotes, products } = state;
+  const { state, computed } = useAppContext();
+  const { fees, products } = state;
 
   // State
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [customQuantity, setCustomQuantity] = useState('');
+  const [lineItems, setLineItems] = React.useState([]);
+  const [quoteCounts, setQuoteCounts] = React.useState({});
+
+  // Load quote counts for all products
+  React.useEffect(() => {
+    const loadQuoteCounts = async () => {
+      const counts = {};
+      for (const product of products) {
+        const items = await computed.getLineItemsForBuyingIntent(product.id);
+        counts[product.id] = items.length;
+      }
+      setQuoteCounts(counts);
+    };
+    if (products.length > 0) {
+      loadQuoteCounts();
+    }
+  }, [products, computed]);
+
+  // Load line items when product changes
+  React.useEffect(() => {
+    const loadLineItems = async () => {
+      if (!selectedProductId) {
+        setLineItems([]);
+        return;
+      }
+      const items = await computed.getLineItemsForBuyingIntent(selectedProductId);
+      setLineItems(items);
+    };
+    loadLineItems();
+  }, [selectedProductId, computed]);
 
   // Derived: Selected product
   const selectedProduct = useMemo(() => {
     return products.find(p => p.id === selectedProductId);
   }, [products, selectedProductId]);
 
-  // Derived: Quotes for selected product ONLY
+  // Derived: Transform line items to quote format
   const productQuotes = useMemo(() => {
-    if (!selectedProductId) return [];
-    return quotes.filter(q => q.product_id === selectedProductId);
-  }, [quotes, selectedProductId]);
+    return lineItems.map(item => ({
+      id: item.id,
+      product_id: selectedProductId,
+      supplierName: item.supplierName || item.supplier?.supplier_name,
+      unitPrice: item.unit_price,
+      currency: item.currency || 'USD',
+      moq: item.moq || 1,
+      incoterm: item.incoterm || 'FOB',
+    }));
+  }, [lineItems, selectedProductId]);
 
   // Derived: Selected quote
   const selectedQuote = useMemo(() => {
@@ -453,9 +490,10 @@ function LandedCost() {
           <div className="card-body">
             <ProductSelector
               products={products}
-              quotes={quotes}
+              quotes={[]}
               selectedProductId={selectedProductId}
               onSelect={handleProductChange}
+              quoteCounts={quoteCounts}
             />
             {!selectedProductId && (
               <div className="info-message" style={{ marginTop: '12px' }}>
