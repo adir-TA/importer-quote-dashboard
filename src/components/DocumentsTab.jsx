@@ -45,12 +45,38 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
     }
   };
 
-  const handlePreview = (doc) => {
-    setPreviewDoc(doc);
+  const handlePreview = async (doc) => {
+    try {
+      const signedUrl = await getSignedUrl(doc.file_path);
+      setPreviewDoc({ ...doc, signedUrl });
+    } catch (err) {
+      alert('Failed to preview document: ' + err.message);
+    }
   };
 
-  const handleDownload = (doc) => {
-    window.open(doc.file_url, '_blank');
+  const handleDownload = async (doc) => {
+    try {
+      const signedUrl = await getSignedUrl(doc.file_path);
+      window.open(signedUrl, '_blank');
+    } catch (err) {
+      alert('Failed to download document: ' + err.message);
+    }
+  };
+
+  const getSignedUrl = async (filePath) => {
+    const response = await fetch('http://localhost:3001/api/documents/signed-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filePath }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to get signed URL');
+    }
+
+    const { signedUrl } = await response.json();
+    return signedUrl;
   };
 
   // Group documents by supplier
@@ -195,13 +221,13 @@ function DocumentPreviewModal({ document, onClose }) {
         <div style={styles.modalBody}>
           {isImage ? (
             <img
-              src={document.file_url}
+              src={document.signedUrl}
               alt={document.file_name}
               style={styles.previewImage}
             />
           ) : isPDF ? (
             <iframe
-              src={document.file_url}
+              src={document.signedUrl}
               style={styles.previewPDF}
               title={document.file_name}
             />
@@ -210,7 +236,7 @@ function DocumentPreviewModal({ document, onClose }) {
               <File size={48} color="#94a3b8" />
               <p>Preview not available for this file type</p>
               <a
-                href={document.file_url}
+                href={document.signedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={styles.downloadLink}
