@@ -463,7 +463,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }
 
     try {
-      const newIntent = await actions.addBuyingIntent({
+      const newIntent = await actions.addProduct({
         name: newIntentName.trim(),
         category: editableLineItems[lineItemIndex].productName || '',
       });
