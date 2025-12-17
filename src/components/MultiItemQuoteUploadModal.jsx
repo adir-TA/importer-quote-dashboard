@@ -497,24 +497,19 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     try {
       const lineItem = editableLineItems[lineItemIndex];
 
-      // Populate all specs from the line item into the new buying intent
+      // Populate weight and dimensions from the line item
       const newIntentData = {
         name: newIntentName.trim(),
         category: lineItem.productName || '',
         dimensions: lineItem.dimensions || null,
         weight_g: lineItem.weight_g ? parseInt(lineItem.weight_g) : null,
-        carton_length_cm: lineItem.carton_length_cm ? parseFloat(lineItem.carton_length_cm) : null,
-        carton_width_cm: lineItem.carton_width_cm ? parseFloat(lineItem.carton_width_cm) : null,
-        carton_height_cm: lineItem.carton_height_cm ? parseFloat(lineItem.carton_height_cm) : null,
-        cbm_per_carton: lineItem.cbm_per_carton ? parseFloat(lineItem.cbm_per_carton) : null,
-        packing_pcs_per_ctn: lineItem.packing_pcs_per_ctn ? parseInt(lineItem.packing_pcs_per_ctn) : null,
       };
 
       console.log('Creating new buying intent with specs:', newIntentData);
 
       const newIntent = await actions.addProduct(newIntentData);
 
-      console.log('✅ Created new buying intent with full specs:', newIntent);
+      console.log('✅ Created new buying intent with specs:', newIntent);
 
       // Link the new intent to this line item
       handleBuyingIntentChange(lineItemIndex, newIntent.id);
