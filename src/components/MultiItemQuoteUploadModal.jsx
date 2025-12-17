@@ -301,6 +301,9 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expandedMatchDetails, setExpandedMatchDetails] = useState({});
+  const [filePreviewUrl, setFilePreviewUrl] = useState(null);
+  const [showCreateIntent, setShowCreateIntent] = useState(null); // index of line item creating intent for
+  const [newIntentName, setNewIntentName] = useState('');
 
   const {
     step,
@@ -319,6 +322,18 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     getQuoteData,
     reset,
   } = useMultiItemQuoteExtraction(settings.apiKey, products);
+
+  // Create preview URL when uploadedFile changes
+  React.useEffect(() => {
+    if (uploadedFile) {
+      const url = URL.createObjectURL(uploadedFile);
+      setFilePreviewUrl(url);
+      console.log('[Modal] Created preview URL for uploaded file:', uploadedFile.name);
+      return () => URL.revokeObjectURL(url);
+    } else {
+      setFilePreviewUrl(null);
+    }
+  }, [uploadedFile]);
 
   if (!isOpen) return null;
 
@@ -354,9 +369,17 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       return;
     }
 
+    // Validate that all line items have a linked buying intent
+    const unlinkedItems = editableLineItems.filter(item => !item.linkedBuyingIntentId);
+    if (unlinkedItems.length > 0) {
+      alert(`All line items must be linked to a Buying Intent.\n\n${unlinkedItems.length} item(s) are not linked yet.`);
+      return;
+    }
+
     setSaving(true);
     try {
       console.log('[Modal] Saving quote data:', data);
+      console.log('[Modal] Uploaded file:', uploadedFile);
       const result = await actions.addSupplierQuote(data.supplierQuote, data.lineItems);
       console.log('✅ [Modal] Saved supplier quote:', result);
 
@@ -424,7 +447,39 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const handleClose = () => {
     reset();
     setExpandedMatchDetails({});
+    setShowCreateIntent(null);
+    setNewIntentName('');
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+      setFilePreviewUrl(null);
+    }
     onClose();
+  };
+
+  const handleCreateNewIntent = async (lineItemIndex) => {
+    if (!newIntentName.trim()) {
+      alert('Please enter a name for the new Buying Intent');
+      return;
+    }
+
+    try {
+      const newIntent = await actions.addBuyingIntent({
+        name: newIntentName.trim(),
+        category: editableLineItems[lineItemIndex].productName || '',
+      });
+
+      console.log('✅ Created new buying intent:', newIntent);
+
+      // Link the new intent to this line item
+      handleBuyingIntentChange(lineItemIndex, newIntent.id);
+
+      // Close the create form
+      setShowCreateIntent(null);
+      setNewIntentName('');
+    } catch (err) {
+      console.error('❌ Failed to create buying intent:', err);
+      alert('Failed to create buying intent: ' + err.message);
+    }
   };
 
   const toggleMatchDetails = (index) => {
@@ -539,6 +594,38 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
           {/* REVIEW */}
           {step === 'review' && (
             <div style={styles.review}>
+              {/* File Preview Section */}
+              {filePreviewUrl && uploadedFile && (
+                <div style={styles.previewSection}>
+                  <h3 style={styles.sectionTitle}>Quote Preview</h3>
+                  <div style={styles.previewContainer}>
+                    {uploadedFile.type.startsWith('image/') ? (
+                      <img
+                        src={filePreviewUrl}
+                        alt="Quote preview"
+                        style={styles.previewImage}
+                      />
+                    ) : uploadedFile.type === 'application/pdf' ? (
+                      <iframe
+                        src={filePreviewUrl}
+                        style={styles.previewPdf}
+                        title="Quote preview"
+                      />
+                    ) : (
+                      <div style={styles.previewFallback}>
+                        <FileText size={48} color="#94a3b8" />
+                        <p style={{ marginTop: '12px', color: '#64748b' }}>
+                          {uploadedFile.name}
+                        </p>
+                        <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                          Preview not available for this file type
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Supplier Info Section */}
               <div style={styles.section}>
                 <h3 style={styles.sectionTitle}>Supplier Information</h3>
@@ -742,22 +829,93 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                       </div>
                                     )}
 
-                                    {/* Always-editable dropdown */}
-                                    <select
-                                      value={item.linkedBuyingIntentId || ''}
-                                      onChange={(e) => handleBuyingIntentChange(index, e.target.value)}
-                                      style={{
-                                        ...styles.tableInput,
-                                        width: '100%',
-                                      }}
-                                    >
-                                      <option value="">-- Select Buying Intent --</option>
-                                      {products.map(product => (
-                                        <option key={product.id} value={product.id}>
-                                          {product.name}
+                                    {/* Create new intent form */}
+                                    {showCreateIntent === index ? (
+                                      <div style={{
+                                        padding: '8px',
+                                        background: '#f0f9ff',
+                                        border: '1px solid #3b82f6',
+                                        borderRadius: '4px',
+                                      }}>
+                                        <input
+                                          type="text"
+                                          value={newIntentName}
+                                          onChange={(e) => setNewIntentName(e.target.value)}
+                                          placeholder="Enter buying intent name"
+                                          style={{
+                                            ...styles.tableInput,
+                                            width: '100%',
+                                            marginBottom: '6px',
+                                          }}
+                                          autoFocus
+                                        />
+                                        <div style={{ display: 'flex', gap: '6px' }}>
+                                          <button
+                                            onClick={() => handleCreateNewIntent(index)}
+                                            style={{
+                                              flex: 1,
+                                              padding: '6px 12px',
+                                              fontSize: '0.75rem',
+                                              background: '#3b82f6',
+                                              color: 'white',
+                                              border: 'none',
+                                              borderRadius: '4px',
+                                              cursor: 'pointer',
+                                              fontWeight: 500,
+                                            }}
+                                          >
+                                            Create
+                                          </button>
+                                          <button
+                                            onClick={() => {
+                                              setShowCreateIntent(null);
+                                              setNewIntentName('');
+                                            }}
+                                            style={{
+                                              flex: 1,
+                                              padding: '6px 12px',
+                                              fontSize: '0.75rem',
+                                              background: 'white',
+                                              color: '#64748b',
+                                              border: '1px solid #e5e7eb',
+                                              borderRadius: '4px',
+                                              cursor: 'pointer',
+                                            }}
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      /* Always-editable dropdown */
+                                      <select
+                                        value={item.linkedBuyingIntentId || ''}
+                                        onChange={(e) => {
+                                          if (e.target.value === '__CREATE_NEW__') {
+                                            setShowCreateIntent(index);
+                                            setNewIntentName('');
+                                          } else {
+                                            handleBuyingIntentChange(index, e.target.value);
+                                          }
+                                        }}
+                                        style={{
+                                          ...styles.tableInput,
+                                          width: '100%',
+                                          borderColor: !item.linkedBuyingIntentId ? '#f59e0b' : undefined,
+                                          borderWidth: !item.linkedBuyingIntentId ? '2px' : '1px',
+                                        }}
+                                      >
+                                        <option value="">-- Select Buying Intent (Required) --</option>
+                                        {products.map(product => (
+                                          <option key={product.id} value={product.id}>
+                                            {product.name}
+                                          </option>
+                                        ))}
+                                        <option value="__CREATE_NEW__" style={{ fontWeight: 'bold', color: '#3b82f6' }}>
+                                          + Create New Buying Intent
                                         </option>
-                                      ))}
-                                    </select>
+                                      </select>
+                                    )}
 
                                     {/* Suggestion badge + Details button */}
                                     {suggestedIntent && (
@@ -1026,6 +1184,40 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '24px',
+  },
+  previewSection: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    padding: '20px',
+    background: '#f9fafb',
+  },
+  previewContainer: {
+    width: '100%',
+    height: '400px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: 'white',
+    borderRadius: '6px',
+    border: '1px solid #e5e7eb',
+    overflow: 'hidden',
+  },
+  previewImage: {
+    maxWidth: '100%',
+    maxHeight: '100%',
+    objectFit: 'contain',
+  },
+  previewPdf: {
+    width: '100%',
+    height: '100%',
+    border: 'none',
+  },
+  previewFallback: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: '#94a3b8',
   },
   section: {
     border: '1px solid #e5e7eb',
