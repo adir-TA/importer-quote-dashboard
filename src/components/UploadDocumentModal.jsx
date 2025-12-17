@@ -84,17 +84,34 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
     setError('');
 
     try {
-      // Convert file to base64 for storage
-      const base64 = await fileToBase64(file);
+      // Step 1: Upload file to backend (Supabase Storage)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', state.user.id);
+      formData.append('buyingIntentId', buyingIntentId);
+      formData.append('supplierQuoteId', selectedSupplierQuoteId);
 
+      const uploadResponse = await fetch('http://localhost:3001/api/documents/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        const errorData = await uploadResponse.json();
+        throw new Error(errorData.error || 'Upload failed');
+      }
+
+      const { file: uploadedFile } = await uploadResponse.json();
+
+      // Step 2: Save document metadata to database
       const doc = {
         type,
         buyingIntentId,
         supplierQuoteId: selectedSupplierQuoteId,
-        fileUrl: base64,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
+        filePath: uploadedFile.path,
+        fileName: uploadedFile.name,
+        fileType: uploadedFile.type,
+        fileSize: uploadedFile.size,
       };
 
       await actions.addDocument(doc);
@@ -108,15 +125,6 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
     } finally {
       setUploading(false);
     }
-  };
-
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = (error) => reject(error);
-    });
   };
 
   const resetForm = () => {

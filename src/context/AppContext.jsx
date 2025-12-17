@@ -555,7 +555,7 @@ export function AppProvider({ children }) {
         buying_intent_id: doc.buyingIntentId,
         supplier_quote_id: doc.supplierQuoteId,
         quote_line_item_id: doc.quoteLineItemId || null,
-        file_url: doc.fileUrl,
+        file_path: doc.filePath,
         file_name: doc.fileName,
         file_type: doc.fileType,
         file_size: doc.fileSize || null,

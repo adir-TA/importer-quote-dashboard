@@ -1,14 +1,42 @@
 // ============================================
-// BACKEND SERVER FOR QUOTE EXTRACTION
+// BACKEND SERVER FOR QUOTE EXTRACTION & DOCUMENT STORAGE
 // ============================================
-// This server proxies API calls to Anthropic to avoid CORS issues
-// and keep the API key secure (server-side only)
+// This server proxies API calls to Anthropic and handles Supabase Storage uploads
 
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import { createClient } from '@supabase/supabase-js';
 
 dotenv.config();
+
+// Supabase client with service role key (for backend only)
+const supabaseUrl = process.env.VITE_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+if (!supabaseUrl || !supabaseServiceKey) {
+  console.error('❌ Missing Supabase credentials. Add VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env');
+  process.exit(1);
+}
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Configure multer for memory storage
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF and images allowed.'));
+    }
+  },
+});
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -20,6 +48,100 @@ app.use(express.json({ limit: '50mb' })); // Allow large image uploads
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'quote-extraction-api' });
+});
+
+// ============================================
+// DOCUMENT STORAGE ENDPOINTS
+// ============================================
+
+// Upload document to Supabase Storage
+app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { userId, supplierQuoteId, buyingIntentId } = req.body;
+
+    if (!userId || !supplierQuoteId || !buyingIntentId) {
+      return res.status(400).json({
+        error: 'Missing required fields: userId, supplierQuoteId, buyingIntentId'
+      });
+    }
+
+    // Generate file path with folder structure
+    const timestamp = Date.now();
+    const fileExtension = req.file.originalname.split('.').pop();
+    const fileName = `${timestamp}.${fileExtension}`;
+    const filePath = `${userId}/buying-intents/${buyingIntentId}/${fileName}`;
+
+    console.log(`📤 Uploading file: ${filePath}`);
+
+    // Upload to Supabase Storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('documents')
+      .upload(filePath, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('❌ Storage upload error:', uploadError);
+      return res.status(500).json({ error: uploadError.message });
+    }
+
+    console.log(`✅ File uploaded successfully: ${uploadData.path}`);
+
+    // Return file metadata
+    res.json({
+      success: true,
+      file: {
+        path: uploadData.path,
+        name: req.file.originalname,
+        type: req.file.mimetype,
+        size: req.file.size,
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ Upload error:', error);
+    res.status(500).json({ error: error.message || 'Failed to upload file' });
+  }
+});
+
+// Get signed URL for document preview/download
+app.post('/api/documents/signed-url', async (req, res) => {
+  try {
+    const { filePath, expiresIn = 3600 } = req.body; // Default 1 hour expiry
+
+    if (!filePath) {
+      return res.status(400).json({ error: 'filePath is required' });
+    }
+
+    console.log(`🔗 Generating signed URL for: ${filePath}`);
+
+    // Generate signed URL
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .createSignedUrl(filePath, expiresIn);
+
+    if (error) {
+      console.error('❌ Signed URL error:', error);
+      return res.status(500).json({ error: error.message });
+    }
+
+    console.log(`✅ Signed URL generated`);
+
+    res.json({
+      success: true,
+      signedUrl: data.signedUrl,
+      expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
+    });
+
+  } catch (error) {
+    console.error('❌ Signed URL error:', error);
+    res.status(500).json({ error: error.message || 'Failed to generate signed URL' });
+  }
 });
 
 // Extract quote from image
