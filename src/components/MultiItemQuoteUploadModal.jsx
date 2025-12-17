@@ -304,6 +304,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [showCreateIntent, setShowCreateIntent] = useState(null); // index of line item creating intent for
   const [newIntentName, setNewIntentName] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState([]); // for filtering buying intents
 
   const {
     step,
@@ -322,6 +323,27 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     getQuoteData,
     reset,
   } = useMultiItemQuoteExtraction(settings.apiKey, products);
+
+  // Get unique categories from products
+  const categories = React.useMemo(() => {
+    const cats = new Set(products.map(p => p.category).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Filter products by selected categories
+  const filteredProducts = React.useMemo(() => {
+    if (selectedCategories.length === 0) return products;
+    return products.filter(p => selectedCategories.includes(p.category));
+  }, [products, selectedCategories]);
+
+  // Toggle category selection
+  const toggleCategory = (category) => {
+    setSelectedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
 
   // Create preview URL when uploadedFile changes
   React.useEffect(() => {
@@ -481,6 +503,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     setExpandedMatchDetails({});
     setShowCreateIntent(null);
     setNewIntentName('');
+    setSelectedCategories([]);
     if (filePreviewUrl) {
       URL.revokeObjectURL(filePreviewUrl);
       setFilePreviewUrl(null);
@@ -928,34 +951,88 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                         </div>
                                       </div>
                                     ) : (
-                                      /* Always-editable dropdown */
-                                      <select
-                                        value={item.linkedBuyingIntentId || ''}
-                                        onChange={(e) => {
-                                          if (e.target.value === '__CREATE_NEW__') {
-                                            setShowCreateIntent(index);
-                                            setNewIntentName('');
-                                          } else {
-                                            handleBuyingIntentChange(index, e.target.value);
-                                          }
-                                        }}
-                                        style={{
-                                          ...styles.tableInput,
-                                          width: '100%',
-                                          borderColor: !item.linkedBuyingIntentId ? '#f59e0b' : undefined,
-                                          borderWidth: !item.linkedBuyingIntentId ? '2px' : '1px',
-                                        }}
-                                      >
-                                        <option value="">-- Select Buying Intent (Required) --</option>
-                                        {products.map(product => (
-                                          <option key={product.id} value={product.id}>
-                                            {product.name}
+                                      <div>
+                                        {/* Category filter buttons */}
+                                        {categories.length > 0 && (
+                                          <div style={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            gap: '4px',
+                                            marginBottom: '6px',
+                                          }}>
+                                            {categories.map(category => (
+                                              <button
+                                                key={category}
+                                                onClick={() => toggleCategory(category)}
+                                                style={{
+                                                  padding: '4px 10px',
+                                                  fontSize: '0.7rem',
+                                                  background: selectedCategories.includes(category) ? '#3b82f6' : '#f3f4f6',
+                                                  color: selectedCategories.includes(category) ? 'white' : '#374151',
+                                                  border: 'none',
+                                                  borderRadius: '12px',
+                                                  cursor: 'pointer',
+                                                  fontWeight: 500,
+                                                  transition: 'all 0.2s',
+                                                }}
+                                                title={`Filter by ${category}`}
+                                              >
+                                                {category}
+                                              </button>
+                                            ))}
+                                            {selectedCategories.length > 0 && (
+                                              <button
+                                                onClick={() => setSelectedCategories([])}
+                                                style={{
+                                                  padding: '4px 10px',
+                                                  fontSize: '0.7rem',
+                                                  background: '#fef2f2',
+                                                  color: '#ef4444',
+                                                  border: 'none',
+                                                  borderRadius: '12px',
+                                                  cursor: 'pointer',
+                                                  fontWeight: 500,
+                                                }}
+                                                title="Clear filters"
+                                              >
+                                                Clear
+                                              </button>
+                                            )}
+                                          </div>
+                                        )}
+
+                                        {/* Always-editable dropdown */}
+                                        <select
+                                          value={item.linkedBuyingIntentId || ''}
+                                          onChange={(e) => {
+                                            if (e.target.value === '__CREATE_NEW__') {
+                                              setShowCreateIntent(index);
+                                              setNewIntentName('');
+                                            } else {
+                                              handleBuyingIntentChange(index, e.target.value);
+                                            }
+                                          }}
+                                          style={{
+                                            ...styles.tableInput,
+                                            width: '100%',
+                                            borderColor: !item.linkedBuyingIntentId ? '#f59e0b' : undefined,
+                                            borderWidth: !item.linkedBuyingIntentId ? '2px' : '1px',
+                                          }}
+                                        >
+                                          <option value="">
+                                            -- Select Buying Intent (Required) --
+                                            {selectedCategories.length > 0 && ` (${filteredProducts.length} filtered)`}
                                           </option>
-                                        ))}
-                                        <option value="__CREATE_NEW__" style={{ fontWeight: 'bold', color: '#3b82f6' }}>
-                                          + Create New Buying Intent
-                                        </option>
-                                      </select>
+                                          {filteredProducts.map(product => (
+                                            <option key={product.id} value={product.id}>
+                                              {product.name} {product.category ? `(${product.category})` : ''}
+                                            </option>
+                                          ))}
+                                          <option value="__CREATE_NEW__" style={{ fontWeight: 'bold', color: '#3b82f6' }}>
+                                            + Create New Buying Intent
+                                          </option>
+                                        </select>
+                                      </div>
                                     )}
 
                                     {/* Suggestion badge + Details button */}
