@@ -18,11 +18,14 @@ function Products() {
   const [formData, setFormData] = useState({ name: '', category: '', description: '' });
   const [quoteCounts, setQuoteCounts] = useState({});
 
-  // Category dropdown states
+  // Category dropdown states (for modal)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Category filter for main page
+  const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
 
   // Load quote counts for all products
   useEffect(() => {
@@ -41,8 +44,15 @@ function Products() {
   }, [products, computed]);
 
   const filteredProducts = useMemo(() => {
-    return filterBySearch(products, search, ['name', 'category', 'description']);
-  }, [products, search]);
+    let result = filterBySearch(products, search, ['name', 'category', 'description']);
+
+    // Apply category filters
+    if (selectedCategoryFilters.length > 0) {
+      result = result.filter(p => selectedCategoryFilters.includes(p.category));
+    }
+
+    return result;
+  }, [products, search, selectedCategoryFilters]);
 
   // Get unique categories from all products
   const categories = useMemo(() => {
@@ -141,6 +151,56 @@ function Products() {
 
       <div className="content">
         <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
+
+        {/* Category filter pills */}
+        {categories.length > 0 && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px', marginTop: '16px' }}>
+            {categories.map(category => (
+              <button
+                key={category}
+                onClick={() => {
+                  setSelectedCategoryFilters(prev =>
+                    prev.includes(category)
+                      ? prev.filter(c => c !== category)
+                      : [...prev, category]
+                  );
+                }}
+                className="btn"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.875rem',
+                  background: selectedCategoryFilters.includes(category) ? 'var(--accent)' : 'var(--bg-light)',
+                  color: selectedCategoryFilters.includes(category) ? 'white' : 'var(--text)',
+                  border: 'none',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  transition: 'all 0.2s',
+                }}
+              >
+                {category}
+              </button>
+            ))}
+            {selectedCategoryFilters.length > 0 && (
+              <button
+                onClick={() => setSelectedCategoryFilters([])}
+                className="btn"
+                style={{
+                  padding: '8px 16px',
+                  fontSize: '0.875rem',
+                  background: '#fef2f2',
+                  color: '#ef4444',
+                  border: 'none',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                }}
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        )}
 
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
@@ -248,13 +308,13 @@ function Products() {
                       top: 'calc(100% + 4px)',
                       left: 0,
                       right: 0,
-                      background: 'var(--bg)',
+                      background: 'white',
                       border: '1px solid var(--border)',
                       borderRadius: '8px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                      maxHeight: '240px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      maxHeight: '280px',
                       overflowY: 'auto',
-                      zIndex: 1000,
+                      zIndex: 9999,
                     }}>
                       {/* Search input */}
                       <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
