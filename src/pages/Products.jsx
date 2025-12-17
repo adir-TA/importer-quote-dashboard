@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, X, Check } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
@@ -17,6 +17,12 @@ function Products() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({ name: '', category: '', description: '' });
   const [quoteCounts, setQuoteCounts] = useState({});
+
+  // Category dropdown states
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   // Load quote counts for all products
   useEffect(() => {
@@ -38,6 +44,20 @@ function Products() {
     return filterBySearch(products, search, ['name', 'category', 'description']);
   }, [products, search]);
 
+  // Get unique categories from all products
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Filter categories by search
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    return categories.filter(cat =>
+      cat.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
+
   const handleOpenModal = (product = null) => {
     if (product) {
       setEditingProduct(product);
@@ -53,6 +73,28 @@ function Products() {
     setIsModalOpen(false);
     setEditingProduct(null);
     setFormData({ name: '', category: '', description: '' });
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+    setShowCreateCategory(false);
+    setNewCategoryName('');
+  };
+
+  const handleSelectCategory = (category) => {
+    setFormData({ ...formData, category });
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+  };
+
+  const handleCreateCategory = () => {
+    if (!newCategoryName.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+    setFormData({ ...formData, category: newCategoryName.trim() });
+    setShowCreateCategory(false);
+    setShowCategoryDropdown(false);
+    setNewCategoryName('');
+    setCategorySearch('');
   };
 
   const handleSave = async () => {
@@ -142,9 +184,151 @@ function Products() {
                   <input type="text" className="form-input" placeholder="e.g., Aluminum Container 225×175×42mm" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                   <p className="form-hint">Describe what you're trying to buy (independent of suppliers)</p>
                 </div>
-                <div className="form-group">
+                <div className="form-group" style={{ position: 'relative' }}>
                   <label className="form-label">Category</label>
-                  <input type="text" className="form-input" placeholder="e.g., Aluminum, Plastic, Packaging" value={formData.category} onChange={e => setFormData({ ...formData, category: e.target.value })} />
+
+                  {showCreateCategory ? (
+                    /* Create new category form */
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={newCategoryName}
+                        onChange={e => setNewCategoryName(e.target.value)}
+                        placeholder="New category name"
+                        autoFocus
+                        style={{ flex: 1 }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleCreateCategory}
+                        style={{ padding: '0 16px' }}
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowCreateCategory(false);
+                          setNewCategoryName('');
+                        }}
+                        style={{ padding: '0 16px' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    /* Category selection button */
+                    <button
+                      type="button"
+                      className="form-input"
+                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      style={{
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: 'var(--bg-light)',
+                      }}
+                    >
+                      <span style={{ color: formData.category ? 'var(--text)' : 'var(--text-muted)' }}>
+                        {formData.category || 'Select or create category...'}
+                      </span>
+                      <ChevronDown size={16} />
+                    </button>
+                  )}
+
+                  {/* Category dropdown list */}
+                  {showCategoryDropdown && !showCreateCategory && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      right: 0,
+                      background: 'var(--bg)',
+                      border: '1px solid var(--border)',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      maxHeight: '240px',
+                      overflowY: 'auto',
+                      zIndex: 1000,
+                    }}>
+                      {/* Search input */}
+                      <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={categorySearch}
+                          onChange={e => setCategorySearch(e.target.value)}
+                          placeholder="Search categories..."
+                          onClick={e => e.stopPropagation()}
+                          style={{ fontSize: '0.875rem' }}
+                        />
+                      </div>
+
+                      {/* Category list */}
+                      {filteredCategories.length > 0 ? (
+                        filteredCategories.map(cat => (
+                          <button
+                            key={cat}
+                            type="button"
+                            onClick={() => handleSelectCategory(cat)}
+                            style={{
+                              width: '100%',
+                              padding: '10px 16px',
+                              textAlign: 'left',
+                              border: 'none',
+                              background: formData.category === cat ? 'var(--accent-bg)' : 'transparent',
+                              color: formData.category === cat ? 'var(--accent)' : 'var(--text)',
+                              cursor: 'pointer',
+                              fontSize: '0.875rem',
+                              borderBottom: '1px solid var(--bg-light)',
+                              transition: 'background 0.15s',
+                            }}
+                            onMouseEnter={e => { if (formData.category !== cat) e.target.style.background = 'var(--bg-light)'; }}
+                            onMouseLeave={e => { if (formData.category !== cat) e.target.style.background = 'transparent'; }}
+                          >
+                            {cat}
+                          </button>
+                        ))
+                      ) : (
+                        <div style={{
+                          padding: '16px',
+                          textAlign: 'center',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.875rem',
+                        }}>
+                          No categories found
+                        </div>
+                      )}
+
+                      {/* Create new category button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateCategory(true);
+                          setShowCategoryDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          textAlign: 'left',
+                          border: 'none',
+                          background: 'var(--accent-bg)',
+                          color: 'var(--accent)',
+                          cursor: 'pointer',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          borderTop: '2px solid var(--border)',
+                        }}
+                      >
+                        + Create New Category
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Target Specifications</label>
