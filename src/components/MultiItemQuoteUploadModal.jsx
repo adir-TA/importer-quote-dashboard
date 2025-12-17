@@ -1056,7 +1056,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                               marginTop: '4px',
                                             }}>
                                               {/* Search input */}
-                                              <div style={{ padding: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                                              <div style={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: '8px',
+                                                padding: '8px',
+                                                borderBottom: '1px solid #e5e7eb'
+                                              }}>
+                                                <Search size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
                                                 <input
                                                   type="text"
                                                   value={categorySearch}
@@ -1066,6 +1073,10 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                                     ...styles.tableInput,
                                                     width: '100%',
                                                     fontSize: '0.75rem',
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    padding: 0,
+                                                    flex: 1,
                                                   }}
                                                   onClick={(e) => e.stopPropagation()}
                                                 />

@@ -317,7 +317,14 @@ function Products() {
                       zIndex: 9999,
                     }}>
                       {/* Search input */}
-                      <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '12px',
+                        borderBottom: '1px solid var(--border)'
+                      }}>
+                        <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                         <input
                           type="text"
                           className="form-input"
@@ -325,7 +332,7 @@ function Products() {
                           onChange={e => setCategorySearch(e.target.value)}
                           placeholder="Search categories..."
                           onClick={e => e.stopPropagation()}
-                          style={{ fontSize: '0.875rem' }}
+                          style={{ fontSize: '0.875rem', flex: 1, border: 'none', background: 'transparent', padding: 0 }}
                         />
                       </div>
 
