@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { X, Upload, FileText, AlertCircle, Check } from 'lucide-react';
+import { X, Upload, FileText, AlertCircle, Check, Copy, Eye } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -19,10 +19,14 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
   const fileInputRef = useRef(null);
 
   const [file, setFile] = useState(null);
+  const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [type, setType] = useState('PI');
   const [selectedSupplierQuoteId, setSelectedSupplierQuoteId] = useState('');
+  const [customFileName, setCustomFileName] = useState('');
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const [supplierQuotes, setSupplierQuotes] = useState([]);
 
@@ -67,8 +71,54 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
       return;
     }
 
+    // Validate supplier selected
+    if (!selectedSupplierQuoteId) {
+      setError('Please select a supplier first');
+      return;
+    }
+
+    // Create preview URL
+    const previewUrl = URL.createObjectURL(selectedFile);
+
+    // Set default custom name (remove extension)
+    const nameWithoutExt = selectedFile.name.replace(/\.[^/.]+$/, '');
+
     setFile(selectedFile);
+    setFilePreviewUrl(previewUrl);
+    setCustomFileName(nameWithoutExt);
+    setShowPreview(true);
     setError('');
+  };
+
+  // Clean up preview URL when modal closes
+  useEffect(() => {
+    return () => {
+      if (filePreviewUrl) {
+        URL.revokeObjectURL(filePreviewUrl);
+      }
+    };
+  }, [filePreviewUrl]);
+
+  const handleCopyImage = async () => {
+    if (!file || !file.type.startsWith('image/')) return;
+
+    try {
+      // Read file as blob
+      const blob = new Blob([file], { type: file.type });
+
+      // Copy to clipboard
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [file.type]: blob
+        })
+      ]);
+
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy image:', err);
+      setError('Failed to copy image to clipboard');
+    }
   };
 
   const handleUpload = async () => {
@@ -79,6 +129,11 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
 
     if (!selectedSupplierQuoteId) {
       setError('Please select a supplier');
+      return;
+    }
+
+    if (!customFileName.trim()) {
+      setError('Please enter a document name');
       return;
     }
 
@@ -105,13 +160,17 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
 
       const { file: uploadedFile } = await uploadResponse.json();
 
+      // Get file extension
+      const fileExtension = file.name.split('.').pop();
+      const finalFileName = `${customFileName}.${fileExtension}`;
+
       // Step 2: Save document metadata to database
       const doc = {
         type,
         buyingIntentId,
         supplierQuoteId: selectedSupplierQuoteId,
         filePath: uploadedFile.path,
-        fileName: uploadedFile.name,
+        fileName: finalFileName,
         fileType: uploadedFile.type,
         fileSize: uploadedFile.size,
       };
@@ -130,9 +189,16 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
   };
 
   const resetForm = () => {
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+    }
     setFile(null);
+    setFilePreviewUrl(null);
     setType('PI');
     setSelectedSupplierQuoteId('');
+    setCustomFileName('');
+    setShowPreview(false);
+    setCopySuccess(false);
     setError('');
   };
 
@@ -141,20 +207,36 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
     onClose();
   };
 
+  const handleBackFromPreview = () => {
+    if (filePreviewUrl) {
+      URL.revokeObjectURL(filePreviewUrl);
+    }
+    setFile(null);
+    setFilePreviewUrl(null);
+    setCustomFileName('');
+    setShowPreview(false);
+    setCopySuccess(false);
+    setError('');
+  };
+
   if (!isOpen) return null;
+
+  const isImage = file && file.type.startsWith('image/');
+  const isPDF = file && file.type === 'application/pdf';
 
   return (
     <div style={styles.overlay} onClick={handleClose}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+      <div style={{...styles.modal, ...(showPreview ? styles.modalLarge : {})}} onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div style={styles.header}>
-          <h2 style={styles.title}>Upload Document</h2>
+          <h2 style={styles.title}>{showPreview ? 'Preview Document' : 'Upload Document'}</h2>
           <button onClick={handleClose} style={styles.closeButton}>
             <X size={20} />
           </button>
         </div>
 
-        {/* Content */}
+        {/* Content - File Selection Form */}
+        {!showPreview && (
         <div style={styles.content}>
           {/* Document Type */}
           <div style={styles.field}>
@@ -254,18 +336,111 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
             </div>
           </div>
         </div>
+        )}
 
-        {/* Footer */}
+        {/* Content - Preview & Finalize */}
+        {showPreview && (
+        <div style={styles.previewContent}>
+          {/* Custom Name Input */}
+          <div style={styles.field}>
+            <label style={styles.label}>
+              Document Name <span style={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              value={customFileName}
+              onChange={(e) => setCustomFileName(e.target.value)}
+              placeholder="Enter document name"
+              style={styles.input}
+            />
+            <p style={styles.hint}>Name without file extension</p>
+          </div>
+
+          {/* File Preview */}
+          <div style={styles.previewSection}>
+            <div style={styles.previewHeader}>
+              <span style={styles.label}>Preview</span>
+              {isImage && (
+                <button
+                  onClick={handleCopyImage}
+                  style={styles.copyButton}
+                  title="Copy image to clipboard"
+                >
+                  {copySuccess ? (
+                    <>
+                      <Check size={16} />
+                      Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={16} />
+                      Copy Image
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <div style={styles.previewBox}>
+              {isImage ? (
+                <img
+                  src={filePreviewUrl}
+                  alt="Preview"
+                  style={styles.previewImage}
+                />
+              ) : isPDF ? (
+                <iframe
+                  src={filePreviewUrl}
+                  style={styles.previewPDF}
+                  title="PDF Preview"
+                />
+              ) : (
+                <div style={styles.noPreview}>
+                  <FileText size={48} color="#94a3b8" />
+                  <p>Preview not available</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={styles.error}>
+              <AlertCircle size={16} />
+              {error}
+            </div>
+          )}
+
+          {/* File Info */}
+          <div style={styles.fileMetadata}>
+            <div><strong>File:</strong> {file?.name}</div>
+            <div><strong>Size:</strong> {(file?.size / 1024).toFixed(1)} KB</div>
+            <div><strong>Type:</strong> {file?.type}</div>
+          </div>
+        </div>
+        )}
+
+        {/* Footer - File Selection */}
+        {!showPreview && (
         <div style={styles.footer}>
           <button onClick={handleClose} style={styles.cancelButton}>
             Cancel
           </button>
+        </div>
+        )}
+
+        {/* Footer - Preview & Upload */}
+        {showPreview && (
+        <div style={styles.footer}>
+          <button onClick={handleBackFromPreview} style={styles.cancelButton}>
+            Back
+          </button>
           <button
             onClick={handleUpload}
-            disabled={!file || !selectedSupplierQuoteId || uploading}
+            disabled={!customFileName.trim() || uploading}
             style={{
               ...styles.uploadButton,
-              ...((!file || !selectedSupplierQuoteId || uploading) ? styles.uploadButtonDisabled : {})
+              ...((!customFileName.trim() || uploading) ? styles.uploadButtonDisabled : {})
             }}
           >
             {uploading ? (
@@ -281,6 +456,7 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
             )}
           </button>
         </div>
+        )}
       </div>
     </div>
   );
@@ -457,6 +633,87 @@ const styles = {
     borderTopColor: 'transparent',
     borderRadius: '50%',
     animation: 'spin 0.6s linear infinite',
+  },
+  modalLarge: {
+    maxWidth: '800px',
+    maxHeight: '90vh',
+  },
+  previewContent: {
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    maxHeight: 'calc(90vh - 160px)',
+    overflowY: 'auto',
+  },
+  input: {
+    padding: '10px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px',
+    width: '100%',
+  },
+  previewSection: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+  },
+  previewHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  copyButton: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 16px',
+    background: '#10b981',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '13px',
+    fontWeight: 500,
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+  },
+  previewBox: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '8px',
+    overflow: 'hidden',
+    background: '#f9fafb',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+  },
+  previewImage: {
+    maxWidth: '100%',
+    maxHeight: '500px',
+    objectFit: 'contain',
+  },
+  previewPDF: {
+    width: '100%',
+    height: '500px',
+    border: 'none',
+  },
+  noPreview: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '40px',
+    color: '#64748b',
+  },
+  fileMetadata: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+    padding: '16px',
+    background: '#f9fafb',
+    borderRadius: '8px',
+    fontSize: '13px',
+    color: '#64748b',
   },
 };
 
