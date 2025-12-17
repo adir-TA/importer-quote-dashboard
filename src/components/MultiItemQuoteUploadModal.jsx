@@ -387,11 +387,11 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       console.log('[Modal] Checking auto-upload conditions:', {
         hasUploadedFile: !!uploadedFile,
         uploadedFileName: uploadedFile?.name,
-        supplierQuoteId: result?.supplierQuote?.id,
+        supplierQuoteId: result?.id,
         resultStructure: result
       });
 
-      if (uploadedFile && result?.supplierQuote?.id) {
+      if (uploadedFile && result?.id) {
         console.log('[Modal] Auto-uploading quote as document...');
 
         // Get unique buying intent IDs from line items
@@ -413,7 +413,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
             formData.append('file', uploadedFile);
             formData.append('userId', user.id);
             formData.append('buyingIntentId', buyingIntentId);
-            formData.append('supplierQuoteId', result.supplierQuote.id);
+            formData.append('supplierQuoteId', result.id);
 
             console.log('[Modal] FormData prepared:', {
               fileName: uploadedFile.name,
@@ -421,7 +421,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
               fileSize: uploadedFile.size,
               userId: user.id,
               buyingIntentId,
-              supplierQuoteId: result.supplierQuote.id
+              supplierQuoteId: result.id
             });
 
             const uploadResponse = await fetch('http://localhost:3001/api/documents/upload', {
@@ -445,7 +445,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
             const docData = {
               type: 'quote',
               buyingIntentId,
-              supplierQuoteId: result.supplierQuote.id,
+              supplierQuoteId: result.id,
               filePath: uploadedFileData.path,
               fileName: uploadedFile.name,
               fileType: uploadedFile.type,
@@ -495,12 +495,26 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }
 
     try {
-      const newIntent = await actions.addProduct({
-        name: newIntentName.trim(),
-        category: editableLineItems[lineItemIndex].productName || '',
-      });
+      const lineItem = editableLineItems[lineItemIndex];
 
-      console.log('✅ Created new buying intent:', newIntent);
+      // Populate all specs from the line item into the new buying intent
+      const newIntentData = {
+        name: newIntentName.trim(),
+        category: lineItem.productName || '',
+        dimensions: lineItem.dimensions || null,
+        weight_g: lineItem.weight_g ? parseInt(lineItem.weight_g) : null,
+        carton_length_cm: lineItem.carton_length_cm ? parseFloat(lineItem.carton_length_cm) : null,
+        carton_width_cm: lineItem.carton_width_cm ? parseFloat(lineItem.carton_width_cm) : null,
+        carton_height_cm: lineItem.carton_height_cm ? parseFloat(lineItem.carton_height_cm) : null,
+        cbm_per_carton: lineItem.cbm_per_carton ? parseFloat(lineItem.cbm_per_carton) : null,
+        packing_pcs_per_ctn: lineItem.packing_pcs_per_ctn ? parseInt(lineItem.packing_pcs_per_ctn) : null,
+      };
+
+      console.log('Creating new buying intent with specs:', newIntentData);
+
+      const newIntent = await actions.addProduct(newIntentData);
+
+      console.log('✅ Created new buying intent with full specs:', newIntent);
 
       // Link the new intent to this line item
       handleBuyingIntentChange(lineItemIndex, newIntent.id);
