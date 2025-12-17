@@ -304,6 +304,11 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [showCreateIntent, setShowCreateIntent] = useState(null); // index of line item creating intent for
   const [newIntentName, setNewIntentName] = useState('');
+  const [newIntentCategory, setNewIntentCategory] = useState('');
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]); // for filtering buying intents
 
   const {
@@ -330,6 +335,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     return Array.from(cats).sort();
   }, [products]);
 
+  // Filter categories by search
+  const filteredCategories = React.useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    return categories.filter(cat =>
+      cat.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
+
   // Filter products by selected categories
   const filteredProducts = React.useMemo(() => {
     if (selectedCategories.length === 0) return products;
@@ -343,6 +356,26 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
         ? prev.filter(c => c !== category)
         : [...prev, category]
     );
+  };
+
+  // Handle category selection in create intent form
+  const handleSelectCategory = (category) => {
+    setNewIntentCategory(category);
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+  };
+
+  // Handle create new category
+  const handleCreateCategory = () => {
+    if (!newCategoryName.trim()) {
+      alert('Please enter a category name');
+      return;
+    }
+    setNewIntentCategory(newCategoryName.trim());
+    setShowCreateCategory(false);
+    setShowCategoryDropdown(false);
+    setNewCategoryName('');
+    setCategorySearch('');
   };
 
   // Create preview URL when uploadedFile changes
@@ -503,6 +536,11 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     setExpandedMatchDetails({});
     setShowCreateIntent(null);
     setNewIntentName('');
+    setNewIntentCategory('');
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+    setShowCreateCategory(false);
+    setNewCategoryName('');
     setSelectedCategories([]);
     if (filePreviewUrl) {
       URL.revokeObjectURL(filePreviewUrl);
@@ -517,13 +555,18 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       return;
     }
 
+    if (!newIntentCategory.trim()) {
+      alert('Please select or create a category');
+      return;
+    }
+
     try {
       const lineItem = editableLineItems[lineItemIndex];
 
       // Populate weight and dimensions from the line item
       const newIntentData = {
         name: newIntentName.trim(),
-        category: lineItem.productName || '',
+        category: newIntentCategory.trim(),
         dimensions: lineItem.dimensions || null,
         weight_g: lineItem.weight_g ? parseInt(lineItem.weight_g) : null,
       };
@@ -537,9 +580,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       // Link the new intent to this line item
       handleBuyingIntentChange(lineItemIndex, newIntent.id);
 
-      // Close the create form
+      // Close the create form and reset states
       setShowCreateIntent(null);
       setNewIntentName('');
+      setNewIntentCategory('');
+      setShowCategoryDropdown(false);
+      setCategorySearch('');
+      setShowCreateCategory(false);
+      setNewCategoryName('');
     } catch (err) {
       console.error('❌ Failed to create buying intent:', err);
       alert('Failed to create buying intent: ' + err.message);
@@ -896,29 +944,198 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                     {/* Create new intent form */}
                                     {showCreateIntent === index ? (
                                       <div style={{
-                                        padding: '8px',
+                                        padding: '12px',
                                         background: '#f0f9ff',
                                         border: '1px solid #3b82f6',
-                                        borderRadius: '4px',
+                                        borderRadius: '6px',
                                       }}>
+                                        {/* Name input */}
                                         <input
                                           type="text"
                                           value={newIntentName}
                                           onChange={(e) => setNewIntentName(e.target.value)}
-                                          placeholder="Enter buying intent name"
+                                          placeholder="Buying Intent Name *"
                                           style={{
                                             ...styles.tableInput,
                                             width: '100%',
-                                            marginBottom: '6px',
+                                            marginBottom: '8px',
                                           }}
                                           autoFocus
                                         />
+
+                                        {/* Category dropdown */}
+                                        <div style={{ position: 'relative', marginBottom: '8px' }}>
+                                          {showCreateCategory ? (
+                                            /* Create new category form */
+                                            <div style={{
+                                              display: 'flex',
+                                              gap: '6px',
+                                              marginBottom: '6px',
+                                            }}>
+                                              <input
+                                                type="text"
+                                                value={newCategoryName}
+                                                onChange={(e) => setNewCategoryName(e.target.value)}
+                                                placeholder="New category name"
+                                                style={{
+                                                  ...styles.tableInput,
+                                                  flex: 1,
+                                                }}
+                                                autoFocus
+                                              />
+                                              <button
+                                                onClick={handleCreateCategory}
+                                                style={{
+                                                  padding: '6px 12px',
+                                                  fontSize: '0.7rem',
+                                                  background: '#10b981',
+                                                  color: 'white',
+                                                  border: 'none',
+                                                  borderRadius: '4px',
+                                                  cursor: 'pointer',
+                                                  fontWeight: 500,
+                                                }}
+                                              >
+                                                Add
+                                              </button>
+                                              <button
+                                                onClick={() => {
+                                                  setShowCreateCategory(false);
+                                                  setNewCategoryName('');
+                                                }}
+                                                style={{
+                                                  padding: '6px 12px',
+                                                  fontSize: '0.7rem',
+                                                  background: '#ef4444',
+                                                  color: 'white',
+                                                  border: 'none',
+                                                  borderRadius: '4px',
+                                                  cursor: 'pointer',
+                                                  fontWeight: 500,
+                                                }}
+                                              >
+                                                ✕
+                                              </button>
+                                            </div>
+                                          ) : (
+                                            /* Category selection button */
+                                            <button
+                                              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                                              style={{
+                                                ...styles.tableInput,
+                                                width: '100%',
+                                                textAlign: 'left',
+                                                cursor: 'pointer',
+                                                background: 'white',
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                              }}
+                                            >
+                                              <span style={{ color: newIntentCategory ? '#374151' : '#9ca3af' }}>
+                                                {newIntentCategory || 'Select Category *'}
+                                              </span>
+                                              <ChevronDown size={14} />
+                                            </button>
+                                          )}
+
+                                          {/* Category dropdown list */}
+                                          {showCategoryDropdown && !showCreateCategory && (
+                                            <div style={{
+                                              position: 'absolute',
+                                              top: '100%',
+                                              left: 0,
+                                              right: 0,
+                                              background: 'white',
+                                              border: '1px solid #e5e7eb',
+                                              borderRadius: '4px',
+                                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                              maxHeight: '200px',
+                                              overflowY: 'auto',
+                                              zIndex: 1000,
+                                              marginTop: '4px',
+                                            }}>
+                                              {/* Search input */}
+                                              <div style={{ padding: '8px', borderBottom: '1px solid #e5e7eb' }}>
+                                                <input
+                                                  type="text"
+                                                  value={categorySearch}
+                                                  onChange={(e) => setCategorySearch(e.target.value)}
+                                                  placeholder="Search categories..."
+                                                  style={{
+                                                    ...styles.tableInput,
+                                                    width: '100%',
+                                                    fontSize: '0.75rem',
+                                                  }}
+                                                  onClick={(e) => e.stopPropagation()}
+                                                />
+                                              </div>
+
+                                              {/* Category list */}
+                                              {filteredCategories.length > 0 ? (
+                                                filteredCategories.map(cat => (
+                                                  <button
+                                                    key={cat}
+                                                    onClick={() => handleSelectCategory(cat)}
+                                                    style={{
+                                                      width: '100%',
+                                                      padding: '8px 12px',
+                                                      textAlign: 'left',
+                                                      border: 'none',
+                                                      background: newIntentCategory === cat ? '#eff6ff' : 'white',
+                                                      cursor: 'pointer',
+                                                      fontSize: '0.75rem',
+                                                      borderBottom: '1px solid #f3f4f6',
+                                                    }}
+                                                    onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
+                                                    onMouseLeave={(e) => e.target.style.background = newIntentCategory === cat ? '#eff6ff' : 'white'}
+                                                  >
+                                                    {cat}
+                                                  </button>
+                                                ))
+                                              ) : (
+                                                <div style={{
+                                                  padding: '12px',
+                                                  textAlign: 'center',
+                                                  color: '#9ca3af',
+                                                  fontSize: '0.75rem',
+                                                }}>
+                                                  No categories found
+                                                </div>
+                                              )}
+
+                                              {/* Create new category button */}
+                                              <button
+                                                onClick={() => {
+                                                  setShowCreateCategory(true);
+                                                  setShowCategoryDropdown(false);
+                                                }}
+                                                style={{
+                                                  width: '100%',
+                                                  padding: '10px 12px',
+                                                  textAlign: 'left',
+                                                  border: 'none',
+                                                  background: '#f0fdf4',
+                                                  color: '#10b981',
+                                                  cursor: 'pointer',
+                                                  fontSize: '0.75rem',
+                                                  fontWeight: 600,
+                                                  borderTop: '2px solid #e5e7eb',
+                                                }}
+                                              >
+                                                + Create New Category
+                                              </button>
+                                            </div>
+                                          )}
+                                        </div>
+
+                                        {/* Action buttons */}
                                         <div style={{ display: 'flex', gap: '6px' }}>
                                           <button
                                             onClick={() => handleCreateNewIntent(index)}
                                             style={{
                                               flex: 1,
-                                              padding: '6px 12px',
+                                              padding: '8px 12px',
                                               fontSize: '0.75rem',
                                               background: '#3b82f6',
                                               color: 'white',
@@ -928,16 +1145,21 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                                               fontWeight: 500,
                                             }}
                                           >
-                                            Create
+                                            Create Buying Intent
                                           </button>
                                           <button
                                             onClick={() => {
                                               setShowCreateIntent(null);
                                               setNewIntentName('');
+                                              setNewIntentCategory('');
+                                              setShowCategoryDropdown(false);
+                                              setCategorySearch('');
+                                              setShowCreateCategory(false);
+                                              setNewCategoryName('');
                                             }}
                                             style={{
                                               flex: 1,
-                                              padding: '6px 12px',
+                                              padding: '8px 12px',
                                               fontSize: '0.75rem',
                                               background: 'white',
                                               color: '#64748b',
