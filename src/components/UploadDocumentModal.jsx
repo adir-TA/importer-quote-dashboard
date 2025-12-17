@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, FileText, AlertCircle, Check } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 const DOCUMENT_TYPES = [
   { value: 'PI', label: 'Proforma Invoice' },
@@ -13,7 +14,8 @@ const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
 function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
-  const { state, actions, computed } = useAppContext();
+  const { actions, computed } = useAppContext();
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
 
   const [file, setFile] = useState(null);
@@ -87,7 +89,7 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
       // Step 1: Upload file to backend (Supabase Storage)
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('userId', state.user.id);
+      formData.append('userId', user.id);
       formData.append('buyingIntentId', buyingIntentId);
       formData.append('supplierQuoteId', selectedSupplierQuoteId);
 
