@@ -374,8 +374,8 @@ function ProductDetail() {
 
       {/* Quote Modal */}
       {isQuoteModalOpen && (
-        <div className="modal-overlay" onClick={handleCloseQuoteModal}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
               <span className="modal-title">
                 📝 {editingQuote ? 'Edit Quote' : 'New Quote'}

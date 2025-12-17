@@ -105,8 +105,8 @@ function Suppliers() {
       </div>
 
       {isModalOpen && (
-        <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
               <span className="modal-title">🏢 {editingSupplier ? 'Edit Supplier' : 'New Supplier'}</span>
               <button className="icon-btn" onClick={handleCloseModal}><X size={20} /></button>

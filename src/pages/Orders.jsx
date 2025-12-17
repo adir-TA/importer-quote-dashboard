@@ -111,8 +111,8 @@ function Orders() {
       </div>
 
       {isModalOpen && (
-        <div className="modal-overlay" onClick={handleCloseModal}>
-          <div className="modal" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal">
             <div className="modal-header">
               <span className="modal-title">📦 {editingOrder ? 'Edit Order' : 'New Order'}</span>
               <button className="icon-btn" onClick={handleCloseModal}><X size={20} /></button>

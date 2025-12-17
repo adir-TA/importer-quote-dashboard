@@ -417,13 +417,8 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   // ============================================
 
   return (
-    <div style={styles.overlay} onClick={(e) => {
-      // Only close on explicit overlay click, not on dropdown interactions
-      if (e.target === e.currentTarget) {
-        handleClose();
-      }
-    }}>
-      <div style={styles.modal} onClick={(e) => e.stopPropagation()}>
+    <div style={styles.overlay}>
+      <div style={styles.modal}>
         {/* Header */}
         <div style={styles.header}>
           <h2 style={styles.title}>

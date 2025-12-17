@@ -212,8 +212,8 @@ function DocumentPreviewModal({ document, onClose }) {
   const isPDF = document.file_type === 'application/pdf';
 
   return (
-    <div style={styles.modal} onClick={onClose}>
-      <div style={styles.modalContent} onClick={(e) => e.stopPropagation()}>
+    <div style={styles.modal}>
+      <div style={styles.modalContent}>
         <div style={styles.modalHeader}>
           <h3 style={styles.modalTitle}>{document.file_name}</h3>
           <button style={styles.modalClose} onClick={onClose}>×</button>

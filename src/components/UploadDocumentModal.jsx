@@ -225,8 +225,8 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
   const isPDF = file && file.type === 'application/pdf';
 
   return (
-    <div style={styles.overlay} onClick={handleClose}>
-      <div style={{...styles.modal, ...(showPreview ? styles.modalLarge : {})}} onClick={(e) => e.stopPropagation()}>
+    <div style={styles.overlay}>
+      <div style={{...styles.modal, ...(showPreview ? styles.modalLarge : {})}}>
         {/* Header */}
         <div style={styles.header}>
           <h2 style={styles.title}>{showPreview ? 'Preview Document' : 'Upload Document'}</h2>

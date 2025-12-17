@@ -35,8 +35,8 @@ function Modal({
     };
 
     return (
-      <div className="modal-overlay" style={{ zIndex }} onClick={onCancel}>
-        <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-overlay" style={{ zIndex }}>
+        <div className="modal confirm-modal">
           <div className="modal-body">
             <div className={`confirm-icon ${confirmType}`}>
               {iconMap[confirmType] || iconMap.warning}
@@ -69,8 +69,8 @@ function Modal({
     };
 
     return (
-      <div className="modal-overlay" style={{ zIndex }} onClick={onClose}>
-        <div className="modal confirm-modal" onClick={e => e.stopPropagation()}>
+      <div className="modal-overlay" style={{ zIndex }}>
+        <div className="modal confirm-modal">
           <div className="modal-body">
             <div className={`confirm-icon ${alertType}`}>
               {iconMap[alertType] || iconMap.success}
@@ -90,8 +90,8 @@ function Modal({
 
   // Default modal
   return (
-    <div className="modal-overlay" style={{ zIndex }} onClick={onClose}>
-      <div className={`modal ${sizeClass}`} onClick={e => e.stopPropagation()}>
+    <div className="modal-overlay" style={{ zIndex }}>
+      <div className={`modal ${sizeClass}`}>
         {(title || showCloseButton) && (
           <div className="modal-header">
             <span className="modal-title">{title}</span>
