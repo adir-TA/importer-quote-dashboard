@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Package, X, Check } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
@@ -16,6 +16,23 @@ function Products() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({ name: '', category: '', description: '' });
+  const [quoteCounts, setQuoteCounts] = useState({});
+
+  // Load quote counts for all products
+  useEffect(() => {
+    const loadQuoteCounts = async () => {
+      const counts = {};
+      for (const product of products) {
+        const items = await computed.getLineItemsForBuyingIntent(product.id);
+        counts[product.id] = items.length;
+      }
+      setQuoteCounts(counts);
+    };
+
+    if (products.length > 0) {
+      loadQuoteCounts();
+    }
+  }, [products, computed]);
 
   const filteredProducts = useMemo(() => {
     return filterBySearch(products, search, ['name', 'category', 'description']);
@@ -59,7 +76,7 @@ function Products() {
   };
 
   const handleDelete = async (productId) => {
-    const quoteCount = computed.getProductQuotes(productId).length;
+    const quoteCount = quoteCounts[productId] || 0;
     const confirmed = await confirm({
       title: 'Delete Buying Intent',
       message: `Are you sure you want to delete this buying intent${quoteCount > 0 ? ` and its ${quoteCount} linked quotes` : ''}?`,
@@ -100,7 +117,7 @@ function Products() {
               <ProductCard
                 key={product.id}
                 product={product}
-                quoteCount={computed.getProductQuotes(product.id).length}
+                quoteCount={quoteCounts[product.id] || 0}
                 onClick={() => navigate(`/products/${product.id}`)}
                 onEdit={() => handleOpenModal(product)}
                 onDelete={() => handleDelete(product.id)}
