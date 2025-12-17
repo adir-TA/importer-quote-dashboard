@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
 
 // ============================================
@@ -295,6 +296,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
 function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyingIntentId = null }) {
   const { state, actions } = useAppContext();
   const { settings, products } = state;
+  const { user } = useAuth();
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -306,6 +308,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     error,
     supplierFields,
     editableLineItems,
+    uploadedFile,
     missingSupplierFields,
     invalidLineItems,
     canSave,
@@ -356,6 +359,57 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       console.log('[Modal] Saving quote data:', data);
       const result = await actions.addSupplierQuote(data.supplierQuote, data.lineItems);
       console.log('✅ [Modal] Saved supplier quote:', result);
+
+      // Auto-upload the quote file as a document
+      if (uploadedFile && result?.supplierQuote?.id) {
+        console.log('[Modal] Auto-uploading quote as document...');
+
+        // Get unique buying intent IDs from line items
+        const uniqueBuyingIntentIds = [...new Set(
+          data.lineItems
+            .filter(item => item.linkedBuyingIntentId)
+            .map(item => item.linkedBuyingIntentId)
+        )];
+
+        // Upload document for each unique buying intent
+        for (const buyingIntentId of uniqueBuyingIntentIds) {
+          try {
+            // Step 1: Upload file to backend
+            const formData = new FormData();
+            formData.append('file', uploadedFile);
+            formData.append('userId', user.id);
+            formData.append('buyingIntentId', buyingIntentId);
+            formData.append('supplierQuoteId', result.supplierQuote.id);
+
+            const uploadResponse = await fetch('http://localhost:3001/api/documents/upload', {
+              method: 'POST',
+              body: formData,
+            });
+
+            if (!uploadResponse.ok) {
+              throw new Error('Failed to upload file to server');
+            }
+
+            const { file: uploadedFileData } = await uploadResponse.json();
+
+            // Step 2: Save document metadata to database
+            await actions.addDocument({
+              type: 'quote',
+              buyingIntentId,
+              supplierQuoteId: result.supplierQuote.id,
+              filePath: uploadedFileData.path,
+              fileName: uploadedFile.name,
+              fileType: uploadedFile.type,
+              fileSize: uploadedFile.size,
+            });
+
+            console.log(`✅ [Modal] Document uploaded for buying intent: ${buyingIntentId}`);
+          } catch (docError) {
+            console.error(`❌ [Modal] Failed to upload document for buying intent ${buyingIntentId}:`, docError);
+            // Don't block the main flow if document upload fails
+          }
+        }
+      }
 
       if (onSuccess) onSuccess(result);
       handleClose();

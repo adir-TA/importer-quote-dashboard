@@ -32,6 +32,9 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
   // Extraction result
   const [extraction, setExtraction] = useState(null);
 
+  // Store the uploaded file for later document upload
+  const [uploadedFile, setUploadedFile] = useState(null);
+
   // Supplier-level editable fields
   const [supplierFields, setSupplierFields] = useState({
     supplierName: '',
@@ -92,6 +95,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
     setError(null);
     setExtraction(null);
     setEditableLineItems([]);
+    setUploadedFile(null);
     setSupplierFields({
       supplierName: '',
       supplierContact: '',
@@ -109,6 +113,9 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
     setProgress('Reading file...');
 
     try {
+      // Store the file for later document upload
+      setUploadedFile(file);
+
       setProgress('Extracting quote data...');
       const result = await extractQuoteFromFile(file, apiKey);
 
@@ -246,6 +253,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
     setError(null);
     setExtraction(null);
     setEditableLineItems([]);
+    setUploadedFile(null);
     setSupplierFields({
       supplierName: '',
       supplierContact: '',
@@ -272,6 +280,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
     extraction,
     supplierFields,
     editableLineItems,
+    uploadedFile,
 
     // Validation
     missingSupplierFields,
