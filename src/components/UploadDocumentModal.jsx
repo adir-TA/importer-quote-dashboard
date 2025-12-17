@@ -13,7 +13,7 @@ const DOCUMENT_TYPES = [
 const ALLOWED_TYPES = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg'];
 const MAX_SIZE = 10 * 1024 * 1024; // 10MB
 
-function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
+function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess }) {
   const { actions, computed } = useAppContext();
   const { user } = useAuth();
   const fileInputRef = useRef(null);
@@ -176,6 +176,11 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId }) {
       };
 
       await actions.addDocument(doc);
+
+      // Notify parent to refresh documents list
+      if (onUploadSuccess) {
+        onUploadSuccess();
+      }
 
       // Success - close modal
       onClose();

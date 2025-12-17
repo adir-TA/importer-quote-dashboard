@@ -24,6 +24,7 @@ function ProductDetail() {
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+  const [documentsRefreshKey, setDocumentsRefreshKey] = useState(0);
   const [editingQuote, setEditingQuote] = useState(null);
   const [formData, setFormData] = useState({
     supplierName: '',
@@ -343,6 +344,7 @@ function ProductDetail() {
           </div>
           ) : (
             <DocumentsTab
+              key={documentsRefreshKey}
               buyingIntentId={id}
               onUploadClick={() => setIsDocumentModalOpen(true)}
             />
@@ -493,6 +495,7 @@ function ProductDetail() {
         isOpen={isDocumentModalOpen}
         onClose={() => setIsDocumentModalOpen(false)}
         buyingIntentId={id}
+        onUploadSuccess={() => setDocumentsRefreshKey(prev => prev + 1)}
       />
     </div>
   );
