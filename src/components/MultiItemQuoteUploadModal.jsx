@@ -384,6 +384,13 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       console.log('✅ [Modal] Saved supplier quote:', result);
 
       // Auto-upload the quote file as a document
+      console.log('[Modal] Checking auto-upload conditions:', {
+        hasUploadedFile: !!uploadedFile,
+        uploadedFileName: uploadedFile?.name,
+        supplierQuoteId: result?.supplierQuote?.id,
+        resultStructure: result
+      });
+
       if (uploadedFile && result?.supplierQuote?.id) {
         console.log('[Modal] Auto-uploading quote as document...');
 
@@ -394,9 +401,13 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
             .map(item => item.linkedBuyingIntentId)
         )];
 
+        console.log('[Modal] Unique buying intent IDs:', uniqueBuyingIntentIds);
+
         // Upload document for each unique buying intent
         for (const buyingIntentId of uniqueBuyingIntentIds) {
           try {
+            console.log(`[Modal] Starting upload for buying intent: ${buyingIntentId}`);
+
             // Step 1: Upload file to backend
             const formData = new FormData();
             formData.append('file', uploadedFile);
@@ -404,19 +415,34 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
             formData.append('buyingIntentId', buyingIntentId);
             formData.append('supplierQuoteId', result.supplierQuote.id);
 
+            console.log('[Modal] FormData prepared:', {
+              fileName: uploadedFile.name,
+              fileType: uploadedFile.type,
+              fileSize: uploadedFile.size,
+              userId: user.id,
+              buyingIntentId,
+              supplierQuoteId: result.supplierQuote.id
+            });
+
             const uploadResponse = await fetch('http://localhost:3001/api/documents/upload', {
               method: 'POST',
               body: formData,
             });
 
+            console.log('[Modal] Upload response status:', uploadResponse.status);
+
             if (!uploadResponse.ok) {
-              throw new Error('Failed to upload file to server');
+              const errorText = await uploadResponse.text();
+              console.error('[Modal] Upload failed with response:', errorText);
+              throw new Error('Failed to upload file to server: ' + errorText);
             }
 
-            const { file: uploadedFileData } = await uploadResponse.json();
+            const uploadResult = await uploadResponse.json();
+            console.log('[Modal] Upload result:', uploadResult);
+            const { file: uploadedFileData } = uploadResult;
 
             // Step 2: Save document metadata to database
-            await actions.addDocument({
+            const docData = {
               type: 'quote',
               buyingIntentId,
               supplierQuoteId: result.supplierQuote.id,
@@ -424,14 +450,20 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
               fileName: uploadedFile.name,
               fileType: uploadedFile.type,
               fileSize: uploadedFile.size,
-            });
+            };
+            console.log('[Modal] Saving document metadata:', docData);
+
+            await actions.addDocument(docData);
 
             console.log(`✅ [Modal] Document uploaded for buying intent: ${buyingIntentId}`);
           } catch (docError) {
             console.error(`❌ [Modal] Failed to upload document for buying intent ${buyingIntentId}:`, docError);
+            console.error('[Modal] Error stack:', docError.stack);
             // Don't block the main flow if document upload fails
           }
         }
+      } else {
+        console.log('[Modal] Skipping auto-upload - conditions not met');
       }
 
       if (onSuccess) onSuccess(result);
