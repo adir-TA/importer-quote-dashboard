@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, FileText, AlertCircle, Check, Copy, Eye } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import API_BASE_URL from '../config/api';
 
 const DOCUMENT_TYPES = [
   { value: 'PI', label: 'Proforma Invoice' },
@@ -148,7 +149,7 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
       formData.append('buyingIntentId', buyingIntentId);
       formData.append('supplierQuoteId', selectedSupplierQuoteId);
 
-      const uploadResponse = await fetch('http://localhost:3001/api/documents/upload', {
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
         body: formData,
       });

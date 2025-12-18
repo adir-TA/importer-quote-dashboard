@@ -3,6 +3,8 @@
 // ============================================
 //
 // EXTRACTION RULES (NON-NEGOTIABLE):
+
+import API_BASE_URL from '../config/api.js';
 // 1. If a field is NOT explicitly present → status: 'not_found'
 // 2. NEVER infer or guess ANY data
 // 3. NEVER invent values
@@ -50,7 +52,7 @@ async function extractFromImage(file, apiKey) {
   const mediaType = file.type || 'image/jpeg';
 
   // Call BACKEND API (which proxies to Claude to avoid CORS)
-  const API_URL = 'http://localhost:3001/api/extract-quote';
+  const API_URL = `${API_BASE_URL}/api/extract-quote`;
 
   const response = await fetch(API_URL, {
     method: 'POST',

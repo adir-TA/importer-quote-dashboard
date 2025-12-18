@@ -7,6 +7,7 @@ import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtractio
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
+import API_BASE_URL from '../config/api';
 
 // ============================================
 // MULTI-ITEM QUOTE UPLOAD MODAL
@@ -479,7 +480,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
               supplierQuoteId: result.id
             });
 
-            const uploadResponse = await fetch('http://localhost:3001/api/documents/upload', {
+            const uploadResponse = await fetch(`${API_BASE_URL}/api/documents/upload`, {
               method: 'POST',
               body: formData,
             });

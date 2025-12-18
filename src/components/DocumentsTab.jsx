@@ -3,6 +3,7 @@ import {
   Upload, FileText, Image, Eye, Download, Trash2, Plus, AlertCircle, File
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import API_BASE_URL from '../config/api';
 
 // Document type badges
 const TYPE_BADGES = {
@@ -64,7 +65,7 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
   };
 
   const getSignedUrl = async (filePath) => {
-    const response = await fetch('http://localhost:3001/api/documents/signed-url', {
+    const response = await fetch(`${API_BASE_URL}/api/documents/signed-url`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filePath }),
