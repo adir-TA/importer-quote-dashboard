@@ -311,6 +311,8 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [showCreateCategory, setShowCreateCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]); // for filtering buying intents
+  const [inputMode, setInputMode] = useState('file'); // 'file' or 'text'
+  const [textInput, setTextInput] = useState('');
 
   const {
     step,
@@ -323,6 +325,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     invalidLineItems,
     canSave,
     processFile,
+    processText,
     updateSupplierField,
     updateLineItem,
     deleteLineItem,

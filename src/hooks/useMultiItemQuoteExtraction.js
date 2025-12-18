@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react';
-import { extractQuoteFromFile, wasFound, getValue } from '../utils/quoteExtractionService';
+import { extractQuoteFromFile, extractQuoteFromText, wasFound, getValue } from '../utils/quoteExtractionService';
 import { findBestMatch } from '../utils/buyingIntentMatcher';
 
 // ============================================
@@ -195,6 +195,103 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
   }, []);
 
   /**
+   * Process pasted text
+   */
+  const processText = useCallback(async (text) => {
+    if (!text || !text.trim()) return;
+
+    setError(null);
+    setExtraction(null);
+    setEditableLineItems([]);
+    setUploadedFile(null);
+    setSupplierFields({
+      supplierName: '',
+      supplierContact: '',
+      supplierEmail: '',
+      currency: 'USD',
+      incoterm: '',
+      quoteDate: '',
+      validUntil: '',
+      paymentTerms: '',
+      leadTime: '',
+      notes: '',
+    });
+
+    setStep('extracting');
+    setProgress('Extracting quote data from text...');
+
+    try {
+      setProgress('Analyzing text...');
+      const result = await extractQuoteFromText(text, apiKey);
+
+      if (!result.success) {
+        setError(result.error);
+        setStep('error');
+        return;
+      }
+
+      setExtraction(result);
+
+      // Pre-fill supplier fields
+      setSupplierFields({
+        supplierName: getValue(result.supplier) || '',
+        supplierContact: getValue(result.contact) || '',
+        supplierEmail: getValue(result.email) || '',
+        currency: getValue(result.currency) || 'USD',
+        incoterm: getValue(result.incoterm) || '',
+        quoteDate: getValue(result.quoteDate) || '',
+        validUntil: getValue(result.validUntil) || '',
+        paymentTerms: getValue(result.paymentTerms) || '',
+        leadTime: getValue(result.leadTime) || '',
+        notes: getValue(result.notes) || '',
+      });
+
+      // Pre-fill ALL line items as editable + AUTO-MATCH to Buying Intents
+      const items = (result.lineItems || []).map((item, index) => {
+        const lineItemData = {
+          id: item.id || `item-${index}`,
+          productName: getValue(item.productName) || '',
+          sku: getValue(item.sku) || '',
+          unitPrice: getValue(item.unitPrice) !== null ? String(getValue(item.unitPrice)) : '',
+          priceConfidence: item.unitPrice?.confidence || null,
+          moq: getValue(item.moq) !== null ? String(getValue(item.moq)) : '',
+          dimensions: getValue(item.dimensions) || '',
+          weight_g: getValue(item.weight_g) !== null ? String(getValue(item.weight_g)) : '',
+          packing_pcs_per_ctn: getValue(item.packing_pcs_per_ctn) !== null ? String(getValue(item.packing_pcs_per_ctn)) : '',
+          carton_length_cm: getValue(item.carton_length_cm) !== null ? String(getValue(item.carton_length_cm)) : '',
+          carton_width_cm: getValue(item.carton_width_cm) !== null ? String(getValue(item.carton_width_cm)) : '',
+          carton_height_cm: getValue(item.carton_height_cm) !== null ? String(getValue(item.carton_height_cm)) : '',
+          cbm_per_carton: getValue(item.cbm_per_carton) !== null ? String(getValue(item.cbm_per_carton)) : '',
+          linkedBuyingIntentId: null,
+          matchConfidence: null,
+          matchBreakdown: null,
+        };
+
+        // Find suggested Buying Intent match
+        if (buyingIntents && buyingIntents.length > 0) {
+          const bestMatch = findBestMatch(lineItemData, buyingIntents);
+          if (bestMatch) {
+            lineItemData.suggestedBuyingIntentId = bestMatch.buyingIntentId;
+            lineItemData.matchConfidence = bestMatch.confidence;
+            lineItemData.matchBreakdown = bestMatch.breakdown;
+          }
+        }
+
+        return lineItemData;
+      });
+
+      setEditableLineItems(items);
+      setStep('review');
+      console.log('[Text Extraction] Review ready. Line items:', items.length);
+
+    } catch (err) {
+      console.error('[Text Extraction] Error:', err);
+      setError(err.message || 'Failed to extract quote from text');
+      setStep('error');
+    }
+  }, [apiKey, buyingIntents]);
+
+  /**
    * Update line item field
    */
   const updateLineItem = useCallback((index, field, value) => {
@@ -289,6 +386,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
 
     // Actions
     processFile,
+    processText,
     updateSupplierField,
     updateLineItem,
     deleteLineItem,
