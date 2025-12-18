@@ -2,6 +2,8 @@
 
 A secure, production-ready SaaS application for importers to make confident sourcing decisions. Compare supplier quotes, calculate landed costs, and choose the best option for your business.
 
+<!-- Demo mode enabled - no login required -->
+
 ## Features
 
 - 📊 **Decision Dashboard** - Compare all quotes and see the best option instantly
