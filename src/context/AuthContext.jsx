@@ -4,11 +4,12 @@ import { supabase } from '../lib/supabase';
 const AuthContext = createContext(null);
 
 // ============================================
-// DEMO MODE TOGGLE
+// DEMO MODE TOGGLE - FORCE ENABLED FOR TESTING
 // ============================================
 // Set to 'false' to enable real authentication
 // Set to 'true' to bypass login (for testing/demos)
-const DEMO_MODE = true;
+const DEMO_MODE = true; // FORCED ON - NO LOGIN REQUIRED
+console.log('🔥 AuthContext loaded - DEMO_MODE:', DEMO_MODE);
 // ============================================
 
 const DEMO_USER = {
@@ -24,9 +25,11 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('🎭 AuthProvider useEffect - DEMO_MODE:', DEMO_MODE);
+
     // If demo mode is enabled, skip auth and use demo user
     if (DEMO_MODE) {
-      console.log('🎭 Demo mode enabled - bypassing authentication');
+      console.log('✅ DEMO MODE ACTIVE - Auto-logging in as demo user');
       setUser(DEMO_USER);
       setLoading(false);
       return;
