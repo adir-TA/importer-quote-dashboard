@@ -661,30 +661,130 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
         {/* Content */}
         <div style={styles.content}>
-          {/* IDLE: Upload */}
+          {/* IDLE: Upload or Paste Text */}
           {step === 'idle' && (
-            <div
-              style={{ ...styles.dropzone, ...(dragActive ? styles.dropzoneActive : {}) }}
-              onDragEnter={handleDrag}
-              onDragLeave={handleDrag}
-              onDragOver={handleDrag}
-              onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Upload size={48} color="#94a3b8" />
-              <p style={styles.dropzoneText}>
-                Drop quote file here or <span style={styles.link}>browse</span>
-              </p>
-              <p style={styles.dropzoneHint}>
-                Supports: PDF, Excel, Images
-              </p>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={ACCEPTED_FILES}
-                onChange={handleFileSelect}
-                style={{ display: 'none' }}
-              />
+            <div>
+              {/* Mode Selector Tabs */}
+              <div style={{
+                display: 'flex',
+                gap: '8px',
+                marginBottom: '20px',
+                borderBottom: '1px solid var(--border)',
+              }}>
+                <button
+                  onClick={() => setInputMode('file')}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: inputMode === 'file' ? '3px solid var(--accent)' : '3px solid transparent',
+                    color: inputMode === 'file' ? 'var(--accent)' : 'var(--text-muted)',
+                    fontWeight: inputMode === 'file' ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  📄 Upload File
+                </button>
+                <button
+                  onClick={() => setInputMode('text')}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'none',
+                    border: 'none',
+                    borderBottom: inputMode === 'text' ? '3px solid var(--accent)' : '3px solid transparent',
+                    color: inputMode === 'text' ? 'var(--accent)' : 'var(--text-muted)',
+                    fontWeight: inputMode === 'text' ? 600 : 400,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  📝 Paste Text
+                </button>
+              </div>
+
+              {/* File Upload Mode */}
+              {inputMode === 'file' && (
+                <div
+                  style={{ ...styles.dropzone, ...(dragActive ? styles.dropzoneActive : {}) }}
+                  onDragEnter={handleDrag}
+                  onDragLeave={handleDrag}
+                  onDragOver={handleDrag}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={48} color="#94a3b8" />
+                  <p style={styles.dropzoneText}>
+                    Drop quote file here or <span style={styles.link}>browse</span>
+                  </p>
+                  <p style={styles.dropzoneHint}>
+                    Supports: PDF, Excel, Images
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept={ACCEPTED_FILES}
+                    onChange={handleFileSelect}
+                    style={{ display: 'none' }}
+                  />
+                </div>
+              )}
+
+              {/* Text Input Mode */}
+              {inputMode === 'text' && (
+                <div>
+                  <textarea
+                    value={textInput}
+                    onChange={(e) => setTextInput(e.target.value)}
+                    placeholder="Paste your quote message here...
+
+Example:
+hi  MOQ 500rolls  RMB 2.5  fob ningbo
+$ 0.36 /roll
+
+Or:
+The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) of 1,000 rolls"
+                    style={{
+                      width: '100%',
+                      minHeight: '200px',
+                      padding: '16px',
+                      border: '2px dashed var(--border)',
+                      borderRadius: '12px',
+                      fontSize: '0.95rem',
+                      fontFamily: 'inherit',
+                      resize: 'vertical',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = 'var(--accent)'}
+                    onBlur={(e) => e.target.style.borderColor = 'var(--border)'}
+                  />
+                  <button
+                    onClick={() => {
+                      if (!textInput.trim()) {
+                        alert('Please paste some text first');
+                        return;
+                      }
+                      processText(textInput);
+                    }}
+                    disabled={!textInput.trim()}
+                    style={{
+                      marginTop: '16px',
+                      padding: '12px 24px',
+                      background: textInput.trim() ? 'var(--accent)' : 'var(--bg-light)',
+                      color: textInput.trim() ? 'white' : 'var(--text-muted)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      fontWeight: 600,
+                      cursor: textInput.trim() ? 'pointer' : 'not-allowed',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    Extract Quote
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
