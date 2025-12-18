@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import {
   X, Upload, FileText, Image, AlertCircle, CheckCircle, Loader,
-  Trash2, Plus, Info, ChevronDown, ChevronRight, Lock, Check
+  Trash2, Plus, Info, ChevronDown, ChevronRight, Lock, Check, Search
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
