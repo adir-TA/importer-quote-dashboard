@@ -311,6 +311,132 @@ async function processExcel(file, apiKey) {
 }
 
 /**
+ * Extract data from text message using backend API (which calls Claude)
+ * @param {string} text - The pasted text message
+ * @param {string} apiKey - Anthropic API key
+ * @returns {Promise<ExtractionResult>}
+ */
+async function extractFromText(text, apiKey) {
+  console.log('📝 [TEXT EXTRACTION] Starting extraction from text');
+
+  if (!apiKey) {
+    throw new Error('Anthropic API key required. Add it in Settings.');
+  }
+
+  if (!text || text.trim().length === 0) {
+    throw new Error('Text content is empty');
+  }
+
+  // Call BACKEND API
+  const API_URL = `${API_BASE_URL}/api/extract-quote-from-text`;
+
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      text: text.trim(),
+      apiKey: apiKey,
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Text extraction API request failed');
+  }
+
+  const result = await response.json();
+
+  if (!result.success || !result.data) {
+    throw new Error('No data returned from text extraction API');
+  }
+
+  const rawData = result.data;
+
+  // Convert to same structure as image extraction
+  const extractionResult = createEmptyExtraction();
+
+  // Supplier fields
+  extractionResult.supplier = rawData.supplierName !== null
+    ? extracted(rawData.supplierName, 'Extracted')
+    : notFound();
+
+  extractionResult.contact = rawData.supplierContact !== null
+    ? extracted(rawData.supplierContact, 'Extracted')
+    : notFound();
+
+  extractionResult.email = rawData.supplierEmail !== null
+    ? extracted(rawData.supplierEmail, 'Extracted')
+    : notFound();
+
+  extractionResult.currency = rawData.currency !== null
+    ? extracted(rawData.currency, 'Extracted')
+    : extracted('USD', 'Default');
+
+  extractionResult.incoterm = rawData.incoterm !== null
+    ? extracted(rawData.incoterm, 'Extracted')
+    : notFound();
+
+  extractionResult.quoteDate = rawData.quoteDate !== null
+    ? extracted(rawData.quoteDate, 'Extracted')
+    : notFound();
+
+  extractionResult.validUntil = rawData.validUntil !== null
+    ? extracted(rawData.validUntil, 'Extracted')
+    : notFound();
+
+  extractionResult.paymentTerms = rawData.paymentTerms !== null
+    ? extracted(rawData.paymentTerms, 'Extracted')
+    : notFound();
+
+  extractionResult.leadTime = rawData.leadTime !== null
+    ? extracted(rawData.leadTime, 'Extracted')
+    : notFound();
+
+  extractionResult.notes = rawData.notes !== null
+    ? extracted(rawData.notes, 'Extracted')
+    : notFound();
+
+  // Line items
+  if (Array.isArray(rawData.lineItems) && rawData.lineItems.length > 0) {
+    extractionResult.lineItems = rawData.lineItems.map((item, index) => {
+      const productName = item.productName || `Product ${index + 1}`;
+
+      return {
+        productName: extracted(productName, `Item ${index + 1}`),
+        sku: item.sku !== null ? extracted(item.sku, `Item ${index + 1}`) : notFound(),
+        unitPrice: item.unitPrice !== null ? extracted(item.unitPrice, `Item ${index + 1}`) : notFound(),
+        priceConfidence: item.priceConfidence || 'medium',
+        priceEstimated: item.priceConfidence === 'low',
+        moq: item.moq !== null ? extracted(item.moq, `Item ${index + 1}`) : notFound(),
+        moqConfidence: item.moqConfidence || 'medium',
+        quantity: item.quantity !== null ? extracted(item.quantity, `Item ${index + 1}`) : notFound(),
+        dimensions: item.dimensions !== null ? extracted(item.dimensions, `Item ${index + 1}`) : notFound(),
+        weight_g: item.weight_g !== null ? extracted(item.weight_g, `Item ${index + 1}`) : notFound(),
+        packing_pcs_per_ctn: item.packing_pcs_per_ctn !== null ? extracted(item.packing_pcs_per_ctn, `Item ${index + 1}`) : notFound(),
+        carton_length_cm: item.carton_length_cm !== null ? extracted(item.carton_length_cm, `Item ${index + 1}`) : notFound(),
+        carton_width_cm: item.carton_width_cm !== null ? extracted(item.carton_width_cm, `Item ${index + 1}`) : notFound(),
+        carton_height_cm: item.carton_height_cm !== null ? extracted(item.carton_height_cm, `Item ${index + 1}`) : notFound(),
+        cbm_per_carton: item.cbm_per_carton !== null ? extracted(item.cbm_per_carton, `Item ${index + 1}`) : notFound(),
+
+        // Legacy fields
+        packing: item.packing_pcs_per_ctn !== null ? extracted(item.packing_pcs_per_ctn, `Item ${index + 1}`) : notFound(),
+        cbm: item.cbm_per_carton !== null ? extracted(item.cbm_per_carton, `Item ${index + 1}`) : notFound(),
+        weight: notFound(),
+        cartonSize: notFound(),
+      };
+    });
+
+    extractionResult.hasMultipleItems = extractionResult.lineItems.length > 1;
+  }
+
+  console.log('✅ [TEXT EXTRACTION] Successfully extracted data');
+
+  return extractionResult;
+}
+
+/**
  * Main extraction function
  * @param {File} file - The uploaded file
  * @param {string} apiKey - Anthropic API key from settings
@@ -385,3 +511,48 @@ export {
   createEmptyLineItem,
   createEmptyExtraction,
 } from './quoteDataModels';
+
+/**
+ * Extract quote data from pasted text message
+ * @param {string} text - The pasted text
+ * @param {string} apiKey - Anthropic API key
+ * @returns {Promise<ExtractionResult>}
+ */
+export async function extractQuoteFromText(text, apiKey) {
+  if (!text || text.trim().length === 0) {
+    return { success: false, error: 'No text provided' };
+  }
+
+  if (!apiKey) {
+    return {
+      success: false,
+      error: 'Anthropic API key required. Please add it in Settings to use quote extraction.'
+    };
+  }
+
+  try {
+    const extractionResult = await extractFromText(text, apiKey);
+
+    // Build final result
+    const result = {
+      success: true,
+      fileName: 'Pasted Text',
+      fileType: 'text/plain',
+      ...extractionResult,
+    };
+
+    // Calculate stats
+    result.meta = countExtractionStats(result);
+
+    console.log('[Text Extraction] Success:', result.meta.found, 'of', result.meta.total, 'core fields found');
+
+    return result;
+
+  } catch (error) {
+    console.error('[Text Extraction] Error:', error);
+    return {
+      success: false,
+      error: error.message || 'Failed to extract quote data from text',
+    };
+  }
+}

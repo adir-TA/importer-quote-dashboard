@@ -406,6 +406,129 @@ Return ONLY the JSON object, nothing else.`
   }
 });
 
+// Extract quote from text message
+app.post('/api/extract-quote-from-text', async (req, res) => {
+  console.log('📝 [TEXT EXTRACTION] Starting text quote extraction');
+
+  try {
+    const { text, apiKey } = req.body;
+
+    if (!text) {
+      return res.status(400).json({ error: 'Text content required' });
+    }
+
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Anthropic API key required' });
+    }
+
+    const MODEL = 'claude-sonnet-4-5-20250929';
+    console.log(`[API] Using model: ${MODEL} for text extraction`);
+
+    // Call Anthropic API with text-only prompt
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        max_tokens: 4000,
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: `Extract supplier quote information from this message. Parse all pricing, quantities, and terms.
+
+MESSAGE:
+${text}
+
+Extract into this JSON format (return ONLY JSON, no markdown):
+
+{
+  "supplierName": "company name" or null,
+  "supplierContact": "contact person" or null,
+  "supplierEmail": "email" or null,
+  "currency": "USD" or "EUR" or "CNY" or "RMB" etc. or null,
+  "incoterm": "FOB Shanghai" or "CIF LA" etc. or null,
+  "quoteDate": "YYYY-MM-DD" or null,
+  "validUntil": "YYYY-MM-DD" or null,
+  "paymentTerms": "exact terms" or null,
+  "leadTime": "exact lead time" or null,
+  "notes": "important notes (like local fees, delivery options)" or null,
+  "lineItems": [
+    {
+      "productName": "auto-generated name (NEVER null, use description from text)",
+      "sku": "model/item number" or null,
+      "unitPrice": 1.23 (per piece, number only) or null,
+      "priceConfidence": "high" or "medium" or "low",
+      "moq": 1000 (number only) or null,
+      "moqConfidence": "high" or "medium" or "low",
+      "quantity": 5000 or null,
+      "dimensions": "exact dimensions text" or null,
+      "weight_g": 50 (grams, number only) or null,
+      "packing_pcs_per_ctn": 600 (number only) or null,
+      "carton_length_cm": 45.5 (cm, number only) or null,
+      "carton_width_cm": 35.0 (cm, number only) or null,
+      "carton_height_cm": 30.0 (cm, number only) or null,
+      "cbm_per_carton": 0.077 (number only) or null
+    }
+  ]
+}
+
+RULES:
+- Extract ALL line items mentioned
+- For currency: extract exact currency mentioned (USD, CNY, RMB, EUR, etc.)
+- For MOQ: extract from text like "MOQ 500rolls" → 500
+- For pricing: extract unit price per piece (e.g., "USD 0.5 per roll" → 0.5)
+- For incoterm: extract FOB location if mentioned
+- For notes: include special terms like local fees, delivery options, payment conditions
+- If only one item, still return array with one item
+- Set priceConfidence and moqConfidence to "high" if explicitly stated
+- If field not found, set to null (NOT empty string)`
+          }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('[API Error] Status:', response.status);
+      console.error('[API Error] Error:', JSON.stringify(error, null, 2));
+      return res.status(response.status).json({
+        error: `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`
+      });
+    }
+
+    const data = await response.json();
+    const content = data.content?.[0]?.text;
+
+    if (!content) {
+      return res.status(500).json({ error: 'No response from Claude' });
+    }
+
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.status(500).json({ error: 'Could not parse extraction result' });
+    }
+
+    const rawData = JSON.parse(jsonMatch[0]);
+
+    console.log('✅ [TEXT EXTRACTION] Successfully extracted quote from text');
+
+    // Return the extracted data
+    res.json({ success: true, data: rawData });
+
+  } catch (error) {
+    console.error('[Text Extraction Error]', error);
+    res.status(500).json({
+      error: error.message || 'Failed to extract quote from text'
+    });
+  }
+});
+
 // For local development
 if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
