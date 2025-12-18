@@ -3,8 +3,14 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
-// Demo mode - fake user for testing without authentication
-const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+// ============================================
+// DEMO MODE TOGGLE
+// ============================================
+// Set to 'false' to enable real authentication
+// Set to 'true' to bypass login (for testing/demos)
+const DEMO_MODE = true;
+// ============================================
+
 const DEMO_USER = {
   id: 'demo-user-id',
   email: 'demo@example.com',
