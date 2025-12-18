@@ -160,9 +160,26 @@ app.post('/api/extract-quote', async (req, res) => {
       return res.status(400).json({ error: 'Anthropic API key required' });
     }
 
-    // Use Sonnet 4.5 (most accurate model available)
     const MODEL = 'claude-sonnet-4-5-20250929';
     console.log(`[API] Using model: ${MODEL} (UPGRADED TO SONNET 4.5!)`);
+
+    // Determine content type based on media type
+    const isPdf = mediaType === 'application/pdf';
+    const contentItem = isPdf ? {
+      type: 'document',
+      source: {
+        type: 'base64',
+        media_type: mediaType,
+        data: image,
+      },
+    } : {
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: mediaType,
+        data: image,
+      },
+    };
 
     // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -180,17 +197,10 @@ app.post('/api/extract-quote', async (req, res) => {
           {
             role: 'user',
             content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType,
-                  data: image,
-                },
-              },
+              contentItem,
               {
                 type: 'text',
-                text: `You extract supplier quote data from images. Follow these steps EXACTLY.
+                text: `You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
 
 STEP-BY-STEP INSTRUCTIONS (DO NOT SKIP):
 
