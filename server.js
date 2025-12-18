@@ -406,6 +406,12 @@ Return ONLY the JSON object, nothing else.`
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Quote extraction API running on http://localhost:${PORT}`);
-});
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(PORT, () => {
+    console.log(`✅ Quote extraction API running on http://localhost:${PORT}`);
+  });
+}
+
+// Export for Vercel serverless
+export default app;
