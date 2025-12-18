@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
