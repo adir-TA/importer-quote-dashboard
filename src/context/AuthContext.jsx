@@ -8,7 +8,7 @@ const AuthContext = createContext(null);
 // ============================================
 // Set to 'false' to enable real authentication
 // Set to 'true' to bypass login (for testing/demos)
-const DEMO_MODE = true; // FORCED ON - NO LOGIN REQUIRED
+const DEMO_MODE = false; // FORCED ON - NO LOGIN REQUIRED
 console.log('🔥 AuthContext loaded - DEMO_MODE:', DEMO_MODE);
 // ============================================
 
