@@ -3,11 +3,30 @@ import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
+// Demo mode - fake user for testing without authentication
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === 'true';
+const DEMO_USER = {
+  id: 'demo-user-id',
+  email: 'demo@example.com',
+  user_metadata: {
+    name: 'Demo User'
+  }
+};
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If demo mode is enabled, skip auth and use demo user
+    if (DEMO_MODE) {
+      console.log('🎭 Demo mode enabled - bypassing authentication');
+      setUser(DEMO_USER);
+      setLoading(false);
+      return;
+    }
+
+    // Normal authentication flow
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
@@ -41,6 +60,12 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
+    // In demo mode, do nothing (can't sign out of demo)
+    if (DEMO_MODE) {
+      console.log('🎭 Demo mode - sign out disabled');
+      return;
+    }
+
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
