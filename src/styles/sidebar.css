@@ -1,7 +1,7 @@
 /* Sidebar - Enhanced Light Theme */
 .sidebar {
   width: 270px;
-  background: linear-gradient(180deg, var(--bg-primary) 0%, #f9f8ff 100%);
+  background: var(--bg-primary);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -17,12 +17,12 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: var(--gradient-primary);
+  background: #7c5cfc;
 }
 
 .sidebar-header {
   padding: 28px 20px 24px;
-  background: linear-gradient(135deg, rgba(124, 92, 252, 0.06) 0%, rgba(91, 141, 239, 0.03) 100%);
+  background: rgba(124, 92, 252, 0.06);
   border-bottom: 1px solid rgba(124, 92, 252, 0.1);
 }
 
@@ -35,7 +35,7 @@
 .sidebar-logo-icon {
   width: 46px;
   height: 46px;
-  background: var(--gradient-primary);
+  background: #7c5cfc;
   border-radius: 14px;
   display: flex;
   align-items: center;
@@ -51,7 +51,7 @@
   position: absolute;
   inset: -2px;
   border-radius: 16px;
-  background: var(--gradient-primary);
+  background: #7c5cfc;
   opacity: 0.3;
   z-index: -1;
   filter: blur(8px);
@@ -118,13 +118,13 @@
   content: '';
   width: 3px;
   height: 12px;
-  background: var(--gradient-primary);
+  background: #7c5cfc;
   border-radius: 2px;
 }
 
 .nav-section-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  background: var(--border);
   margin: 4px 12px 12px;
 }
 
@@ -155,7 +155,7 @@
 }
 
 .nav-item.active {
-  background: var(--gradient-primary);
+  background: #7c5cfc;
   color: white;
   box-shadow: 0 4px 12px rgba(124, 92, 252, 0.3);
   font-weight: 600;
@@ -210,7 +210,7 @@
 .user-avatar {
   width: 38px;
   height: 38px;
-  background: var(--gradient-primary);
+  background: #7c5cfc;
   border-radius: 50%;
   display: flex;
   align-items: center;

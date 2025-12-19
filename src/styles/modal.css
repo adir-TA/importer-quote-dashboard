@@ -63,7 +63,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(180deg, rgba(124, 92, 252, 0.06) 0%, transparent 100%);
+  background: rgba(124, 92, 252, 0.06);
 }
 
 .modal-title {

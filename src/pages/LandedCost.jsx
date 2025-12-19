@@ -733,7 +733,7 @@ function LandedCost() {
 
         {/* STEP 1: Product Selection */}
         <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div className="card-header" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)', borderBottom: '2px solid #e5e7eb' }}>
+          <div className="card-header" style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
             <span className="card-title">
               <Package size={18} /> Select Buying Intent to Calculate
             </span>

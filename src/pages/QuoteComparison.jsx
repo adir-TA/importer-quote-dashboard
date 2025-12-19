@@ -703,7 +703,7 @@ function QuoteComparison() {
 
         {/* Product Selector */}
         <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div className="card-header" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)', borderBottom: '2px solid #e5e7eb' }}>
+          <div className="card-header" style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
             <span className="card-title">
               <Package size={18} /> Select Buying Intent to Compare
             </span>
@@ -755,13 +755,13 @@ function QuoteComparison() {
               <>
                 {/* Best Option Card */}
                 {bestQuote && (
-                  <div 
-                    className="best-quote-card" 
-                    style={{ 
+                  <div
+                    className="best-quote-card"
+                    style={{
                       marginBottom: '24px',
                       borderColor: isSupplierSelected ? 'var(--success)' : undefined,
-                      background: isSupplierSelected 
-                        ? 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' 
+                      background: isSupplierSelected
+                        ? '#f0fdf4'
                         : undefined,
                     }}
                   >
@@ -994,7 +994,7 @@ function QuoteComparison() {
           <div style={{
             padding: '80px 20px',
             textAlign: 'center',
-            background: 'linear-gradient(135deg, #f9fafb 0%, #f0f1f3 100%)',
+            background: '#f9fafb',
             borderRadius: '16px',
             border: '2px dashed #cbd5e1',
           }}>
