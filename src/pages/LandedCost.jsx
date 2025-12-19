@@ -58,73 +58,249 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
     }));
   }, [products, quoteCounts]);
 
-  // Filter by search (case-insensitive)
+  // Filter by search (case-insensitive - name or category)
   const filteredProducts = useMemo(() => {
     if (!searchTerm.trim()) return productsWithCounts;
     const term = searchTerm.toLowerCase();
-    return productsWithCounts.filter(p => p.name.toLowerCase().includes(term));
+    return productsWithCounts.filter(p =>
+      p.name.toLowerCase().includes(term) ||
+      (p.category && p.category.toLowerCase().includes(term))
+    );
   }, [productsWithCounts, searchTerm]);
+
+  // Group by category
+  const groupedProducts = useMemo(() => {
+    const groups = {};
+    filteredProducts.forEach(product => {
+      const cat = product.category || 'Uncategorized';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(product);
+    });
+    return groups;
+  }, [filteredProducts]);
 
   const selectedProduct = productsWithCounts.find(p => p.id === selectedProductId);
 
   return (
-    <div className="product-selector" ref={dropdownRef}>
-      <button 
-        className="product-selector-trigger"
+    <div style={{ position: 'relative' }} ref={dropdownRef}>
+      <button
         onClick={() => setIsOpen(!isOpen)}
         type="button"
+        style={{
+          width: '100%',
+          padding: '14px 18px',
+          background: 'white',
+          border: '2px solid #e5e7eb',
+          borderRadius: '10px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          fontSize: '0.95rem',
+          fontWeight: 500,
+          transition: 'all 0.2s',
+          textAlign: 'left',
+        }}
+        onMouseEnter={(e) => {
+          if (!isOpen) e.currentTarget.style.borderColor = '#3b82f6';
+        }}
+        onMouseLeave={(e) => {
+          if (!isOpen) e.currentTarget.style.borderColor = '#e5e7eb';
+        }}
       >
-        <Package size={18} className="trigger-icon" />
-        <span className="trigger-text">
+        <Package size={20} style={{ color: '#64748b', flexShrink: 0 }} />
+        <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selectedProduct ? (
             <>
               {selectedProduct.name}
-              <span className={`quote-count ${selectedProduct.quoteCount === 0 ? 'muted' : ''}`}>
-                ({selectedProduct.quoteCount} {selectedProduct.quoteCount === 1 ? 'quote' : 'quotes'})
+              <span style={{
+                marginLeft: '8px',
+                padding: '2px 8px',
+                background: selectedProduct.quoteCount > 0 ? '#d1fae5' : '#fee2e2',
+                color: selectedProduct.quoteCount > 0 ? '#065f46' : '#991b1b',
+                borderRadius: '4px',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+              }}>
+                {selectedProduct.quoteCount} {selectedProduct.quoteCount === 1 ? 'quote' : 'quotes'}
               </span>
             </>
           ) : (
-            <span style={{ color: 'var(--text-muted)' }}>Select a product...</span>
+            <span style={{ color: '#9ca3af' }}>Select a buying intent...</span>
           )}
         </span>
-        <ChevronDown size={18} className={`trigger-chevron ${isOpen ? 'open' : ''}`} />
+        <ChevronDown size={18} style={{
+          color: '#64748b',
+          flexShrink: 0,
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
+          transition: 'transform 0.2s',
+        }} />
       </button>
 
       {isOpen && (
-        <div className="product-selector-dropdown">
-          <div className="product-selector-search">
-            <Search size={16} className="search-icon" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search products..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            {searchTerm && (
-              <button className="search-clear" onClick={() => setSearchTerm('')} type="button">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <div className="product-selector-options">
-            {filteredProducts.length === 0 ? (
-              <div className="product-selector-empty">No products match "{searchTerm}"</div>
-            ) : (
-              filteredProducts.map(product => (
+        <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
+          marginTop: '8px',
+          background: 'white',
+          border: '2px solid #e5e7eb',
+          borderRadius: '12px',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+          maxHeight: '500px',
+          overflowY: 'auto',
+          zIndex: 1000,
+        }}>
+          {/* Search input */}
+          <div style={{
+            position: 'sticky',
+            top: 0,
+            background: 'white',
+            borderBottom: '2px solid #e5e7eb',
+            padding: '16px',
+            zIndex: 10,
+            borderTopLeftRadius: '12px',
+            borderTopRightRadius: '12px',
+          }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '10px 14px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              background: '#f9fafb',
+            }}>
+              <Search size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
+              <input
+                ref={inputRef}
+                type="text"
+                placeholder="Search by name or category..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                  width: '100%',
+                  fontSize: '0.95rem',
+                  color: '#1f2937',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+              {searchTerm && (
                 <button
-                  key={product.id}
-                  className={`product-option ${product.id === selectedProductId ? 'selected' : ''}`}
-                  onClick={() => { onSelect(product.id); setIsOpen(false); setSearchTerm(''); }}
+                  onClick={() => setSearchTerm('')}
                   type="button"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    padding: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    color: '#9ca3af',
+                  }}
                 >
-                  <span className="option-name">{product.name}</span>
-                  <span className={`option-count ${product.quoteCount === 0 ? 'muted' : ''}`}>
-                    ({product.quoteCount} {product.quoteCount === 1 ? 'quote' : 'quotes'})
-                  </span>
-                  {product.id === selectedProductId && <Check size={16} className="option-check" />}
+                  <X size={16} />
                 </button>
+              )}
+            </div>
+          </div>
+
+          {/* Results */}
+          <div>
+            {filteredProducts.length === 0 ? (
+              <div style={{
+                padding: '40px 20px',
+                textAlign: 'center',
+                color: '#9ca3af',
+                fontSize: '0.95rem',
+              }}>
+                No buying intents found
+                {searchTerm && (
+                  <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
+                    Try a different search term
+                  </div>
+                )}
+              </div>
+            ) : (
+              Object.entries(groupedProducts).map(([category, categoryProducts]) => (
+                <div key={category}>
+                  <div style={{
+                    padding: '10px 16px',
+                    background: '#f9fafb',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: '#64748b',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    position: 'sticky',
+                    top: '72px',
+                    zIndex: 5,
+                    borderTop: '1px solid #e5e7eb',
+                  }}>
+                    {category}
+                  </div>
+                  {categoryProducts.map(product => (
+                    <button
+                      key={product.id}
+                      onClick={() => {
+                        onSelect(product.id);
+                        setIsOpen(false);
+                        setSearchTerm('');
+                      }}
+                      type="button"
+                      style={{
+                        width: '100%',
+                        padding: '14px 18px',
+                        textAlign: 'left',
+                        border: 'none',
+                        background: product.id === selectedProductId ? '#eff6ff' : 'white',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem',
+                        borderBottom: '1px solid #f3f4f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        transition: 'background 0.15s',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (product.id !== selectedProductId) {
+                          e.target.style.background = '#f9fafb';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (product.id !== selectedProductId) {
+                          e.target.style.background = 'white';
+                        }
+                      }}
+                    >
+                      {product.id === selectedProductId && (
+                        <Check size={16} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                      )}
+                      <span style={{
+                        flex: 1,
+                        color: '#374151',
+                        fontWeight: product.id === selectedProductId ? 600 : 400,
+                      }}>
+                        {product.name}
+                      </span>
+                      <span style={{
+                        padding: '3px 10px',
+                        background: product.quoteCount > 0 ? '#d1fae5' : '#fee2e2',
+                        color: product.quoteCount > 0 ? '#065f46' : '#991b1b',
+                        borderRadius: '6px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                      }}>
+                        {product.quoteCount}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               ))
             )}
           </div>
@@ -480,11 +656,66 @@ function LandedCost() {
       </div>
 
       <div className="content">
+        {/* Recently Used Buying Intents */}
+        {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
+              Recently Used
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).map(product => (
+                <button
+                  key={product.id}
+                  onClick={() => handleProductChange(product.id)}
+                  style={{
+                    padding: '12px 18px',
+                    background: 'white',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f9fafb';
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <Package size={18} style={{ color: '#64748b' }} />
+                  <span>{product.name}</span>
+                  <span style={{
+                    padding: '3px 10px',
+                    background: '#d1fae5',
+                    color: '#065f46',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}>
+                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* STEP 1: Product Selection */}
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div className="card-header">
+        <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div className="card-header" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)', borderBottom: '2px solid #e5e7eb' }}>
             <span className="card-title">
-              <Package size={18} /> Step 1: Select Product
+              <Package size={18} /> Select Buying Intent to Calculate
             </span>
           </div>
           <div className="card-body">
@@ -496,9 +727,9 @@ function LandedCost() {
               quoteCounts={quoteCounts}
             />
             {!selectedProductId && (
-              <div className="info-message" style={{ marginTop: '12px' }}>
-                <AlertCircle size={16} />
-                <span>Select a product to calculate landed costs for its quotes</span>
+              <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '6px' }}>
+                <AlertCircle size={16} style={{ color: '#3b82f6' }} />
+                <span style={{ color: '#1e40af' }}>Select a buying intent above to calculate landed costs for its quotes</span>
               </div>
             )}
           </div>

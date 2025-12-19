@@ -68,7 +68,7 @@ function AppLayout() {
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/comparison" element={<QuoteComparison />} />
-          <Route path="/portfolio" element={<PortfolioComparison />} />
+          {/* <Route path="/portfolio" element={<PortfolioComparison />} /> */}
           <Route path="/landed-cost" element={<LandedCost />} />
           <Route path="/settings" element={<Settings />} />
           {/* Hidden routes - not in navigation but still accessible */}
