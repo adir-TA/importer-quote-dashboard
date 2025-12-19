@@ -451,19 +451,24 @@ function QuoteComparison() {
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState('');
+  const [loadingCounts, setLoadingCounts] = React.useState(true); // track loading state
 
   // Load quote counts for all products
   React.useEffect(() => {
     const loadQuoteCounts = async () => {
+      setLoadingCounts(true);
       const counts = {};
       for (const product of products) {
         const items = await computed.getLineItemsForBuyingIntent(product.id);
         counts[product.id] = items.length;
       }
       setQuoteCounts(counts);
+      setLoadingCounts(false);
     };
     if (products.length > 0) {
       loadQuoteCounts();
+    } else {
+      setLoadingCounts(false);
     }
   }, [products, computed]);
 
@@ -626,6 +631,21 @@ function QuoteComparison() {
       </div>
 
       <div className="content">
+        {/* Loading State */}
+        {loadingCounts ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '80px 20px',
+            gap: '16px',
+          }}>
+            <div className="spinner" style={{ width: '40px', height: '40px' }} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading buying intents...</p>
+          </div>
+        ) : (
+          <>
         {/* Recently Used Buying Intents */}
         {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
           <div style={{ marginBottom: '24px' }}>
@@ -995,6 +1015,8 @@ function QuoteComparison() {
               Choose a buying intent above to view and compare supplier quotes side-by-side.
             </p>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>

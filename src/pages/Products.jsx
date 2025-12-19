@@ -31,20 +31,25 @@ function Products() {
   const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('name'); // 'name', 'quotes', 'recent'
   const [collapsedCategories, setCollapsedCategories] = useState({}); // track which categories are collapsed
+  const [loadingCounts, setLoadingCounts] = useState(true); // track loading state
 
   // Load quote counts for all products
   useEffect(() => {
     const loadQuoteCounts = async () => {
+      setLoadingCounts(true);
       const counts = {};
       for (const product of products) {
         const items = await computed.getLineItemsForBuyingIntent(product.id);
         counts[product.id] = items.length;
       }
       setQuoteCounts(counts);
+      setLoadingCounts(false);
     };
 
     if (products.length > 0) {
       loadQuoteCounts();
+    } else {
+      setLoadingCounts(false);
     }
   }, [products, computed]);
 
@@ -198,6 +203,21 @@ function Products() {
       </div>
 
       <div className="content">
+        {/* Loading State */}
+        {loadingCounts ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '80px 20px',
+            gap: '16px',
+          }}>
+            <div className="spinner" style={{ width: '40px', height: '40px' }} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading buying intents...</p>
+          </div>
+        ) : (
+          <>
         {/* Recently Used Section */}
         {products.length > 0 && products.slice(0, 3).length > 0 && (
           <div style={{ marginBottom: '24px' }}>
@@ -572,6 +592,8 @@ function Products() {
               </div>
             ))}
           </div>
+        )}
+        </>
         )}
       </div>
 

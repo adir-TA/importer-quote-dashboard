@@ -442,19 +442,24 @@ function LandedCost() {
   const [customQuantity, setCustomQuantity] = useState('');
   const [lineItems, setLineItems] = React.useState([]);
   const [quoteCounts, setQuoteCounts] = React.useState({});
+  const [loadingCounts, setLoadingCounts] = React.useState(true); // track loading state
 
   // Load quote counts for all products
   React.useEffect(() => {
     const loadQuoteCounts = async () => {
+      setLoadingCounts(true);
       const counts = {};
       for (const product of products) {
         const items = await computed.getLineItemsForBuyingIntent(product.id);
         counts[product.id] = items.length;
       }
       setQuoteCounts(counts);
+      setLoadingCounts(false);
     };
     if (products.length > 0) {
       loadQuoteCounts();
+    } else {
+      setLoadingCounts(false);
     }
   }, [products, computed]);
 
@@ -656,6 +661,21 @@ function LandedCost() {
       </div>
 
       <div className="content">
+        {/* Loading State */}
+        {loadingCounts ? (
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '80px 20px',
+            gap: '16px',
+          }}>
+            <div className="spinner" style={{ width: '40px', height: '40px' }} />
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading buying intents...</p>
+          </div>
+        ) : (
+          <>
         {/* Recently Used Buying Intents */}
         {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
           <div style={{ marginBottom: '24px' }}>
@@ -1008,6 +1028,8 @@ function LandedCost() {
               <p>Choose a product above to configure fees and preview landed costs.</p>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
