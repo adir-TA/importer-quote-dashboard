@@ -324,11 +324,64 @@ function Products() {
 
         {/* Controls Row - Search, Filters, Sort, View */}
         <div style={{ marginBottom: '20px' }}>
-          {/* Top Row: Search + Controls */}
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {/* Search Bar */}
             <div style={{ flex: 1, minWidth: '250px' }}>
               <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
             </div>
+
+            {/* Category filter pills - aligned with search */}
+            {categories.length > 0 && (
+              <>
+                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>
+                  Filters:
+                </span>
+                {categories.map(category => (
+                  <button
+                    key={category}
+                    onClick={() => {
+                      setSelectedCategoryFilters(prev =>
+                        prev.includes(category)
+                          ? prev.filter(c => c !== category)
+                          : [...prev, category]
+                      );
+                    }}
+                    className="btn"
+                    style={{
+                      padding: '6px 14px',
+                      fontSize: '0.875rem',
+                      background: selectedCategoryFilters.includes(category) ? 'var(--accent)' : 'white',
+                      color: selectedCategoryFilters.includes(category) ? 'white' : 'var(--text)',
+                      border: selectedCategoryFilters.includes(category) ? 'none' : '1px solid #e5e7eb',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    {category}
+                  </button>
+                ))}
+                {selectedCategoryFilters.length > 0 && (
+                  <button
+                    onClick={() => setSelectedCategoryFilters([])}
+                    className="btn"
+                    style={{
+                      padding: '6px 14px',
+                      fontSize: '0.875rem',
+                      background: '#fef2f2',
+                      color: '#ef4444',
+                      border: 'none',
+                      borderRadius: '20px',
+                      cursor: 'pointer',
+                      fontWeight: 500,
+                    }}
+                  >
+                    Clear
+                  </button>
+                )}
+              </>
+            )}
 
             {/* Sort Dropdown */}
             <select
@@ -394,59 +447,6 @@ function Products() {
               </button>
             </div>
           </div>
-
-          {/* Category filter pills - aligned below search */}
-          {categories.length > 0 && (
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b', marginRight: '4px' }}>
-                Filters:
-              </span>
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => {
-                    setSelectedCategoryFilters(prev =>
-                      prev.includes(category)
-                        ? prev.filter(c => c !== category)
-                        : [...prev, category]
-                    );
-                  }}
-                  className="btn"
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: '0.875rem',
-                    background: selectedCategoryFilters.includes(category) ? 'var(--accent)' : 'white',
-                    color: selectedCategoryFilters.includes(category) ? 'white' : 'var(--text)',
-                    border: selectedCategoryFilters.includes(category) ? 'none' : '1px solid #e5e7eb',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {category}
-                </button>
-              ))}
-              {selectedCategoryFilters.length > 0 && (
-                <button
-                  onClick={() => setSelectedCategoryFilters([])}
-                  className="btn"
-                  style={{
-                    padding: '6px 14px',
-                    fontSize: '0.875rem',
-                    background: '#fef2f2',
-                    color: '#ef4444',
-                    border: 'none',
-                    borderRadius: '20px',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  Clear
-                </button>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Products Display */}
