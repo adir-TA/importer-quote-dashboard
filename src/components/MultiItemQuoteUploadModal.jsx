@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import {
   X, Upload, FileText, Image, AlertCircle, CheckCircle, Loader,
-  Trash2, Plus, Info, ChevronDown, ChevronRight, Lock, Check, Search
+  Trash2, Plus, Info, ChevronDown, ChevronRight, Lock, Check, Search,
+  User, Package
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
@@ -313,6 +314,11 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [selectedCategories, setSelectedCategories] = useState([]); // for filtering buying intents
   const [inputMode, setInputMode] = useState('file'); // 'file' or 'text'
   const [textInput, setTextInput] = useState('');
+  const [sectionsCollapsed, setSectionsCollapsed] = useState({
+    preview: false,
+    supplier: false,
+    lineItems: false,
+  });
 
   const {
     step,
@@ -605,6 +611,13 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }));
   };
 
+  const toggleSection = (section) => {
+    setSectionsCollapsed(prev => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   const handleBuyingIntentChange = (index, intentId) => {
     updateLineItem(index, 'linkedBuyingIntentId', intentId || null);
 
@@ -812,130 +825,178 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
             <div style={styles.review}>
               {/* File Preview Section */}
               {filePreviewUrl && uploadedFile && (
-                <div style={styles.previewSection}>
-                  <h3 style={styles.sectionTitle}>Quote Preview</h3>
-                  <div style={styles.previewContainer}>
-                    {uploadedFile.type.startsWith('image/') ? (
-                      <img
-                        src={filePreviewUrl}
-                        alt="Quote preview"
-                        style={styles.previewImage}
-                      />
-                    ) : uploadedFile.type === 'application/pdf' ? (
-                      <iframe
-                        src={filePreviewUrl}
-                        style={styles.previewPdf}
-                        title="Quote preview"
-                      />
+                <div style={styles.card}>
+                  <div
+                    style={styles.cardHeader}
+                    onClick={() => toggleSection('preview')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <FileText size={18} />
+                      <h3 style={styles.cardTitle}>Quote Preview</h3>
+                    </div>
+                    {sectionsCollapsed.preview ? (
+                      <ChevronRight size={20} />
                     ) : (
-                      <div style={styles.previewFallback}>
-                        <FileText size={48} color="#94a3b8" />
-                        <p style={{ marginTop: '12px', color: '#64748b' }}>
-                          {uploadedFile.name}
-                        </p>
-                        <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
-                          Preview not available for this file type
-                        </p>
-                      </div>
+                      <ChevronDown size={20} />
                     )}
                   </div>
+                  {!sectionsCollapsed.preview && (
+                    <div style={styles.cardBody}>
+                      <div style={styles.previewContainer}>
+                        {uploadedFile.type.startsWith('image/') ? (
+                          <img
+                            src={filePreviewUrl}
+                            alt="Quote preview"
+                            style={styles.previewImage}
+                          />
+                        ) : uploadedFile.type === 'application/pdf' ? (
+                          <iframe
+                            src={filePreviewUrl}
+                            style={styles.previewPdf}
+                            title="Quote preview"
+                          />
+                        ) : (
+                          <div style={styles.previewFallback}>
+                            <FileText size={48} color="#94a3b8" />
+                            <p style={{ marginTop: '12px', color: '#64748b' }}>
+                              {uploadedFile.name}
+                            </p>
+                            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                              Preview not available for this file type
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
               {/* Supplier Info Section */}
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>Supplier Information</h3>
-                <div style={styles.grid}>
-                  <div style={styles.field}>
-                    <label style={styles.label}>
-                      Supplier Name <span style={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={supplierFields.supplierName}
-                      onChange={(e) => updateSupplierField('supplierName', e.target.value)}
-                      style={styles.input}
-                      placeholder="Required"
-                    />
-                    {missingSupplierFields.includes('supplierName') && (
-                      <span style={styles.errorHint}>Required field</span>
-                    )}
+              <div style={styles.card}>
+                <div
+                  style={styles.cardHeader}
+                  onClick={() => toggleSection('supplier')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <User size={18} />
+                    <h3 style={styles.cardTitle}>Supplier Information</h3>
                   </div>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>Contact Person</label>
-                    <input
-                      type="text"
-                      value={supplierFields.supplierContact}
-                      onChange={(e) => updateSupplierField('supplierContact', e.target.value)}
-                      style={styles.input}
-                    />
-                  </div>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>Email</label>
-                    <input
-                      type="email"
-                      value={supplierFields.supplierEmail}
-                      onChange={(e) => updateSupplierField('supplierEmail', e.target.value)}
-                      style={styles.input}
-                    />
-                  </div>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>Currency</label>
-                    <select
-                      value={supplierFields.currency}
-                      onChange={(e) => updateSupplierField('currency', e.target.value)}
-                      style={styles.input}
-                    >
-                      <option value="USD">USD</option>
-                      <option value="EUR">EUR</option>
-                      <option value="CNY">CNY</option>
-                      <option value="GBP">GBP</option>
-                    </select>
-                  </div>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>
-                      Incoterm <span style={styles.required}>*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={supplierFields.incoterm}
-                      onChange={(e) => updateSupplierField('incoterm', e.target.value)}
-                      style={styles.input}
-                      placeholder="e.g., FOB Shanghai"
-                    />
-                    {missingSupplierFields.includes('incoterm') && (
-                      <span style={styles.errorHint}>Required field</span>
-                    )}
-                  </div>
-
-                  <div style={styles.field}>
-                    <label style={styles.label}>Valid Until</label>
-                    <input
-                      type="date"
-                      value={supplierFields.validUntil}
-                      onChange={(e) => updateSupplierField('validUntil', e.target.value)}
-                      style={styles.input}
-                    />
-                  </div>
+                  {sectionsCollapsed.supplier ? (
+                    <ChevronRight size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
                 </div>
+                {!sectionsCollapsed.supplier && (
+                  <div style={styles.cardBody}>
+                    <div style={styles.grid}>
+                      <div style={styles.field}>
+                        <label style={styles.label}>
+                          Supplier Name <span style={styles.required}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={supplierFields.supplierName}
+                          onChange={(e) => updateSupplierField('supplierName', e.target.value)}
+                          style={styles.input}
+                          placeholder="Required"
+                        />
+                        {missingSupplierFields.includes('supplierName') && (
+                          <span style={styles.errorHint}>Required field</span>
+                        )}
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>Contact Person</label>
+                        <input
+                          type="text"
+                          value={supplierFields.supplierContact}
+                          onChange={(e) => updateSupplierField('supplierContact', e.target.value)}
+                          style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>Email</label>
+                        <input
+                          type="email"
+                          value={supplierFields.supplierEmail}
+                          onChange={(e) => updateSupplierField('supplierEmail', e.target.value)}
+                          style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>Currency</label>
+                        <select
+                          value={supplierFields.currency}
+                          onChange={(e) => updateSupplierField('currency', e.target.value)}
+                          style={styles.input}
+                        >
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="CNY">CNY</option>
+                          <option value="GBP">GBP</option>
+                        </select>
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>
+                          Incoterm <span style={styles.required}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          value={supplierFields.incoterm}
+                          onChange={(e) => updateSupplierField('incoterm', e.target.value)}
+                          style={styles.input}
+                          placeholder="e.g., FOB Shanghai"
+                        />
+                        {missingSupplierFields.includes('incoterm') && (
+                          <span style={styles.errorHint}>Required field</span>
+                        )}
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>Valid Until</label>
+                        <input
+                          type="date"
+                          value={supplierFields.validUntil}
+                          onChange={(e) => updateSupplierField('validUntil', e.target.value)}
+                          style={styles.input}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Line Items Table */}
-              <div style={styles.section}>
-                <h3 style={styles.sectionTitle}>
-                  Line Items ({editableLineItems.length})
-                </h3>
-
-                {editableLineItems.length === 0 ? (
-                  <div style={styles.noItems}>
-                    <AlertCircle size={32} color="#94a3b8" />
-                    <p>No line items extracted</p>
+              <div style={styles.card}>
+                <div
+                  style={styles.cardHeader}
+                  onClick={() => toggleSection('lineItems')}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Package size={18} />
+                    <h3 style={styles.cardTitle}>
+                      Line Items ({editableLineItems.length})
+                    </h3>
                   </div>
-                ) : (
+                  {sectionsCollapsed.lineItems ? (
+                    <ChevronRight size={20} />
+                  ) : (
+                    <ChevronDown size={20} />
+                  )}
+                </div>
+                {!sectionsCollapsed.lineItems && (
+                  <div style={styles.cardBody}>
+                    {editableLineItems.length === 0 ? (
+                      <div style={styles.noItems}>
+                        <AlertCircle size={32} color="#94a3b8" />
+                        <p>No line items extracted</p>
+                      </div>
+                    ) : (
                   <div style={styles.tableContainer}>
                     <table style={styles.table}>
                       <thead>
@@ -1430,6 +1491,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       </tbody>
                     </table>
                   </div>
+                    )}
+                  </div>
                 )}
               </div>
 
@@ -1638,7 +1701,36 @@ const styles = {
   review: {
     display: 'flex',
     flexDirection: 'column',
-    gap: '24px',
+    gap: '32px',
+  },
+  card: {
+    border: '1px solid #e5e7eb',
+    borderRadius: '12px',
+    background: 'white',
+    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    padding: '18px 24px',
+    background: '#f9fafb',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    cursor: 'pointer',
+    transition: 'background 0.2s',
+    ':hover': {
+      background: '#f3f4f6',
+    },
+  },
+  cardTitle: {
+    margin: 0,
+    fontSize: '16px',
+    fontWeight: 600,
+    color: '#1f2937',
+  },
+  cardBody: {
+    padding: '24px',
   },
   previewSection: {
     border: '1px solid #e5e7eb',
