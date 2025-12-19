@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
@@ -27,6 +27,11 @@ function Products() {
   // Category filter for main page
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
 
+  // View and sorting options
+  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [sortBy, setSortBy] = useState('name'); // 'name', 'quotes', 'recent'
+  const [collapsedCategories, setCollapsedCategories] = useState({}); // track which categories are collapsed
+
   // Load quote counts for all products
   useEffect(() => {
     const loadQuoteCounts = async () => {
@@ -51,8 +56,44 @@ function Products() {
       result = result.filter(p => selectedCategoryFilters.includes(p.category));
     }
 
+    // Apply sorting
+    result = [...result].sort((a, b) => {
+      if (sortBy === 'name') {
+        return a.name.localeCompare(b.name);
+      } else if (sortBy === 'quotes') {
+        return (quoteCounts[b.id] || 0) - (quoteCounts[a.id] || 0);
+      } else if (sortBy === 'recent') {
+        return new Date(b.created_at || 0) - new Date(a.created_at || 0);
+      }
+      return 0;
+    });
+
     return result;
-  }, [products, search, selectedCategoryFilters]);
+  }, [products, search, selectedCategoryFilters, sortBy, quoteCounts]);
+
+  // Group products by category
+  const groupedProducts = useMemo(() => {
+    const groups = {};
+    filteredProducts.forEach(product => {
+      const cat = product.category || 'Uncategorized';
+      if (!groups[cat]) groups[cat] = [];
+      groups[cat].push(product);
+    });
+    return groups;
+  }, [filteredProducts]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalProducts = products.length;
+    const totalWithQuotes = Object.values(quoteCounts).filter(count => count > 0).length;
+    const totalWithoutQuotes = totalProducts - totalWithQuotes;
+    const categoryBreakdown = {};
+    products.forEach(p => {
+      const cat = p.category || 'Uncategorized';
+      categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + 1;
+    });
+    return { totalProducts, totalWithQuotes, totalWithoutQuotes, categoryBreakdown };
+  }, [products, quoteCounts]);
 
   // Get unique categories from all products
   const categories = useMemo(() => {
@@ -138,6 +179,13 @@ function Products() {
     if (confirmed) actions.deleteProduct(productId);
   };
 
+  const toggleCategory = (category) => {
+    setCollapsedCategories(prev => ({
+      ...prev,
+      [category]: !prev[category]
+    }));
+  };
+
   return (
     <div className="page">
       <div className="header">
@@ -150,11 +198,127 @@ function Products() {
       </div>
 
       <div className="content">
-        <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
+        {/* Stats Summary */}
+        {products.length > 0 && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '16px',
+            marginBottom: '24px',
+          }}>
+            <div style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '12px',
+              color: 'white',
+            }}>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>Total Buying Intents</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.totalProducts}</div>
+            </div>
+            <div style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              borderRadius: '12px',
+              color: 'white',
+            }}>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>With Quotes</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.totalWithQuotes}</div>
+            </div>
+            <div style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              borderRadius: '12px',
+              color: 'white',
+            }}>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>Without Quotes</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.totalWithoutQuotes}</div>
+            </div>
+            <div style={{
+              padding: '20px',
+              background: 'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+              borderRadius: '12px',
+              color: 'white',
+            }}>
+              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>Categories</div>
+              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{Object.keys(stats.categoryBreakdown).length}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Controls Row */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ flex: 1, minWidth: '250px' }}>
+            <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
+          </div>
+
+          {/* Sort Dropdown */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'white',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+            }}
+          >
+            <option value="name">Sort by Name</option>
+            <option value="quotes">Sort by Quotes</option>
+            <option value="recent">Sort by Recent</option>
+          </select>
+
+          {/* View Toggle */}
+          <div style={{
+            display: 'flex',
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            overflow: 'hidden',
+          }}>
+            <button
+              onClick={() => setViewMode('grid')}
+              style={{
+                padding: '10px 16px',
+                background: viewMode === 'grid' ? 'var(--accent)' : 'white',
+                color: viewMode === 'grid' ? 'white' : 'var(--text)',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              <Grid size={16} />
+              Grid
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              style={{
+                padding: '10px 16px',
+                background: viewMode === 'list' ? 'var(--accent)' : 'white',
+                color: viewMode === 'list' ? 'white' : 'var(--text)',
+                border: 'none',
+                borderLeft: '1px solid var(--border)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '0.875rem',
+                fontWeight: 500,
+              }}
+            >
+              <List size={16} />
+              List
+            </button>
+          </div>
+        </div>
 
         {/* Category filter pills */}
         {categories.length > 0 && (
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px', marginTop: '16px' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
             {categories.map(category => (
               <button
                 key={category}
@@ -202,6 +366,7 @@ function Products() {
           </div>
         )}
 
+        {/* Products Display */}
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Package size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -214,16 +379,134 @@ function Products() {
             )}
           </div>
         ) : (
-          <div className="products-grid">
-            {filteredProducts.map(product => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                quoteCount={quoteCounts[product.id] || 0}
-                onClick={() => navigate(`/products/${product.id}`)}
-                onEdit={() => handleOpenModal(product)}
-                onDelete={() => handleDelete(product.id)}
-              />
+          <div>
+            {Object.entries(groupedProducts).map(([category, products]) => (
+              <div key={category} style={{ marginBottom: '32px' }}>
+                {/* Category Header */}
+                <div
+                  onClick={() => toggleCategory(category)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '16px 20px',
+                    background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+                    borderRadius: '12px',
+                    marginBottom: '16px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  {collapsedCategories[category] ? (
+                    <ChevronRight size={20} style={{ color: '#64748b' }} />
+                  ) : (
+                    <ChevronDown size={20} style={{ color: '#64748b' }} />
+                  )}
+                  <Package size={20} style={{ color: '#64748b' }} />
+                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', flex: 1 }}>
+                    {category}
+                  </h3>
+                  <span style={{
+                    padding: '4px 12px',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: '#64748b',
+                  }}>
+                    {products.length} {products.length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+
+                {/* Products in Category */}
+                {!collapsedCategories[category] && (
+                  viewMode === 'grid' ? (
+                    <div className="products-grid">
+                      {products.map(product => (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          quoteCount={quoteCounts[product.id] || 0}
+                          onClick={() => navigate(`/products/${product.id}`)}
+                          onEdit={() => handleOpenModal(product)}
+                          onDelete={() => handleDelete(product.id)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      {products.map(product => (
+                        <div
+                          key={product.id}
+                          onClick={() => navigate(`/products/${product.id}`)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '16px',
+                            padding: '16px 20px',
+                            background: 'white',
+                            borderRadius: '8px',
+                            border: `2px solid ${quoteCounts[product.id] > 0 ? '#10b981' : '#ef4444'}`,
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateX(4px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateX(0)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }}
+                        >
+                          <Package size={20} style={{ color: '#94a3b8', flexShrink: 0 }} />
+                          <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{product.name}</div>
+                            {product.description && (
+                              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                                {product.description}
+                              </div>
+                            )}
+                          </div>
+                          <div style={{
+                            padding: '6px 12px',
+                            background: quoteCounts[product.id] > 0 ? '#d1fae5' : '#fee2e2',
+                            color: quoteCounts[product.id] > 0 ? '#065f46' : '#991b1b',
+                            borderRadius: '6px',
+                            fontSize: '0.875rem',
+                            fontWeight: 600,
+                            flexShrink: 0,
+                          }}>
+                            {quoteCounts[product.id] || 0} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
+                          </div>
+                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                            <button
+                              className="icon-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenModal(product);
+                              }}
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              className="icon-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(product.id);
+                              }}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                )}
+              </div>
             ))}
           </div>
         )}
