@@ -423,9 +423,9 @@ function QuoteComparison() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2>Item-Level Comparison</h2>
+            <h2>Compare Quotes</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
-              Compare suppliers for one buying intent and select the best landed cost
+              Compare suppliers for a buying intent and select the best landed cost
             </p>
           </div>
         </div>
@@ -450,9 +450,64 @@ function QuoteComparison() {
       </div>
 
       <div className="content">
+        {/* Recently Used Buying Intents */}
+        {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
+              Recently Used
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).map(product => (
+                <button
+                  key={product.id}
+                  onClick={() => handleProductChange(product.id)}
+                  style={{
+                    padding: '12px 18px',
+                    background: 'white',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = '#f9fafb';
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                >
+                  <Package size={18} style={{ color: '#64748b' }} />
+                  <span>{product.name}</span>
+                  <span style={{
+                    padding: '3px 10px',
+                    background: '#d1fae5',
+                    color: '#065f46',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}>
+                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Product Selector */}
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div className="card-header">
+        <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div className="card-header" style={{ background: 'linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%)', borderBottom: '2px solid #e5e7eb' }}>
             <span className="card-title">
               <Package size={18} /> Select Buying Intent to Compare
             </span>
@@ -466,9 +521,9 @@ function QuoteComparison() {
               quoteCounts={quoteCounts}
             />
             {!selectedProductId && (
-              <div className="info-message" style={{ marginTop: '12px' }}>
-                <AlertCircle size={16} />
-                <span>Select a buying intent to compare supplier quotes</span>
+              <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '6px' }}>
+                <AlertCircle size={16} style={{ color: '#3b82f6' }} />
+                <span style={{ color: '#1e40af' }}>Select a buying intent above to compare supplier quotes and find the best landed cost</span>
               </div>
             )}
           </div>
@@ -740,12 +795,29 @@ function QuoteComparison() {
             )}
           </>
         ) : (
-          <div className="disabled-overlay">
-            <div className="disabled-content">
-              <Package size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
-              <h3>Select a Buying Intent to Compare</h3>
-              <p>Choose a buying intent above to see and compare supplier quotes.</p>
+          <div style={{
+            padding: '80px 20px',
+            textAlign: 'center',
+            background: 'linear-gradient(135deg, #f9fafb 0%, #f0f1f3 100%)',
+            borderRadius: '16px',
+            border: '2px dashed #cbd5e1',
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              padding: '20px',
+              background: 'white',
+              borderRadius: '50%',
+              marginBottom: '20px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            }}>
+              <TrendingDown size={48} style={{ color: '#94a3b8' }} />
             </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', marginBottom: '8px' }}>
+              Select a Buying Intent to Compare
+            </h3>
+            <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', margin: '0 auto' }}>
+              Choose a buying intent above to view and compare supplier quotes side-by-side.
+            </p>
           </div>
         )}
       </div>

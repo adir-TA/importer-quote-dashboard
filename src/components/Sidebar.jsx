@@ -30,7 +30,7 @@ function Sidebar() {
     { section: 'Workflow', items: [
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/products', icon: Package, label: 'Buying Intents' },
-      { path: '/comparison', icon: GitCompare, label: 'Item-Level' },
+      { path: '/comparison', icon: GitCompare, label: 'Compare Quotes' },
       { path: '/portfolio', icon: TrendingDown, label: 'Portfolio' },
       { path: '/landed-cost', icon: Calculator, label: 'Landed Cost' },
     ]},

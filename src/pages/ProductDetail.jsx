@@ -169,7 +169,7 @@ function ProductDetail() {
         <div className="header-actions">
           {(quotes.length + lineItems.length) >= 2 && (
             <button className="btn btn-secondary" onClick={handleCompare}>
-              Item-Level Comparison
+              Compare Quotes
             </button>
           )}
           <button className="btn btn-secondary" onClick={() => setIsUploadModalOpen(true)}>
@@ -367,7 +367,7 @@ function ProductDetail() {
                 You have {quotes.length + lineItems.length} quotes for this intent. See which supplier offers the best landed cost.
               </p>
               <button className="btn btn-primary" onClick={handleCompare}>
-                Item-Level Comparison
+                Compare Quotes
               </button>
             </div>
           </div>
