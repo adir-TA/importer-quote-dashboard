@@ -319,6 +319,8 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     supplier: false,
     lineItems: false,
   });
+  const [openBuyingIntentDropdown, setOpenBuyingIntentDropdown] = useState(null); // index of line item with open dropdown
+  const [buyingIntentSearch, setBuyingIntentSearch] = useState('');
 
   const {
     step,
@@ -358,6 +360,16 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     if (selectedCategories.length === 0) return products;
     return products.filter(p => selectedCategories.includes(p.category));
   }, [products, selectedCategories]);
+
+  // Filter buying intents by search query
+  const getFilteredBuyingIntents = (searchQuery) => {
+    if (!searchQuery.trim()) return filteredProducts;
+    const query = searchQuery.toLowerCase();
+    return filteredProducts.filter(p =>
+      p.name.toLowerCase().includes(query) ||
+      (p.category && p.category.toLowerCase().includes(query))
+    );
+  };
 
   // Toggle category selection
   const toggleCategory = (category) => {
@@ -399,6 +411,20 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       setFilePreviewUrl(null);
     }
   }, [uploadedFile]);
+
+  // Close dropdowns on Escape key
+  React.useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (openBuyingIntentDropdown !== null) {
+          setOpenBuyingIntentDropdown(null);
+          setBuyingIntentSearch('');
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [openBuyingIntentDropdown]);
 
   if (!isOpen) return null;
 
@@ -552,6 +578,8 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     setShowCreateCategory(false);
     setNewCategoryName('');
     setSelectedCategories([]);
+    setOpenBuyingIntentDropdown(null);
+    setBuyingIntentSearch('');
     if (filePreviewUrl) {
       URL.revokeObjectURL(filePreviewUrl);
       setFilePreviewUrl(null);
@@ -1399,37 +1427,261 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                           </div>
                                         )}
 
-                                        {/* Always-editable dropdown */}
-                                        <select
-                                          value={item.linkedBuyingIntentId || ''}
-                                          onChange={(e) => {
-                                            if (e.target.value === '__CREATE_NEW__') {
-                                              setShowCreateIntent(index);
-                                              setNewIntentName('');
-                                            } else {
-                                              handleBuyingIntentChange(index, e.target.value);
-                                            }
-                                          }}
-                                          style={{
-                                            ...styles.tableInput,
-                                            width: '100%',
-                                            borderColor: !item.linkedBuyingIntentId ? '#f59e0b' : undefined,
-                                            borderWidth: !item.linkedBuyingIntentId ? '2px' : '1px',
-                                          }}
-                                        >
-                                          <option value="">
-                                            -- Select Buying Intent (Required) --
-                                            {selectedCategories.length > 0 && ` (${filteredProducts.length} filtered)`}
-                                          </option>
-                                          {filteredProducts.map(product => (
-                                            <option key={product.id} value={product.id}>
-                                              {product.name} {product.category ? `(${product.category})` : ''}
-                                            </option>
-                                          ))}
-                                          <option value="__CREATE_NEW__" style={{ fontWeight: 'bold', color: '#3b82f6' }}>
-                                            + Create New Buying Intent
-                                          </option>
-                                        </select>
+                                        {/* Searchable dropdown */}
+                                        <div style={{ position: 'relative' }}>
+                                          <button
+                                            onClick={() => {
+                                              if (openBuyingIntentDropdown === index) {
+                                                setOpenBuyingIntentDropdown(null);
+                                                setBuyingIntentSearch('');
+                                              } else {
+                                                setOpenBuyingIntentDropdown(index);
+                                                setBuyingIntentSearch('');
+                                              }
+                                            }}
+                                            style={{
+                                              ...styles.tableInput,
+                                              width: '100%',
+                                              textAlign: 'left',
+                                              cursor: 'pointer',
+                                              background: 'white',
+                                              display: 'flex',
+                                              justifyContent: 'space-between',
+                                              alignItems: 'center',
+                                              borderColor: !item.linkedBuyingIntentId ? '#f59e0b' : '#e5e7eb',
+                                              borderWidth: !item.linkedBuyingIntentId ? '2px' : '1px',
+                                            }}
+                                          >
+                                            <span style={{
+                                              color: item.linkedBuyingIntentId ? '#374151' : '#9ca3af',
+                                              overflow: 'hidden',
+                                              textOverflow: 'ellipsis',
+                                              whiteSpace: 'nowrap',
+                                            }}>
+                                              {item.linkedBuyingIntentId
+                                                ? products.find(p => p.id === item.linkedBuyingIntentId)?.name || 'Select...'
+                                                : `Select Buying Intent (Required)${selectedCategories.length > 0 ? ` (${filteredProducts.length} filtered)` : ''}`
+                                              }
+                                            </span>
+                                            <ChevronDown size={14} style={{ flexShrink: 0, marginLeft: '8px' }} />
+                                          </button>
+
+                                          {/* Dropdown menu */}
+                                          {openBuyingIntentDropdown === index && (
+                                            <div style={{
+                                              position: 'absolute',
+                                              top: '100%',
+                                              left: 0,
+                                              right: 0,
+                                              background: 'white',
+                                              border: '1px solid #e5e7eb',
+                                              borderRadius: '6px',
+                                              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                              maxHeight: '400px',
+                                              overflowY: 'auto',
+                                              zIndex: 1000,
+                                              marginTop: '4px',
+                                            }}>
+                                              {/* Search input */}
+                                              <div style={{
+                                                position: 'sticky',
+                                                top: 0,
+                                                background: 'white',
+                                                borderBottom: '1px solid #e5e7eb',
+                                                padding: '12px',
+                                                zIndex: 10,
+                                              }}>
+                                                <div style={{
+                                                  display: 'flex',
+                                                  alignItems: 'center',
+                                                  gap: '8px',
+                                                  padding: '8px 12px',
+                                                  border: '1px solid #e5e7eb',
+                                                  borderRadius: '6px',
+                                                  background: '#f9fafb',
+                                                }}>
+                                                  <Search size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                                                  <input
+                                                    type="text"
+                                                    value={buyingIntentSearch}
+                                                    onChange={(e) => setBuyingIntentSearch(e.target.value)}
+                                                    placeholder="Search buying intents..."
+                                                    style={{
+                                                      border: 'none',
+                                                      background: 'transparent',
+                                                      outline: 'none',
+                                                      width: '100%',
+                                                      fontSize: '0.875rem',
+                                                    }}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    autoFocus
+                                                  />
+                                                  {buyingIntentSearch && (
+                                                    <button
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setBuyingIntentSearch('');
+                                                      }}
+                                                      style={{
+                                                        background: 'none',
+                                                        border: 'none',
+                                                        cursor: 'pointer',
+                                                        padding: '2px',
+                                                        color: '#9ca3af',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                      }}
+                                                    >
+                                                      <X size={14} />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                              </div>
+
+                                              {/* Filtered results */}
+                                              <div>
+                                                {(() => {
+                                                  const searchResults = getFilteredBuyingIntents(buyingIntentSearch);
+
+                                                  if (searchResults.length === 0) {
+                                                    return (
+                                                      <div style={{
+                                                        padding: '24px',
+                                                        textAlign: 'center',
+                                                        color: '#9ca3af',
+                                                        fontSize: '0.875rem',
+                                                      }}>
+                                                        No buying intents found
+                                                        {buyingIntentSearch && (
+                                                          <div style={{ marginTop: '4px', fontSize: '0.8rem' }}>
+                                                            Try a different search term
+                                                          </div>
+                                                        )}
+                                                      </div>
+                                                    );
+                                                  }
+
+                                                  // Group by category
+                                                  const grouped = searchResults.reduce((acc, product) => {
+                                                    const cat = product.category || 'Uncategorized';
+                                                    if (!acc[cat]) acc[cat] = [];
+                                                    acc[cat].push(product);
+                                                    return acc;
+                                                  }, {});
+
+                                                  return Object.entries(grouped).map(([category, products]) => (
+                                                    <div key={category}>
+                                                      <div style={{
+                                                        padding: '8px 12px',
+                                                        background: '#f9fafb',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        color: '#64748b',
+                                                        textTransform: 'uppercase',
+                                                        letterSpacing: '0.5px',
+                                                        position: 'sticky',
+                                                        top: '61px',
+                                                        zIndex: 5,
+                                                      }}>
+                                                        {category}
+                                                      </div>
+                                                      {products.map(product => (
+                                                        <button
+                                                          key={product.id}
+                                                          onClick={() => {
+                                                            handleBuyingIntentChange(index, product.id);
+                                                            setOpenBuyingIntentDropdown(null);
+                                                            setBuyingIntentSearch('');
+                                                          }}
+                                                          style={{
+                                                            width: '100%',
+                                                            padding: '10px 16px',
+                                                            textAlign: 'left',
+                                                            border: 'none',
+                                                            background: item.linkedBuyingIntentId === product.id ? '#eff6ff' : 'white',
+                                                            cursor: 'pointer',
+                                                            fontSize: '0.875rem',
+                                                            borderBottom: '1px solid #f3f4f6',
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '8px',
+                                                            transition: 'background 0.1s',
+                                                          }}
+                                                          onMouseEnter={(e) => {
+                                                            if (item.linkedBuyingIntentId !== product.id) {
+                                                              e.target.style.background = '#f9fafb';
+                                                            }
+                                                          }}
+                                                          onMouseLeave={(e) => {
+                                                            if (item.linkedBuyingIntentId !== product.id) {
+                                                              e.target.style.background = 'white';
+                                                            }
+                                                          }}
+                                                        >
+                                                          {item.linkedBuyingIntentId === product.id && (
+                                                            <Check size={14} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                                                          )}
+                                                          <span style={{
+                                                            flex: 1,
+                                                            color: '#374151',
+                                                            fontWeight: item.linkedBuyingIntentId === product.id ? 500 : 400,
+                                                          }}>
+                                                            {product.name}
+                                                          </span>
+                                                          {product.dimensions && (
+                                                            <span style={{
+                                                              fontSize: '0.75rem',
+                                                              color: '#9ca3af',
+                                                              flexShrink: 0,
+                                                            }}>
+                                                              {product.dimensions}
+                                                            </span>
+                                                          )}
+                                                        </button>
+                                                      ))}
+                                                    </div>
+                                                  ));
+                                                })()}
+                                              </div>
+
+                                              {/* Create new button */}
+                                              <div style={{
+                                                position: 'sticky',
+                                                bottom: 0,
+                                                background: 'white',
+                                                borderTop: '2px solid #e5e7eb',
+                                              }}>
+                                                <button
+                                                  onClick={() => {
+                                                    setShowCreateIntent(index);
+                                                    setNewIntentName('');
+                                                    setOpenBuyingIntentDropdown(null);
+                                                    setBuyingIntentSearch('');
+                                                  }}
+                                                  style={{
+                                                    width: '100%',
+                                                    padding: '12px 16px',
+                                                    textAlign: 'left',
+                                                    border: 'none',
+                                                    background: '#f0fdf4',
+                                                    color: '#10b981',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.875rem',
+                                                    fontWeight: 600,
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: '8px',
+                                                  }}
+                                                  onMouseEnter={(e) => e.target.style.background = '#dcfce7'}
+                                                  onMouseLeave={(e) => e.target.style.background = '#f0fdf4'}
+                                                >
+                                                  <Plus size={16} />
+                                                  Create New Buying Intent
+                                                </button>
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
                                     )}
 
