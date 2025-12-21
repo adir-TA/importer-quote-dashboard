@@ -30,17 +30,15 @@ const MOCK_AI_RESPONSES = {
   explain: (best, others, product) => `
 **Why ${best.supplierName} is the best option for ${product}:**
 
-1. **Lowest Landed Cost**: At ${formatCurrency(best.landed_per_unit)}/unit landed, this is the most cost-effective choice.
+1. **Lowest Price**: At ${formatCurrency(best.unit_price)}/unit, this is the most cost-effective choice.
 
 2. **FOB Price**: ${formatCurrency(best.unit_price)}/unit is competitive for this product category.
 
-3. **Import Fee Impact**: Fees add ${best.fee_markup_percent.toFixed(1)}% to your FOB cost, resulting in ${formatCurrency(best.landed_per_unit - best.unit_price)} additional cost per unit.
-
-${others.length > 0 ? `4. **Savings**: You save ${formatCurrency(others[0].landed_per_unit - best.landed_per_unit)}/unit compared to the next option (${others[0].supplierName}).` : ''}
+${others.length > 0 ? `3. **Savings**: You save ${formatCurrency(others[0].unit_price - best.unit_price)}/unit compared to the next option (${others[0].supplierName}).` : ''}
 
 **Recommendation**: Verify quality with samples before placing a large order.
   `.trim(),
-  
+
   negotiate: (quote, product) => {
     const targetPrice = quote.unit_price * 0.9;
     return `
@@ -54,7 +52,7 @@ Thank you for your quotation for ${product} at ${formatCurrency(quote.unit_price
 
 After reviewing our options, we're interested in establishing a long-term partnership. To proceed:
 
-• **Target Price**: ${formatCurrency(targetPrice)}/unit for orders of ${formatNumber(quote.quantity * 2)}+ units
+• **Target Price**: ${formatCurrency(targetPrice)}/unit for orders of ${formatNumber(quote.moq * 2)}+ units
 • **Payment Terms**: 30% deposit, 70% before shipment
 
 Please let us know what adjustments are possible.
@@ -351,89 +349,6 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
   );
 }
 
-// ============================================
-// LANDED COST CALCULATION FUNCTION
-// ============================================
-// FORMULA (strict separation of money vs units):
-//   unit_price     = $/unit (money per unit)
-//   quantity       = units (count)
-//   FOB_total      = unit_price × quantity ($ total)
-//   total_fees     = fixed$ + (percent × FOB_total) ($ total)
-//   total_landed   = FOB_total + total_fees ($ total)
-//   landed_per_unit = total_landed ÷ quantity ($/unit)
-// ============================================
-function calculateLandedCost(quote, fees) {
-  // Step 1: Extract and validate unit_price ($/unit)
-  const unit_price = parseFloat(quote.unitPrice) || 0;
-  
-  // Step 2: Extract and validate quantity (units)
-  const quantity = parseInt(quote.moq) || 1;
-  
-  // Safety checks
-  const isValid = unit_price > 0 && quantity > 0;
-  
-  if (!isValid) {
-    return {
-      isValid: false,
-      unit_price,
-      quantity,
-      FOB_total: 0,
-      total_fees: 0,
-      total_landed: 0,
-      landed_per_unit: 0,
-      fee_markup_percent: 0,
-      fee_breakdown: [],
-      errors: [
-        unit_price <= 0 ? 'Unit price must be > $0' : null,
-        quantity <= 0 ? 'Quantity must be > 0 units' : null,
-      ].filter(Boolean),
-    };
-  }
-  
-  // Step 3: Calculate FOB_total ($ total)
-  // FOB_total = unit_price × quantity
-  const FOB_total = unit_price * quantity;
-
-  // Step 4: Calculate fees
-  let total_fees = 0;
-  const fee_breakdown = fees.map(fee => {
-    const fee_value = parseFloat(fee.value) || 0;
-    let fee_amount = 0;
-    
-    if (fee.type === 'percentage') {
-      // Percentage: (FOB_total × percentage) / 100 = $
-      fee_amount = (FOB_total * fee_value) / 100;
-    } else {
-      // Fixed: Already in $ (per shipment)
-      fee_amount = fee_value;
-    }
-    total_fees += fee_amount;
-    return { ...fee, amount: fee_amount };
-  });
-
-  // Step 5: Calculate total_landed ($ total)
-  const total_landed = FOB_total + total_fees;
-  
-  // Step 6: Calculate landed_per_unit ($/unit)
-  // landed_per_unit = total_landed ÷ quantity
-  const landed_per_unit = total_landed / quantity;
-  
-  // Step 7: Fee markup percentage
-  const fee_markup_percent = FOB_total > 0 ? (total_fees / FOB_total) * 100 : 0;
-
-  return {
-    isValid: true,
-    unit_price,        // $/unit
-    quantity,          // units
-    FOB_total,         // $ total
-    total_fees,        // $ total
-    total_landed,      // $ total
-    landed_per_unit,   // $/unit
-    fee_markup_percent,// %
-    fee_breakdown,
-    errors: [],
-  };
-}
 
 // ============================================
 // MAIN QUOTE COMPARISON PAGE
@@ -441,7 +356,7 @@ function calculateLandedCost(quote, fees) {
 function QuoteComparison() {
   const navigate = useNavigate();
   const { state, computed } = useAppContext();
-  const { products, fees } = state;
+  const { products } = state;
   const [lineItems, setLineItems] = React.useState([]);
   const [quoteCounts, setQuoteCounts] = React.useState({});
 
@@ -510,52 +425,40 @@ function QuoteComparison() {
   }, [products, selectedProductId]);
 
   // ============================================
-  // CALCULATE LANDED COSTS FOR ALL LINE ITEMS
+  // PROCESS AND SORT QUOTES BY PRICE
   // ============================================
   const quotesWithLanded = useMemo(() => {
     if (!selectedProductId || lineItems.length === 0) return [];
 
-    // Transform line items to quote format for landed cost calculation
-    const calculated = lineItems.map(item => {
-      const quoteFormat = {
+    // Transform line items to quote format and validate
+    const validQuotes = lineItems
+      .map(item => ({
         id: item.id,
         supplierName: item.supplierName || item.supplier?.supplier_name,
-        unitPrice: item.unit_price,
+        unit_price: item.unit_price,
         currency: item.currency || 'USD',
         moq: item.moq || 1,
         incoterm: item.incoterm || 'FOB',
-      };
-      const calc = calculateLandedCost(quoteFormat, fees);
-      return {
-        ...item,
-        ...calc,
-        supplierName: quoteFormat.supplierName,
-        incoterm: quoteFormat.incoterm,
-        unitPrice: item.unit_price,
-      };
-    });
+        created_at: item.created_at,
+      }))
+      .filter(q => q.unit_price > 0 && q.moq > 0);
 
-    // Filter out invalid quotes and sort by landed_per_unit (lowest first = best)
-    return calculated
-      .filter(q => q.isValid)
-      .sort((a, b) => a.landed_per_unit - b.landed_per_unit);
-  }, [lineItems, selectedProductId, fees]);
+    // Sort by unit_price (lowest first = best)
+    return validQuotes.sort((a, b) => a.unit_price - b.unit_price);
+  }, [lineItems, selectedProductId]);
 
   // Invalid quotes (for warning)
   const invalidQuotes = useMemo(() => {
     if (!selectedProductId || lineItems.length === 0) return [];
     return lineItems
-      .map(item => {
-        const quoteFormat = {
-          unitPrice: item.unit_price,
-          moq: item.moq || 1,
-        };
-        return { ...item, ...calculateLandedCost(quoteFormat, fees) };
-      })
-      .filter(q => !q.isValid);
-  }, [lineItems, selectedProductId, fees]);
+      .filter(item => {
+        const price = item.unit_price || 0;
+        const moq = item.moq || 0;
+        return price <= 0 || moq <= 0;
+      });
+  }, [lineItems, selectedProductId]);
 
-  // Best quote = lowest landed_per_unit
+  // Best quote = lowest unit_price
   const bestQuote = quotesWithLanded[0];
   const otherQuotes = quotesWithLanded.slice(1);
   const isSupplierSelected = selectedSupplierId === bestQuote?.id;
@@ -584,10 +487,6 @@ function QuoteComparison() {
 
   const handleExportPDF = () => {
     alert('PDF export: Comparison report would be generated.');
-  };
-
-  const handleGoToLandedCost = () => {
-    navigate('/landed-cost');
   };
 
   const handleAIExplain = () => {
@@ -625,7 +524,7 @@ function QuoteComparison() {
           <div>
             <h2>Compare Quotes</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
-              Compare suppliers for a buying intent and select the best landed cost
+              Compare suppliers for a buying intent and select the best price
             </p>
           </div>
         </div>
@@ -738,7 +637,7 @@ function QuoteComparison() {
             {!selectedProductId && (
               <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '6px' }}>
                 <AlertCircle size={16} style={{ color: '#3b82f6' }} />
-                <span style={{ color: '#1e40af' }}>Select a buying intent above to compare supplier quotes and find the best landed cost</span>
+                <span style={{ color: '#1e40af' }}>Select a buying intent above to compare supplier quotes and find the best price</span>
               </div>
             )}
           </div>
@@ -792,10 +691,10 @@ function QuoteComparison() {
                           </div>
                           <div className="selected-content">
                             <h3>Supplier Selected</h3>
-                            <p>{bestQuote.supplierName} — {formatCurrency(bestQuote.landed_per_unit)}/unit landed</p>
+                            <p>{bestQuote.supplierName} — {formatCurrency(bestQuote.unit_price)}/unit</p>
                           </div>
                         </div>
-                        
+
                         <div className="next-actions-section">
                           <p className="next-actions-helper">
                             You've selected the best option for {selectedProduct?.name}. What's next?
@@ -808,9 +707,6 @@ function QuoteComparison() {
                             <button className="btn btn-secondary" onClick={() => handleAINegotiate(bestQuote)}>
                               <MessageSquare size={18} /> Negotiation Message
                             </button>
-                            <button className="btn btn-secondary" onClick={handleGoToLandedCost}>
-                              <Calculator size={18} /> Cost Breakdown
-                            </button>
                           </div>
                         </div>
                       </div>
@@ -821,12 +717,12 @@ function QuoteComparison() {
                           <div style={{ flex: 1 }}>
                             <h3 style={{ margin: 0 }}>Best: {bestQuote.supplierName}</h3>
                             <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                              Fees add +{bestQuote.fee_markup_percent.toFixed(1)}% to FOB
+                              Lowest price ({bestQuote.incoterm})
                             </p>
                           </div>
                           <div className="best-quote-price">
-                            <span className="price-label">Landed Cost</span>
-                            <span className="price-value">{formatCurrency(bestQuote.landed_per_unit)}/unit</span>
+                            <span className="price-label">Unit Price</span>
+                            <span className="price-value">{formatCurrency(bestQuote.unit_price)}/unit</span>
                           </div>
                         </div>
                         
@@ -854,9 +750,6 @@ function QuoteComparison() {
                           <button className="btn btn-ghost btn-sm" onClick={() => handleAINegotiate(bestQuote)} title="Generate negotiation message">
                             <MessageSquare size={14} /> Negotiate
                           </button>
-                          <button className="btn btn-ghost btn-sm" onClick={handleGoToLandedCost} title="View detailed cost breakdown">
-                            <Calculator size={14} /> Breakdown
-                          </button>
                         </div>
                       </>
                     )}
@@ -876,11 +769,9 @@ function QuoteComparison() {
                         <tr>
                           <th style={{ width: '50px' }}>#</th>
                           <th>Supplier</th>
-                          <th>FOB Price</th>
-                          <th>Quantity</th>
-                          <th>FOB Total</th>
-                          <th>Import Fees</th>
-                          <th>Landed Cost</th>
+                          <th>Unit Price</th>
+                          <th>MOQ</th>
+                          <th>Total (at MOQ)</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
@@ -889,8 +780,9 @@ function QuoteComparison() {
                           const isBest = index === 0;
                           const isSelected = selectedSupplierId === quote.id;
                           const savingsVsNext = index < quotesWithLanded.length - 1
-                            ? quotesWithLanded[index + 1].landed_per_unit - quote.landed_per_unit
+                            ? quotesWithLanded[index + 1].unit_price - quote.unit_price
                             : 0;
+                          const totalAtMoq = quote.unit_price * quote.moq;
 
                           return (
                             <tr
@@ -913,21 +805,12 @@ function QuoteComparison() {
                                   {quote.incoterm}
                                 </div>
                               </td>
-                              <td>{formatCurrency(quote.unit_price)}/unit</td>
-                              <td>{formatNumber(quote.quantity)} units</td>
-                              <td style={{ color: 'var(--text-secondary)' }}>
-                                {formatCurrency(quote.FOB_total)}
-                              </td>
-                              <td style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                                {formatCurrency(quote.total_fees)}
-                                <div style={{ fontSize: '0.7rem' }}>+{quote.fee_markup_percent.toFixed(1)}%</div>
-                              </td>
                               <td>
                                 <span style={{
                                   fontWeight: 700,
                                   color: isBest ? 'var(--success)' : 'var(--text-primary)',
                                 }}>
-                                  {formatCurrency(quote.landed_per_unit)}/unit
+                                  {formatCurrency(quote.unit_price)}/unit
                                 </span>
                                 {isBest && savingsVsNext > 0 && (
                                   <span style={{
@@ -938,6 +821,10 @@ function QuoteComparison() {
                                     Saves {formatCurrency(savingsVsNext)}/unit
                                   </span>
                                 )}
+                              </td>
+                              <td>{formatNumber(quote.moq)} units</td>
+                              <td style={{ color: 'var(--text-secondary)' }}>
+                                {formatCurrency(totalAtMoq)}
                               </td>
                               <td>
                                 <button
