@@ -8,7 +8,7 @@ import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtractio
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
-import { generateAutoName } from '../utils/autoNaming';
+import { generateAutoName, generateAutoDescription } from '../utils/autoNaming';
 import API_BASE_URL from '../config/api';
 
 // ============================================
@@ -476,11 +476,12 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
           console.log('[Modal] Auto-creating draft Buying Intent for:', item.raw_item_name);
 
           const autoName = generateAutoName(data.supplierQuote, item);
+          const autoDescription = generateAutoDescription(data.supplierQuote, item);
           const draftIntent = await actions.addProduct({
             name: autoName,
             status: 'draft',
             category: item.category || null,
-            description: `Auto-created from ${data.supplierQuote.supplierName || 'supplier'}`
+            description: autoDescription
           });
 
           linkedBuyingIntentId = draftIntent.id;

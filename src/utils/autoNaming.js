@@ -5,19 +5,97 @@
 
 /**
  * Generate an automatic name for a draft Buying Intent
- * Format: "Auto – Supplier {supplier_name} – {YYYY-MM-DD}"
+ * Format: "{product_name} – {dimensions} – Supplier {supplier_name}"
+ * Falls back to: "Auto – Supplier {supplier_name} – {YYYY-MM-DD}"
  *
  * @param {Object} supplierQuote - The supplier quote object
  * @param {string} supplierQuote.supplierName - Supplier company name
- * @param {Object} lineItem - Optional line item data for more specific naming
- * @param {string} lineItem.raw_item_name - Raw item name from supplier
+ * @param {Object} lineItem - Line item data for specific naming
+ * @param {string} lineItem.productName - Product name from quote
+ * @param {string} lineItem.dimensions - Product dimensions
+ * @param {number} lineItem.weight_g - Product weight in grams
  * @returns {string} Auto-generated name
  */
 export function generateAutoName(supplierQuote, lineItem = null) {
   const supplierName = supplierQuote?.supplierName || supplierQuote?.supplier_name || 'Unknown';
-  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
+  // If we have line item details, create a descriptive name
+  if (lineItem) {
+    const productName = lineItem.productName || lineItem.raw_item_name;
+    const dimensions = lineItem.dimensions || lineItem.product_dimensions_text;
+
+    // Build name from available details
+    let name = productName || 'Product';
+
+    // Add dimensions if available
+    if (dimensions) {
+      name += ` – ${dimensions}`;
+    }
+
+    // Add supplier
+    name += ` – ${supplierName}`;
+
+    return name;
+  }
+
+  // Fallback to date-based name if no line item details
+  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   return `Auto – Supplier ${supplierName} – ${date}`;
+}
+
+/**
+ * Generate a detailed description for auto-created Buying Intent
+ * Includes all available details from the quote
+ *
+ * @param {Object} supplierQuote - The supplier quote object
+ * @param {Object} lineItem - Line item data
+ * @returns {string} Rich description with all details
+ */
+export function generateAutoDescription(supplierQuote, lineItem) {
+  const parts = [];
+
+  // Supplier info
+  const supplierName = supplierQuote?.supplierName || 'Unknown supplier';
+  parts.push(`Auto-created from quote by ${supplierName}`);
+
+  // Product details
+  const details = [];
+
+  if (lineItem.sku) {
+    details.push(`SKU: ${lineItem.sku}`);
+  }
+
+  if (lineItem.dimensions || lineItem.product_dimensions_text) {
+    details.push(`Dimensions: ${lineItem.dimensions || lineItem.product_dimensions_text}`);
+  }
+
+  if (lineItem.weight_g) {
+    const kg = (lineItem.weight_g / 1000).toFixed(2);
+    details.push(`Weight: ${lineItem.weight_g}g (${kg}kg)`);
+  }
+
+  if (lineItem.unitPrice) {
+    const currency = supplierQuote.currency || 'USD';
+    details.push(`Unit Price: ${currency} ${lineItem.unitPrice}`);
+  }
+
+  if (lineItem.moq) {
+    details.push(`MOQ: ${lineItem.moq}`);
+  }
+
+  if (lineItem.packing_pcs_per_ctn) {
+    details.push(`Packing: ${lineItem.packing_pcs_per_ctn} pcs/ctn`);
+  }
+
+  if (lineItem.carton_length_cm && lineItem.carton_width_cm && lineItem.carton_height_cm) {
+    details.push(`Carton: ${lineItem.carton_length_cm}×${lineItem.carton_width_cm}×${lineItem.carton_height_cm}cm`);
+  }
+
+  if (details.length > 0) {
+    parts.push('\n\n' + details.join(' | '));
+  }
+
+  return parts.join('');
 }
 
 /**
