@@ -1294,7 +1294,7 @@ function QuoteComparison() {
 
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
               gap: '20px',
             }}>
               {Object.entries(exportThemes).map(([key, theme]) => (
@@ -1339,6 +1339,112 @@ function QuoteComparison() {
                   }}>
                     {theme.description}
                   </p>
+
+                  {/* Mini Table Preview */}
+                  <div style={{
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    overflow: 'hidden',
+                    marginBottom: '16px',
+                    fontSize: '0.7rem',
+                  }}>
+                    {/* Title */}
+                    <div style={{
+                      background: `#${theme.colors.title.bg.substring(2)}`,
+                      color: `#${theme.colors.title.text.substring(2)}`,
+                      padding: '8px',
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      fontSize: '0.75rem',
+                    }}>
+                      QUOTE COMPARISON REPORT
+                    </div>
+
+                    {/* Info Section */}
+                    <div style={{ display: 'flex', gap: '4px', padding: '4px' }}>
+                      <div style={{
+                        flex: 1,
+                        background: `#${theme.colors.imagePlaceholder.bg.substring(2)}`,
+                        color: `#${theme.colors.imagePlaceholder.text.substring(2)}`,
+                        padding: '6px',
+                        textAlign: 'center',
+                        fontSize: '0.6rem',
+                        border: `1px solid #${theme.colors.imagePlaceholder.border.substring(2)}`,
+                        borderRadius: '4px',
+                      }}>
+                        IMAGE
+                      </div>
+                      <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                        <div style={{
+                          background: `#${theme.colors.productName.bg.substring(2)}`,
+                          color: `#${theme.colors.productName.text.substring(2)}`,
+                          padding: '3px 6px',
+                          fontSize: '0.6rem',
+                          borderRadius: '2px',
+                        }}>Product</div>
+                        <div style={{
+                          background: `#${theme.colors.category.bg.substring(2)}`,
+                          color: `#${theme.colors.category.text.substring(2)}`,
+                          padding: '3px 6px',
+                          fontSize: '0.6rem',
+                          borderRadius: '2px',
+                        }}>Category</div>
+                      </div>
+                    </div>
+
+                    {/* Table Header */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '40px 1fr 60px 50px',
+                      background: `#${theme.colors.header.bg.substring(2)}`,
+                      color: `#${theme.colors.header.text.substring(2)}`,
+                      padding: '6px 8px',
+                      fontWeight: 'bold',
+                      fontSize: '0.65rem',
+                      gap: '4px',
+                      textAlign: 'center',
+                    }}>
+                      <div>Rank</div>
+                      <div>Supplier</div>
+                      <div>Price</div>
+                      <div>Status</div>
+                    </div>
+
+                    {/* Best Price Row */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '40px 1fr 60px 50px',
+                      background: `#${theme.colors.bestPrice.bg.substring(2)}`,
+                      color: `#${theme.colors.bestPrice.text.substring(2)}`,
+                      padding: '6px 8px',
+                      fontSize: '0.65rem',
+                      gap: '4px',
+                      textAlign: 'center',
+                      borderBottom: '1px solid #e5e7eb',
+                    }}>
+                      <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>1</div>
+                      <div>Supplier A</div>
+                      <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>$0.32</div>
+                      <div style={{ color: `#${theme.colors.bestPrice.status.substring(2)}`, fontWeight: 'bold' }}>BEST</div>
+                    </div>
+
+                    {/* Regular Row */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '40px 1fr 60px 50px',
+                      background: `#${theme.colors.alternatingRow.odd.substring(2)}`,
+                      padding: '6px 8px',
+                      fontSize: '0.65rem',
+                      gap: '4px',
+                      textAlign: 'center',
+                    }}>
+                      <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>2</div>
+                      <div>Supplier B</div>
+                      <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>$0.35</div>
+                      <div>-</div>
+                    </div>
+                  </div>
+
                   <div style={{
                     display: 'flex',
                     gap: '8px',
@@ -1351,15 +1457,15 @@ function QuoteComparison() {
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px',
                     }}>
-                      Preview:
+                      Colors:
                     </span>
                     {theme.preview.map((color, index) => (
                       <div
                         key={index}
                         style={{
-                          width: '40px',
-                          height: '40px',
-                          borderRadius: '8px',
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '6px',
                           background: color,
                           border: '2px solid white',
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
