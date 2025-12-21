@@ -136,6 +136,23 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
           {quoteCount} {quoteCount === 1 ? 'quote' : 'quotes'}
         </span>
       </div>
+
+      {/* Description */}
+      {product.description && (
+        <p style={{
+          fontSize: '0.8rem',
+          color: '#64748b',
+          margin: 0,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          lineHeight: '1.4',
+        }}>
+          {product.description}
+        </p>
+      )}
     </div>
   );
 }
