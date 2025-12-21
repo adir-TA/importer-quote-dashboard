@@ -44,8 +44,8 @@ function Sidebar() {
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">📦</div>
           <div className="sidebar-brand">
-            <span className="sidebar-brand-name">HA Tools</span>
-            <span className="sidebar-brand-tagline">Import Smarter</span>
+            <span className="sidebar-brand-name">ha tools</span>
+            <span className="sidebar-brand-tagline">bro</span>
           </div>
         </div>
       </div>
