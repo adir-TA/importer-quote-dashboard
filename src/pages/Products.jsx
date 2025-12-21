@@ -240,30 +240,7 @@ function Products() {
     <div className="page">
       <div className="header">
         <h2>Buying Intents</h2>
-        <div className="header-actions" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          {products.length > 0 && selectedProducts.size > 0 && (
-            <span style={{
-              fontSize: '0.875rem',
-              color: '#64748b',
-              fontWeight: 500,
-            }}>
-              {selectedProducts.size} selected
-            </span>
-          )}
-          {products.length > 0 && (
-            <button
-              className="btn btn-ghost"
-              onClick={handleBulkDelete}
-              disabled={selectedProducts.size === 0}
-              style={{
-                fontSize: '0.875rem',
-                opacity: selectedProducts.size === 0 ? 0.5 : 1,
-                cursor: selectedProducts.size === 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              <Trash2 size={16} /> Delete {selectedProducts.size > 0 ? `(${selectedProducts.size})` : ''}
-            </button>
-          )}
+        <div className="header-actions">
           <button className="btn btn-primary" onClick={() => handleOpenModal()}>
             <Plus size={16} /> New Buying Intent
           </button>
@@ -514,6 +491,44 @@ function Products() {
                 List
               </button>
             </div>
+
+            {/* Bulk Delete Controls */}
+            {products.length > 0 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
+                {selectedProducts.size > 0 && (
+                  <span style={{
+                    fontSize: '0.875rem',
+                    color: '#64748b',
+                    fontWeight: 500,
+                  }}>
+                    {selectedProducts.size} selected
+                  </span>
+                )}
+                <button
+                  className="btn"
+                  onClick={handleBulkDelete}
+                  disabled={selectedProducts.size === 0}
+                  style={{
+                    padding: '10px 16px',
+                    fontSize: '0.875rem',
+                    background: selectedProducts.size > 0 ? '#ef4444' : '#f3f4f6',
+                    color: selectedProducts.size > 0 ? 'white' : '#9ca3af',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: selectedProducts.size === 0 ? 'not-allowed' : 'pointer',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s',
+                  }}
+                  title={selectedProducts.size === 0 ? 'Select items to delete' : `Delete ${selectedProducts.size} item(s)`}
+                >
+                  <Trash2 size={16} />
+                  Delete {selectedProducts.size > 0 && `(${selectedProducts.size})`}
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
