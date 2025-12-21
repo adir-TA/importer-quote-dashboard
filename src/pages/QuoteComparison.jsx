@@ -1467,154 +1467,201 @@ function QuoteComparison() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}>
-                  {/* Compact Excel Preview */}
+                  {/* Excel-Style Preview */}
                   {(() => {
                     const theme = exportThemes[selectedTheme];
                     return (
                       <div style={{
                         background: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '12px',
-                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
-                        overflow: 'hidden',
-                        maxWidth: '550px',
+                        border: '2px solid #000',
+                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                        maxWidth: '600px',
                         width: '100%',
                       }}>
-                        {/* Title - Compact */}
+                        {/* Title Row - Excel Style */}
                         <div style={{
                           background: `#${theme.colors.title.bg.substring(2)}`,
                           color: `#${theme.colors.title.text.substring(2)}`,
-                          padding: '16px',
+                          padding: '20px',
                           fontWeight: 'bold',
                           textAlign: 'center',
-                          fontSize: '1.1rem',
-                          letterSpacing: '0.5px',
+                          fontSize: '1.2rem',
+                          borderBottom: '2px solid #000',
                         }}>
                           QUOTE COMPARISON REPORT
                         </div>
 
-                        {/* Info Section - Compact */}
-                        <div style={{ display: 'flex', gap: '8px', padding: '12px' }}>
+                        {/* Info Section - Excel Grid Style */}
+                        <div style={{ display: 'flex', border: '0' }}>
+                          {/* Left: Image Placeholder */}
                           <div style={{
                             flex: 1,
                             background: `#${theme.colors.imagePlaceholder.bg.substring(2)}`,
                             color: `#${theme.colors.imagePlaceholder.text.substring(2)}`,
-                            padding: '24px 12px',
+                            padding: '30px 10px',
                             textAlign: 'center',
-                            fontSize: '0.7rem',
+                            fontSize: '0.75rem',
                             fontWeight: 'bold',
                             border: `2px solid #${theme.colors.imagePlaceholder.border.substring(2)}`,
-                            borderRadius: '6px',
+                            borderLeft: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}>
-                            PRODUCT IMAGE<br/>[Insert Image]
+                            PRODUCT IMAGE<br/>[Insert Image Here]
                           </div>
-                          <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '6px' }}>
+
+                          {/* Right: Product Info */}
+                          <div style={{ flex: 2, display: 'flex', flexDirection: 'column' }}>
                             <div style={{
                               background: `#${theme.colors.productName.bg.substring(2)}`,
                               color: `#${theme.colors.productName.text.substring(2)}`,
-                              padding: '8px 12px',
-                              fontSize: '0.8rem',
+                              padding: '10px 12px',
+                              fontSize: '0.85rem',
                               fontWeight: 'bold',
-                              borderRadius: '4px',
+                              borderBottom: '1px solid #d0d0d0',
+                              borderRight: '2px solid #000',
                             }}>Product: {selectedProduct?.name || 'Adhesive Tape'}</div>
+
                             <div style={{
                               background: `#${theme.colors.category.bg.substring(2)}`,
                               color: `#${theme.colors.category.text.substring(2)}`,
-                              padding: '8px 12px',
-                              fontSize: '0.8rem',
+                              padding: '10px 12px',
+                              fontSize: '0.85rem',
                               fontWeight: 'bold',
-                              borderRadius: '4px',
+                              borderBottom: '1px solid #d0d0d0',
+                              borderRight: '2px solid #000',
                             }}>Category: {selectedProduct?.category || 'Other'}</div>
+
                             <div style={{
                               background: `#${theme.colors.date.bg.substring(2)}`,
                               color: `#${theme.colors.date.text.substring(2)}`,
-                              padding: '8px 12px',
-                              fontSize: '0.8rem',
+                              padding: '10px 12px',
+                              fontSize: '0.85rem',
                               fontWeight: 'bold',
-                              borderRadius: '4px',
+                              borderBottom: '1px solid #d0d0d0',
+                              borderRight: '2px solid #000',
                             }}>Generated: {new Date().toLocaleDateString()}</div>
+
                             <div style={{
                               background: `#${theme.colors.totalQuotes.bg.substring(2)}`,
                               color: `#${theme.colors.totalQuotes.text.substring(2)}`,
-                              padding: '8px 12px',
-                              fontSize: '0.8rem',
+                              padding: '10px 12px',
+                              fontSize: '0.85rem',
                               fontWeight: 'bold',
-                              borderRadius: '4px',
+                              borderRight: '2px solid #000',
+                              borderBottom: '2px solid #000',
                             }}>Total Quotes: {quotesWithLanded.length || 5}</div>
                           </div>
                         </div>
 
-                        {/* Table Header - Compact */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '50px 1.5fr 80px 60px',
-                          background: `#${theme.colors.header.bg.substring(2)}`,
-                          color: `#${theme.colors.header.text.substring(2)}`,
-                          padding: '10px 12px',
-                          fontWeight: 'bold',
-                          fontSize: '0.75rem',
-                          gap: '8px',
-                          textAlign: 'center',
-                          borderTop: '1px solid #e5e7eb',
-                        }}>
-                          <div>Rank</div>
-                          <div>Supplier</div>
-                          <div>Price</div>
-                          <div>Status</div>
-                        </div>
+                        {/* Table - Excel Grid Style */}
+                        <div>
+                          {/* Header Row */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '60px 2fr 100px 100px',
+                            background: `#${theme.colors.header.bg.substring(2)}`,
+                            color: `#${theme.colors.header.text.substring(2)}`,
+                          }}>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #666', borderBottom: '2px solid #000' }}>Rank</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #666', borderBottom: '2px solid #000' }}>Supplier</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #666', borderBottom: '2px solid #000' }}>Price</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '2px solid #000', borderBottom: '2px solid #000' }}>Status</div>
+                          </div>
 
-                        {/* Best Price Row - Compact */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '50px 1.5fr 80px 60px',
-                          background: `#${theme.colors.bestPrice.bg.substring(2)}`,
-                          color: `#${theme.colors.bestPrice.text.substring(2)}`,
-                          padding: '10px 12px',
-                          fontSize: '0.75rem',
-                          gap: '8px',
-                          textAlign: 'center',
-                          borderBottom: '1px solid #e5e7eb',
-                        }}>
-                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>1</div>
-                          <div>A Sarah</div>
-                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>$0.32</div>
-                          <div style={{ color: `#${theme.colors.bestPrice.status.substring(2)}`, fontWeight: 'bold' }}>BEST</div>
-                        </div>
+                          {/* Best Price Row */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '60px 2fr 100px 100px',
+                            background: `#${theme.colors.bestPrice.bg.substring(2)}`,
+                            color: `#${theme.colors.bestPrice.text.substring(2)}`,
+                          }}>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '1px solid #999',
+                              borderBottom: '1px solid #999',
+                              background: `#${theme.colors.rankColumn.bg.substring(2)}`,
+                              fontWeight: 'bold',
+                            }}>1</div>
+                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #999', borderBottom: '1px solid #999' }}>A Sarah</div>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '1px solid #999',
+                              borderBottom: '1px solid #999',
+                              background: `#${theme.colors.priceColumn.bg.substring(2)}`,
+                              fontWeight: 'bold',
+                            }}>$0.32</div>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '2px solid #000',
+                              borderBottom: '1px solid #999',
+                              fontWeight: 'bold',
+                              color: `#${theme.colors.bestPrice.status.substring(2)}`,
+                            }}>⭐ BEST</div>
+                          </div>
 
-                        {/* Regular Row - Compact */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '50px 1.5fr 80px 60px',
-                          background: `#${theme.colors.alternatingRow.odd.substring(2)}`,
-                          padding: '10px 12px',
-                          fontSize: '0.75rem',
-                          gap: '8px',
-                          textAlign: 'center',
-                          borderBottom: '1px solid #e5e7eb',
-                        }}>
-                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>2</div>
-                          <div>Jasion</div>
-                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>$0.33</div>
-                          <div>-</div>
-                        </div>
+                          {/* Regular Row 1 */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '60px 2fr 100px 100px',
+                            background: `#${theme.colors.alternatingRow.odd.substring(2)}`,
+                          }}>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '1px solid #ccc',
+                              borderBottom: '1px solid #ccc',
+                              background: `#${theme.colors.rankColumn.bg.substring(2)}`,
+                              fontWeight: 'bold',
+                            }}>2</div>
+                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>Jasion</div>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '1px solid #ccc',
+                              borderBottom: '1px solid #ccc',
+                              background: `#${theme.colors.priceColumn.bg.substring(2)}`,
+                              fontWeight: 'bold',
+                            }}>$0.33</div>
+                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '2px solid #000', borderBottom: '1px solid #ccc' }}>-</div>
+                          </div>
 
-                        {/* Regular Row 2 - Compact */}
-                        <div style={{
-                          display: 'grid',
-                          gridTemplateColumns: '50px 1.5fr 80px 60px',
-                          background: `#${theme.colors.alternatingRow.even.substring(2)}`,
-                          padding: '10px 12px',
-                          fontSize: '0.75rem',
-                          gap: '8px',
-                          textAlign: 'center',
-                        }}>
-                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>3</div>
-                          <div>Melo</div>
-                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>$0.34</div>
-                          <div>-</div>
+                          {/* Regular Row 2 */}
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '60px 2fr 100px 100px',
+                            background: `#${theme.colors.alternatingRow.even.substring(2)}`,
+                          }}>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '1px solid #ccc',
+                              borderBottom: '2px solid #000',
+                              background: `#${theme.colors.rankColumn.bg.substring(2)}`,
+                              fontWeight: 'bold',
+                            }}>3</div>
+                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #ccc', borderBottom: '2px solid #000' }}>Melo</div>
+                            <div style={{
+                              padding: '10px 8px',
+                              fontSize: '0.85rem',
+                              textAlign: 'center',
+                              borderRight: '1px solid #ccc',
+                              borderBottom: '2px solid #000',
+                              background: `#${theme.colors.priceColumn.bg.substring(2)}`,
+                              fontWeight: 'bold',
+                            }}>$0.34</div>
+                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '2px solid #000', borderBottom: '2px solid #000' }}>-</div>
+                          </div>
                         </div>
                       </div>
                     );
