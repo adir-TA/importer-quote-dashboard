@@ -583,6 +583,8 @@ function Products() {
                           onClick={() => navigate(`/products/${product.id}`)}
                           onEdit={() => handleOpenModal(product)}
                           onDelete={() => handleDelete(product.id)}
+                          isSelected={selectedProducts.has(product.id)}
+                          onToggleSelect={toggleSelection}
                         />
                       ))}
                     </div>

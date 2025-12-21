@@ -1,7 +1,7 @@
 import React from 'react';
 import { Package, FileText, Edit2, Trash2, Ruler, Weight } from 'lucide-react';
 
-function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete }) {
+function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSelected, onToggleSelect }) {
   const handleEdit = (e) => {
     e.stopPropagation();
     onEdit?.(product);
@@ -12,6 +12,11 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete }) {
     onDelete?.(product.id);
   };
 
+  const handleCheckbox = (e) => {
+    e.stopPropagation();
+    onToggleSelect?.(product.id);
+  };
+
   const hasQuotes = quoteCount > 0;
 
   return (
@@ -19,13 +24,54 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete }) {
       className="product-card"
       onClick={() => onClick?.(product)}
       style={{
-        border: `2px solid ${hasQuotes ? '#10b981' : '#ef4444'}`,
-        background: hasQuotes ? '#f0fdf4' : '#fef2f2',
+        border: isSelected
+          ? '2px solid #3b82f6'
+          : `2px solid ${hasQuotes ? '#10b981' : '#ef4444'}`,
+        background: isSelected
+          ? '#eff6ff'
+          : hasQuotes ? '#f0fdf4' : '#fef2f2',
+        position: 'relative',
       }}
     >
-      <div className="product-card-header">
+      {/* Checkbox */}
+      <div style={{
+        position: 'absolute',
+        top: '12px',
+        left: '12px',
+        zIndex: 10,
+      }}>
+        <input
+          type="checkbox"
+          checked={isSelected || false}
+          onChange={handleCheckbox}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '18px',
+            height: '18px',
+            cursor: 'pointer',
+          }}
+        />
+      </div>
+
+      <div className="product-card-header" style={{ paddingLeft: '32px' }}>
         <div>
-          <div className="product-name">{product.name}</div>
+          <div className="product-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {product.name}
+            {product.status === 'draft' && (
+              <span style={{
+                padding: '2px 8px',
+                background: '#fef3c7',
+                color: '#92400e',
+                borderRadius: '4px',
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.3px',
+              }}>
+                Draft
+              </span>
+            )}
+          </div>
           {product.category && (
             <div className="product-category">{product.category}</div>
           )}
