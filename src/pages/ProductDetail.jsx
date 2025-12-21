@@ -243,7 +243,7 @@ function ProductDetail() {
               <div className="empty-state" style={{ padding: '48px 24px' }}>
                 <DollarSign size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
                 <h3>No quotes yet</h3>
-                <p>Add supplier quotes to compare landed costs</p>
+                <p>Add supplier quotes to compare prices</p>
                 <button
                   className="btn btn-primary"
                   style={{ marginTop: '16px' }}
@@ -260,14 +260,12 @@ function ProductDetail() {
                     <th>Unit Price</th>
                     <th>MOQ</th>
                     <th>Incoterm</th>
-                    <th>Landed Cost/Unit</th>
                     <th style={{ width: '100px' }}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {/* Old quotes (from quotes_old table) */}
                   {quotes.map((quote) => {
-                    const landed = computed.calculateLandedCost(quote);
                     return (
                       <tr key={quote.id}>
                         <td style={{ fontWeight: 500 }}>{quote.supplierName}</td>
@@ -276,9 +274,6 @@ function ProductDetail() {
                         </td>
                         <td>{quote.moq?.toLocaleString() || '-'}</td>
                         <td>{quote.incoterm || '-'}</td>
-                        <td style={{ color: 'var(--accent)', fontWeight: 600 }}>
-                          ${landed.landedPerUnit.toFixed(2)}
-                        </td>
                         <td>
                           <div style={{ display: 'flex', gap: '8px' }}>
                             <button
@@ -304,16 +299,6 @@ function ProductDetail() {
 
                   {/* New line items (from supplier_quotes + quote_line_items) */}
                   {lineItems.map((item) => {
-                    // Transform line item to quote format for landed cost calc
-                    const quoteFormat = {
-                      supplierName: item.supplierName,
-                      unitPrice: item.unit_price,
-                      currency: item.currency,
-                      moq: item.moq,
-                      incoterm: item.incoterm,
-                    };
-                    const landed = computed.calculateLandedCost(quoteFormat);
-
                     return (
                       <tr key={item.id} style={{ background: '#f0fdf4' }}>
                         <td style={{ fontWeight: 500 }}>
@@ -327,9 +312,6 @@ function ProductDetail() {
                         </td>
                         <td>{item.moq ? parseInt(item.moq).toLocaleString() : '-'}</td>
                         <td>{item.incoterm || '-'}</td>
-                        <td style={{ fontWeight: 600, color: 'var(--primary)' }}>
-                          {landed.isValid ? `${item.currency} ${landed.landed_per_unit.toFixed(2)}` : '-'}
-                        </td>
                         <td>
                           <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 500 }}>
                             From Upload
@@ -364,7 +346,7 @@ function ProductDetail() {
             <div className="card-body" style={{ textAlign: 'center', padding: '24px' }}>
               <h3 style={{ marginBottom: '8px' }}>Ready to Compare?</h3>
               <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                You have {quotes.length + lineItems.length} quotes for this intent. See which supplier offers the best landed cost.
+                You have {quotes.length + lineItems.length} quotes for this intent. See which supplier offers the best price.
               </p>
               <button className="btn btn-primary" onClick={handleCompare}>
                 Compare Quotes
