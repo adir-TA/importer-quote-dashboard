@@ -494,44 +494,154 @@ function QuoteComparison() {
       return;
     }
 
-    // Prepare data for Excel
-    const excelData = quotesWithLanded.map((quote, index) => ({
-      'Rank': index + 1,
-      'Supplier': quote.supplierName,
-      'Unit Price': `${quote.currency || 'USD'} ${quote.unit_price.toFixed(2)}`,
-      'MOQ': quote.moq,
-      'Total (at MOQ)': `${quote.currency || 'USD'} ${(quote.unit_price * quote.moq).toFixed(2)}`,
-      'Incoterm': quote.incoterm || 'FOB',
-      'Status': index === 0 ? 'Best Price' : ''
-    }));
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
 
-    // Add summary header rows
-    const summaryData = [
-      { 'Rank': 'Quote Comparison Report' },
-      { 'Rank': `Product: ${selectedProduct.name}` },
-      { 'Rank': `Generated: ${new Date().toLocaleString()}` },
-      { 'Rank': `Total Quotes: ${quotesWithLanded.length}` },
-      { 'Rank': '' }, // Empty row for spacing
+    // Prepare header data
+    const headerData = [
+      ['QUOTE COMPARISON REPORT'],
+      [''],
+      [`Product: ${selectedProduct.name}`],
+      [`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
+      [`Total Quotes Analyzed: ${quotesWithLanded.length}`],
+      [''],
+      ['Rank', 'Supplier', 'Unit Price', 'MOQ', 'Total (at MOQ)', 'Incoterm', 'Status']
     ];
 
-    // Combine summary and data
-    const worksheetData = [...summaryData, ...excelData];
+    // Prepare quote data
+    const quoteData = quotesWithLanded.map((quote, index) => [
+      index + 1,
+      quote.supplierName,
+      `${quote.currency || 'USD'} ${quote.unit_price.toFixed(2)}`,
+      quote.moq,
+      `${quote.currency || 'USD'} ${(quote.unit_price * quote.moq).toFixed(2)}`,
+      quote.incoterm || 'FOB',
+      index === 0 ? '⭐ Best Price' : ''
+    ]);
 
-    // Create workbook and worksheet
-    const worksheet = XLSX.utils.json_to_sheet(worksheetData, { skipHeader: false });
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Quote Comparison');
+    // Combine all data
+    const allData = [...headerData, ...quoteData];
+
+    // Create worksheet from array of arrays
+    const worksheet = XLSX.utils.aoa_to_sheet(allData);
 
     // Set column widths
     worksheet['!cols'] = [
-      { wch: 8 },  // Rank
-      { wch: 25 }, // Supplier
-      { wch: 15 }, // Unit Price
-      { wch: 12 }, // MOQ
-      { wch: 18 }, // Total
-      { wch: 12 }, // Incoterm
-      { wch: 15 }  // Status
+      { wch: 8 },   // Rank
+      { wch: 30 },  // Supplier
+      { wch: 15 },  // Unit Price
+      { wch: 10 },  // MOQ
+      { wch: 18 },  // Total
+      { wch: 12 },  // Incoterm
+      { wch: 15 }   // Status
     ];
+
+    // Merge cells for title
+    worksheet['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // Title row
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } }, // Product row
+      { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } }, // Generated row
+      { s: { r: 4, c: 0 }, e: { r: 4, c: 6 } }  // Total quotes row
+    ];
+
+    // Apply styles
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        if (!worksheet[cellAddress]) continue;
+
+        // Initialize cell style
+        worksheet[cellAddress].s = {};
+
+        // Title row (row 0)
+        if (R === 0) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, sz: 18, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "4472C4" } },
+            alignment: { horizontal: "center", vertical: "center" }
+          };
+        }
+
+        // Info rows (rows 2-4)
+        if (R >= 2 && R <= 4) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, sz: 11 },
+            fill: { fgColor: { rgb: "E7E6E6" } },
+            alignment: { horizontal: "left", vertical: "center" }
+          };
+        }
+
+        // Header row (row 6)
+        if (R === 6) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+            fill: { fgColor: { rgb: "44546A" } },
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "000000" } },
+              bottom: { style: "thin", color: { rgb: "000000" } },
+              left: { style: "thin", color: { rgb: "000000" } },
+              right: { style: "thin", color: { rgb: "000000" } }
+            }
+          };
+        }
+
+        // Data rows (row 7+)
+        if (R >= 7) {
+          const dataRowIndex = R - 7; // 0-based index for quote data
+          const isBestPrice = dataRowIndex === 0;
+
+          // Best price row highlighting
+          if (isBestPrice) {
+            worksheet[cellAddress].s = {
+              font: { bold: true, sz: 11 },
+              fill: { fgColor: { rgb: "C6EFCE" } }, // Light green
+              alignment: { horizontal: "center", vertical: "center" },
+              border: {
+                top: { style: "thin", color: { rgb: "000000" } },
+                bottom: { style: "thin", color: { rgb: "000000" } },
+                left: { style: "thin", color: { rgb: "000000" } },
+                right: { style: "thin", color: { rgb: "000000" } }
+              }
+            };
+          } else {
+            // Alternating row colors
+            const bgColor = dataRowIndex % 2 === 0 ? "FFFFFF" : "F2F2F2";
+            worksheet[cellAddress].s = {
+              fill: { fgColor: { rgb: bgColor } },
+              alignment: { horizontal: "center", vertical: "center" },
+              border: {
+                top: { style: "thin", color: { rgb: "D3D3D3" } },
+                bottom: { style: "thin", color: { rgb: "D3D3D3" } },
+                left: { style: "thin", color: { rgb: "D3D3D3" } },
+                right: { style: "thin", color: { rgb: "D3D3D3" } }
+              }
+            };
+          }
+
+          // Highlight the "Status" column for best price
+          if (C === 6 && isBestPrice) {
+            worksheet[cellAddress].s.font = { bold: true, color: { rgb: "006100" }, sz: 11 };
+          }
+        }
+      }
+    }
+
+    // Set row heights
+    worksheet['!rows'] = [
+      { hpx: 30 },  // Title row
+      { hpx: 5 },   // Empty row
+      { hpx: 20 },  // Product info
+      { hpx: 20 },  // Generated info
+      { hpx: 20 },  // Total quotes
+      { hpx: 5 },   // Empty row
+      { hpx: 25 }   // Header row
+    ];
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Quote Comparison');
 
     // Generate filename
     const filename = `Quote_Comparison_${selectedProduct.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
