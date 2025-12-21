@@ -374,6 +374,7 @@ function QuoteComparison() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiAction, setAiAction] = useState('');
   const [loadingCounts, setLoadingCounts] = React.useState(true); // track loading state
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
 
   // Load quote counts for all products
   React.useEffect(() => {
@@ -488,7 +489,88 @@ function QuoteComparison() {
     alert('PDF export: Your supplier selection would be exported.');
   };
 
-  const handleExportExcel = async () => {
+  // Define export themes
+  const exportThemes = {
+    vibrant: {
+      name: 'Vibrant & Modern',
+      description: 'Bold colors with high contrast',
+      preview: ['#2563EB', '#A7F3D0', '#FEF9C3', '#E0E7FF'],
+      colors: {
+        title: { bg: 'FF2563EB', text: 'FFFFFFFF' },
+        imagePlaceholder: { bg: 'FFDBEAFE', text: 'FF1E40AF', border: 'FF3B82F6' },
+        productName: { bg: 'FFFEF3C7', text: 'FF92400E' },
+        category: { bg: 'FFE0E7FF', text: 'FF3730A3' },
+        date: { bg: 'FFDBEAFE', text: 'FF1E40AF' },
+        totalQuotes: { bg: 'FFD1FAE5', text: 'FF065F46' },
+        header: { bg: 'FF1E293B', text: 'FFFFFFFF' },
+        bestPrice: { bg: 'FFA7F3D0', text: 'FF065F46', border: 'FF10B981', status: 'FFEA580C' },
+        rankColumn: { bg: 'FFEFF6FF' },
+        priceColumn: { bg: 'FFFEF9C3' },
+        savingsColumn: { bg: 'FFD1FAE5', text: 'FF065F46' },
+        alternatingRow: { odd: 'FFF8FAFC', even: 'FFFFFFFF' }
+      }
+    },
+    corporate: {
+      name: 'Professional Corporate',
+      description: 'Navy blue with subtle accents',
+      preview: ['#1E3A8A', '#E0E7FF', '#F1F5F9', '#DBEAFE'],
+      colors: {
+        title: { bg: 'FF1E3A8A', text: 'FFFFFFFF' },
+        imagePlaceholder: { bg: 'FFE0E7FF', text: 'FF1E3A8A', border: 'FF3B82F6' },
+        productName: { bg: 'FFDBEAFE', text: 'FF1E40AF' },
+        category: { bg: 'FFF1F5F9', text: 'FF475569' },
+        date: { bg: 'FFF1F5F9', text: 'FF475569' },
+        totalQuotes: { bg: 'FFE0E7FF', text: 'FF1E3A8A' },
+        header: { bg: 'FF334155', text: 'FFFFFFFF' },
+        bestPrice: { bg: 'FFBFDBFE', text: 'FF1E3A8A', border: 'FF3B82F6', status: 'FF1E3A8A' },
+        rankColumn: { bg: 'FFDBEAFE' },
+        priceColumn: { bg: 'FFDBEAFE' },
+        savingsColumn: { bg: 'FFDBEAFE', text: 'FF1E40AF' },
+        alternatingRow: { odd: 'FFF8FAFC', even: 'FFFFFFFF' }
+      }
+    },
+    minimal: {
+      name: 'Modern Minimal',
+      description: 'Clean black & white with subtle grays',
+      preview: ['#000000', '#F3F4F6', '#E5E7EB', '#D1D5DB'],
+      colors: {
+        title: { bg: 'FF000000', text: 'FFFFFFFF' },
+        imagePlaceholder: { bg: 'FFF3F4F6', text: 'FF374151', border: 'FF9CA3AF' },
+        productName: { bg: 'FFE5E7EB', text: 'FF111827' },
+        category: { bg: 'FFF9FAFB', text: 'FF6B7280' },
+        date: { bg: 'FFF9FAFB', text: 'FF6B7280' },
+        totalQuotes: { bg: 'FFE5E7EB', text: 'FF374151' },
+        header: { bg: 'FF374151', text: 'FFFFFFFF' },
+        bestPrice: { bg: 'FFD1D5DB', text: 'FF000000', border: 'FF6B7280', status: 'FF000000' },
+        rankColumn: { bg: 'FFF3F4F6' },
+        priceColumn: { bg: 'FFF3F4F6' },
+        savingsColumn: { bg: 'FFE5E7EB', text: 'FF374151' },
+        alternatingRow: { odd: 'FFFAFAFA', even: 'FFFFFFFF' }
+      }
+    },
+    elegant: {
+      name: 'Elegant Warm',
+      description: 'Burgundy & gold tones',
+      preview: ['#7C2D12', '#FEF3C7', '#FED7AA', '#FECACA'],
+      colors: {
+        title: { bg: 'FF7C2D12', text: 'FFFFFFFF' },
+        imagePlaceholder: { bg: 'FFFED7AA', text: 'FF7C2D12', border: 'FFFB923C' },
+        productName: { bg: 'FFFEF3C7', text: 'FF78350F' },
+        category: { bg: 'FFFECACA', text: 'FF991B1B' },
+        date: { bg: 'FFFED7AA', text: 'FFEA580C' },
+        totalQuotes: { bg: 'FFFEF3C7', text: 'FF92400E' },
+        header: { bg: 'FF7C2D12', text: 'FFFFFFFF' },
+        bestPrice: { bg: 'FFFDE68A', text: 'FF713F12', border: 'FFF59E0B', status: 'FFDC2626' },
+        rankColumn: { bg: 'FFFEF3C7' },
+        priceColumn: { bg: 'FFFEF3C7' },
+        savingsColumn: { bg: 'FFFDE68A', text: 'FF78350F' },
+        alternatingRow: { odd: 'FFFFFBEB', even: 'FFFFFFFF' }
+      }
+    }
+  };
+
+  const handleExportExcel = async (themeName = 'vibrant') => {
+    const theme = exportThemes[themeName];
     if (!selectedProduct || quotesWithLanded.length === 0) {
       alert('No quotes available to export');
       return;
@@ -517,11 +599,11 @@ function QuoteComparison() {
     worksheet.mergeCells('A1:H1');
     const titleCell = worksheet.getCell('A1');
     titleCell.value = 'QUOTE COMPARISON REPORT';
-    titleCell.font = { name: 'Calibri', size: 20, bold: true, color: { argb: 'FFFFFFFF' } };
-    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+    titleCell.font = { name: 'Calibri', size: 20, bold: true, color: { argb: theme.colors.title.text } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.title.bg } };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
     titleCell.border = {
-      bottom: { style: 'medium', color: { argb: 'FF1E40AF' } }
+      bottom: { style: 'medium', color: { argb: theme.colors.title.bg } }
     };
     worksheet.getRow(1).height = 35;
 
@@ -532,14 +614,14 @@ function QuoteComparison() {
     worksheet.mergeCells('A3:C6');
     const imageCell = worksheet.getCell('A3');
     imageCell.value = 'PRODUCT IMAGE\n[Insert Product Image Here]';
-    imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E40AF' } };
-    imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+    imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
+    imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.imagePlaceholder.bg } };
     imageCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     imageCell.border = {
-      top: { style: 'medium', color: { argb: 'FF3B82F6' } },
-      bottom: { style: 'medium', color: { argb: 'FF3B82F6' } },
-      left: { style: 'medium', color: { argb: 'FF3B82F6' } },
-      right: { style: 'medium', color: { argb: 'FF3B82F6' } }
+      top: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+      bottom: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+      left: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+      right: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } }
     };
     worksheet.getRow(3).height = 90;
 
@@ -547,8 +629,8 @@ function QuoteComparison() {
     worksheet.mergeCells('D3:H3');
     const productCell = worksheet.getCell('D3');
     productCell.value = `Product: ${selectedProduct.name}`;
-    productCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF92400E' } };
-    productCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFEF3C7' } };
+    productCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.productName.text } };
+    productCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.productName.bg } };
     productCell.alignment = { horizontal: 'left', vertical: 'middle' };
     productCell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -562,8 +644,8 @@ function QuoteComparison() {
     worksheet.mergeCells('D4:H4');
     const categoryCell = worksheet.getCell('D4');
     categoryCell.value = `Category: ${selectedProduct.category || 'General'}`;
-    categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF3730A3' } };
-    categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE0E7FF' } };
+    categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.category.text } };
+    categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.category.bg } };
     categoryCell.alignment = { horizontal: 'left', vertical: 'middle' };
     categoryCell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -577,8 +659,8 @@ function QuoteComparison() {
     worksheet.mergeCells('D5:H5');
     const dateCell = worksheet.getCell('D5');
     dateCell.value = `Generated: ${new Date().toLocaleDateString()}`;
-    dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF1E40AF' } };
-    dateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFDBEAFE' } };
+    dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.date.text } };
+    dateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.date.bg } };
     dateCell.alignment = { horizontal: 'left', vertical: 'middle' };
     dateCell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -592,8 +674,8 @@ function QuoteComparison() {
     worksheet.mergeCells('D6:H6');
     const quotesCell = worksheet.getCell('D6');
     quotesCell.value = `Total Quotes: ${quotesWithLanded.length}`;
-    quotesCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF065F46' } };
-    quotesCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
+    quotesCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.totalQuotes.text } };
+    quotesCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.totalQuotes.bg } };
     quotesCell.alignment = { horizontal: 'left', vertical: 'middle' };
     quotesCell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -612,14 +694,14 @@ function QuoteComparison() {
     headerRow.values = ['Rank', 'Supplier', 'Unit Price', 'MOQ', 'Total (at MOQ)', 'Incoterm', 'Savings', 'Status'];
     headerRow.height = 28;
     headerRow.eachCell((cell) => {
-      cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFFFFFFF' } };
-      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E293B' } };
+      cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.header.text } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
       cell.border = {
         top: { style: 'medium', color: { argb: 'FF000000' } },
         bottom: { style: 'medium', color: { argb: 'FF000000' } },
-        left: { style: 'thin', color: { argb: 'FF475569' } },
-        right: { style: 'thin', color: { argb: 'FF475569' } }
+        left: { style: 'thin', color: { argb: theme.colors.header.bg } },
+        right: { style: 'thin', color: { argb: theme.colors.header.bg } }
       };
     });
 
@@ -641,25 +723,25 @@ function QuoteComparison() {
       ]);
 
       row.eachCell((cell, colNumber) => {
-        // Best price row - vibrant green
+        // Best price row
         if (isBestPrice) {
-          cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FF065F46' } };
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFA7F3D0' } };
+          cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.bestPrice.text } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.bestPrice.bg } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
           cell.border = {
-            top: { style: 'medium', color: { argb: 'FF10B981' } },
-            bottom: { style: 'medium', color: { argb: 'FF10B981' } },
-            left: { style: 'thin', color: { argb: 'FF10B981' } },
-            right: { style: 'thin', color: { argb: 'FF10B981' } }
+            top: { style: 'medium', color: { argb: theme.colors.bestPrice.border } },
+            bottom: { style: 'medium', color: { argb: theme.colors.bestPrice.border } },
+            left: { style: 'thin', color: { argb: theme.colors.bestPrice.border } },
+            right: { style: 'thin', color: { argb: theme.colors.bestPrice.border } }
           };
 
-          // Orange status text
+          // Status text color
           if (colNumber === 8) {
-            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: 'FFEA580C' } };
+            cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.bestPrice.status } };
           }
         } else {
           // Alternating rows
-          const bgColor = index % 2 === 0 ? 'FFF8FAFC' : 'FFFFFFFF';
+          const bgColor = index % 2 === 0 ? theme.colors.alternatingRow.odd : theme.colors.alternatingRow.even;
           cell.font = { name: 'Calibri', size: 10, color: { argb: 'FF1E293B' } };
           cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgColor } };
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -672,9 +754,9 @@ function QuoteComparison() {
         }
 
         // Column-specific colors
-        // Rank column (1) - light blue
+        // Rank column (1)
         if (colNumber === 1) {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isBestPrice ? 'FFA7F3D0' : 'FFEFF6FF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isBestPrice ? theme.colors.bestPrice.bg : theme.colors.rankColumn.bg } };
           cell.font = { ...cell.font, bold: true };
         }
 
@@ -683,16 +765,16 @@ function QuoteComparison() {
           cell.alignment = { horizontal: 'center', vertical: 'middle' };
         }
 
-        // Unit Price column (3) - light yellow
+        // Unit Price column (3)
         if (colNumber === 3) {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isBestPrice ? 'FFA7F3D0' : 'FFFEF9C3' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: isBestPrice ? theme.colors.bestPrice.bg : theme.colors.priceColumn.bg } };
           cell.font = { ...cell.font, bold: true };
         }
 
-        // Savings column (7) - light green
+        // Savings column (7)
         if (colNumber === 7 && !isBestPrice) {
-          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD1FAE5' } };
-          cell.font = { ...cell.font, color: { argb: 'FF065F46' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.savingsColumn.bg } };
+          cell.font = { ...cell.font, color: { argb: theme.colors.savingsColumn.text } };
         }
       });
     });
@@ -977,7 +1059,7 @@ function QuoteComparison() {
                     </span>
                     <button
                       className="btn btn-ghost btn-sm"
-                      onClick={handleExportExcel}
+                      onClick={() => setShowThemeSelector(true)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -1153,6 +1235,144 @@ function QuoteComparison() {
         </>
         )}
       </div>
+
+      {/* Theme Selector Modal */}
+      {showThemeSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}
+        onClick={() => setShowThemeSelector(false)}
+        >
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            padding: '32px',
+            maxWidth: '800px',
+            width: '90%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                Choose Export Theme
+              </h2>
+              <button
+                onClick={() => setShowThemeSelector(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              >
+                <X size={24} style={{ color: '#64748b' }} />
+              </button>
+            </div>
+
+            <p style={{ color: '#64748b', marginBottom: '32px', fontSize: '0.95rem' }}>
+              Select a color theme for your Excel export. Each theme provides a different professional look.
+            </p>
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+              gap: '20px',
+            }}>
+              {Object.entries(exportThemes).map(([key, theme]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    handleExportExcel(key);
+                    setShowThemeSelector(false);
+                  }}
+                  style={{
+                    background: 'white',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '12px',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.2)';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }}
+                >
+                  <h3 style={{
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    color: '#1e293b',
+                    marginBottom: '8px',
+                  }}>
+                    {theme.name}
+                  </h3>
+                  <p style={{
+                    color: '#64748b',
+                    fontSize: '0.875rem',
+                    marginBottom: '16px',
+                  }}>
+                    {theme.description}
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    alignItems: 'center',
+                  }}>
+                    <span style={{
+                      fontSize: '0.75rem',
+                      color: '#94a3b8',
+                      fontWeight: 500,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                    }}>
+                      Preview:
+                    </span>
+                    {theme.preview.map((color, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          width: '40px',
+                          height: '40px',
+                          borderRadius: '8px',
+                          background: color,
+                          border: '2px solid white',
+                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                        }}
+                      />
+                    ))}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
