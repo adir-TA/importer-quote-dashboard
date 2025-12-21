@@ -1464,7 +1464,7 @@ function QuoteComparison() {
                   overflow: 'auto',
                   padding: '32px',
                   display: 'flex',
-                  alignItems: 'center',
+                  alignItems: 'flex-start',
                   justifyContent: 'center',
                 }}>
                   {/* Excel-Style Preview */}
