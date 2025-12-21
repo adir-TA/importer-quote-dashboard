@@ -99,13 +99,16 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
   }, [products, quoteCounts]);
 
   const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return productsWithCounts;
+    // Exclude the currently selected product from dropdown to avoid duplication
+    const availableProducts = productsWithCounts.filter(p => p.id !== selectedProductId);
+
+    if (!searchTerm.trim()) return availableProducts;
     const term = searchTerm.toLowerCase();
-    return productsWithCounts.filter(p =>
+    return availableProducts.filter(p =>
       p.name.toLowerCase().includes(term) ||
       (p.category && p.category.toLowerCase().includes(term))
     );
-  }, [productsWithCounts, searchTerm]);
+  }, [productsWithCounts, searchTerm, selectedProductId]);
 
   // Group by category
   const groupedProducts = useMemo(() => {
@@ -257,11 +260,20 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                 color: '#9ca3af',
                 fontSize: '0.95rem',
               }}>
-                No buying intents found
-                {searchTerm && (
-                  <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
-                    Try a different search term
-                  </div>
+                {searchTerm ? (
+                  <>
+                    No other buying intents found
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
+                      Try a different search term
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    No other buying intents available
+                    <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
+                      Currently viewing: {selectedProduct?.name}
+                    </div>
+                  </>
                 )}
               </div>
             ) : (
@@ -296,7 +308,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                         padding: '14px 18px',
                         textAlign: 'left',
                         border: 'none',
-                        background: product.id === selectedProductId ? '#eff6ff' : 'white',
+                        background: 'white',
                         cursor: 'pointer',
                         fontSize: '0.9rem',
                         borderBottom: '1px solid #f3f4f6',
@@ -306,23 +318,16 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                         transition: 'background 0.15s',
                       }}
                       onMouseEnter={(e) => {
-                        if (product.id !== selectedProductId) {
-                          e.target.style.background = '#f9fafb';
-                        }
+                        e.target.style.background = '#f9fafb';
                       }}
                       onMouseLeave={(e) => {
-                        if (product.id !== selectedProductId) {
-                          e.target.style.background = 'white';
-                        }
+                        e.target.style.background = 'white';
                       }}
                     >
-                      {product.id === selectedProductId && (
-                        <Check size={16} style={{ color: '#3b82f6', flexShrink: 0 }} />
-                      )}
                       <span style={{
                         flex: 1,
                         color: '#374151',
-                        fontWeight: product.id === selectedProductId ? 600 : 400,
+                        fontWeight: 400,
                       }}>
                         {product.name}
                       </span>
@@ -565,58 +570,52 @@ function QuoteComparison() {
           </div>
         ) : (
           <>
-        {/* Recently Used Buying Intents */}
-        {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
+        {/* Recently Used Buying Intents - Subtle history section */}
+        {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
+          <div style={{ marginBottom: '16px' }}>
+            <h3 style={{ fontSize: '0.75rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: '8px' }}>
               Recently Used
             </h3>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).map(product => (
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (
                 <button
                   key={product.id}
                   onClick={() => handleProductChange(product.id)}
                   style={{
-                    padding: '12px 18px',
-                    background: selectedProductId === product.id ? '#eff6ff' : 'white',
-                    border: selectedProductId === product.id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
-                    borderRadius: '10px',
+                    padding: '8px 14px',
+                    background: '#f9fafb',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
+                    gap: '8px',
                     transition: 'all 0.2s',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
+                    fontSize: '0.8rem',
+                    fontWeight: 400,
+                    color: '#64748b',
                   }}
                   onMouseEnter={(e) => {
-                    if (selectedProductId !== product.id) {
-                      e.currentTarget.style.background = '#f9fafb';
-                      e.currentTarget.style.borderColor = '#3b82f6';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
-                    }
+                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.color = '#1e40af';
                   }}
                   onMouseLeave={(e) => {
-                    if (selectedProductId !== product.id) {
-                      e.currentTarget.style.background = 'white';
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }
+                    e.currentTarget.style.background = '#f9fafb';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.color = '#64748b';
                   }}
                 >
-                  <Package size={18} style={{ color: '#64748b' }} />
                   <span>{product.name}</span>
                   <span style={{
-                    padding: '3px 10px',
-                    background: '#d1fae5',
-                    color: '#065f46',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
+                    padding: '2px 6px',
+                    background: '#e0e7ff',
+                    color: '#4338ca',
+                    borderRadius: '4px',
+                    fontSize: '0.7rem',
+                    fontWeight: 500,
                   }}>
-                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
+                    {quoteCounts[product.id]}
                   </span>
                 </button>
               ))}
@@ -628,7 +627,17 @@ function QuoteComparison() {
         <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
           <div className="card-header" style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
             <span className="card-title">
-              <Package size={18} /> Select Buying Intent to Compare
+              <Package size={18} />
+              {selectedProduct ? (
+                <>
+                  <span style={{ fontWeight: 700 }}>{selectedProduct.name}</span>
+                  <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '8px' }}>
+                    ({quoteCounts[selectedProductId] || 0} {quoteCounts[selectedProductId] === 1 ? 'quote' : 'quotes'})
+                  </span>
+                </>
+              ) : (
+                'Select Buying Intent to Compare'
+              )}
             </span>
           </div>
           <div className="card-body">
