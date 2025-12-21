@@ -494,16 +494,20 @@ function QuoteComparison() {
       return;
     }
 
-    // Create workbook
+    // Create workbook with cellStyles option
     const workbook = XLSX.utils.book_new();
+    workbook.Props = {
+      Title: "Quote Comparison Report",
+      Author: "HA Tools"
+    };
 
     // Prepare header data with image placeholder section
     const headerData = [
       ['QUOTE COMPARISON REPORT', '', '', '', '', '', '', ''],
       ['', '', '', '', '', '', '', ''],
-      ['PRODUCT IMAGE', '', '', `Product: ${selectedProduct.name}`, '', '', '', ''],
-      ['[Insert Product', '', '', `Category: ${selectedProduct.category || 'General'}`, '', '', '', ''],
-      ['Image Here]', '', '', `Generated: ${new Date().toLocaleDateString()}`, '', '', '', ''],
+      ['PRODUCT IMAGE\n[Insert Product Image Here]', '', '', `Product: ${selectedProduct.name}`, '', '', '', ''],
+      ['', '', '', `Category: ${selectedProduct.category || 'General'}`, '', '', '', ''],
+      ['', '', '', `Generated: ${new Date().toLocaleDateString()}`, '', '', '', ''],
       ['', '', '', `Total Quotes: ${quotesWithLanded.length}`, '', '', '', ''],
       ['', '', '', '', '', '', '', ''],
       ['', '', '', '', '', '', '', ''],
@@ -555,35 +559,38 @@ function QuoteComparison() {
       { s: { r: 5, c: 3 }, e: { r: 5, c: 7 } }  // Total quotes
     ];
 
-    // Apply styles
+    // Apply styles to all cells
     const range = XLSX.utils.decode_range(worksheet['!ref']);
 
     for (let R = range.s.r; R <= range.e.r; ++R) {
       for (let C = range.s.c; C <= range.e.c; ++C) {
         const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-        if (!worksheet[cellAddress]) continue;
 
-        // Initialize cell style
-        worksheet[cellAddress].s = {};
+        // Create cell if it doesn't exist
+        if (!worksheet[cellAddress]) {
+          worksheet[cellAddress] = { t: 's', v: '' };
+        }
 
-        // Title row (row 0) - Vibrant blue gradient effect
+        const cell = worksheet[cellAddress];
+
+        // Title row (row 0) - Vibrant blue
         if (R === 0) {
-          worksheet[cellAddress].s = {
-            font: { bold: true, sz: 20, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "2563EB" } }, // Vibrant blue
-            alignment: { horizontal: "center", vertical: "center" },
+          cell.s = {
+            font: { name: 'Calibri', bold: true, sz: 20, color: { rgb: "FFFFFF" } },
+            fill: { patternType: "solid", fgColor: { rgb: "2563EB" }, bgColor: { rgb: "2563EB" } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: false },
             border: {
               bottom: { style: "medium", color: { rgb: "1E40AF" } }
             }
           };
         }
 
-        // Image placeholder section (rows 2-5, cols 0-2) - Light blue with border
+        // Image placeholder section (rows 2-5, cols 0-2) - Light blue
         if (R >= 2 && R <= 5 && C >= 0 && C <= 2) {
-          worksheet[cellAddress].s = {
-            font: { bold: true, sz: 11, color: { rgb: "1E40AF" } },
-            fill: { fgColor: { rgb: "DBEAFE" } }, // Light blue
-            alignment: { horizontal: "center", vertical: "center" },
+          cell.s = {
+            font: { name: 'Calibri', bold: true, sz: 11, color: { rgb: "1E40AF" } },
+            fill: { patternType: "solid", fgColor: { rgb: "DBEAFE" }, bgColor: { rgb: "DBEAFE" } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: true },
             border: {
               top: { style: "medium", color: { rgb: "3B82F6" } },
               bottom: { style: "medium", color: { rgb: "3B82F6" } },
@@ -593,19 +600,19 @@ function QuoteComparison() {
           };
         }
 
-        // Product info section (rows 2-5, cols 3-7) - Gradient effect with colors
+        // Product info section (rows 2-5, cols 3-7) - Multi-colored
         if (R >= 2 && R <= 5 && C >= 3) {
           const colors = {
-            2: { bg: "FEF3C7", text: "92400E" }, // Yellow for product name
+            2: { bg: "FEF3C7", text: "92400E" }, // Yellow for product
             3: { bg: "E0E7FF", text: "3730A3" }, // Indigo for category
             4: { bg: "DBEAFE", text: "1E40AF" }, // Blue for date
-            5: { bg: "D1FAE5", text: "065F46" }  // Green for total quotes
+            5: { bg: "D1FAE5", text: "065F46" }  // Green for quotes
           };
           const color = colors[R];
-          worksheet[cellAddress].s = {
-            font: { bold: true, sz: 11, color: { rgb: color.text } },
-            fill: { fgColor: { rgb: color.bg } },
-            alignment: { horizontal: "left", vertical: "center" },
+          cell.s = {
+            font: { name: 'Calibri', bold: true, sz: 11, color: { rgb: color.text } },
+            fill: { patternType: "solid", fgColor: { rgb: color.bg }, bgColor: { rgb: color.bg } },
+            alignment: { horizontal: "left", vertical: "center", wrapText: false },
             border: {
               top: { style: "thin", color: { rgb: "CBD5E1" } },
               bottom: { style: "thin", color: { rgb: "CBD5E1" } },
@@ -615,12 +622,12 @@ function QuoteComparison() {
           };
         }
 
-        // Header row (row 8) - Dark professional header
+        // Header row (row 8) - Dark slate
         if (R === 8) {
-          worksheet[cellAddress].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-            fill: { fgColor: { rgb: "1E293B" } }, // Dark slate
-            alignment: { horizontal: "center", vertical: "center" },
+          cell.s = {
+            font: { name: 'Calibri', bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+            fill: { patternType: "solid", fgColor: { rgb: "1E293B" }, bgColor: { rgb: "1E293B" } },
+            alignment: { horizontal: "center", vertical: "center", wrapText: false },
             border: {
               top: { style: "medium", color: { rgb: "000000" } },
               bottom: { style: "medium", color: { rgb: "000000" } },
@@ -635,12 +642,12 @@ function QuoteComparison() {
           const dataRowIndex = R - 9;
           const isBestPrice = dataRowIndex === 0;
 
-          // Best price row - Vibrant green highlighting
+          // Best price row - Vibrant green
           if (isBestPrice) {
-            worksheet[cellAddress].s = {
-              font: { bold: true, sz: 11, color: { rgb: "065F46" } },
-              fill: { fgColor: { rgb: "A7F3D0" } }, // Vibrant green
-              alignment: { horizontal: "center", vertical: "center" },
+            cell.s = {
+              font: { name: 'Calibri', bold: true, sz: 11, color: { rgb: "065F46" } },
+              fill: { patternType: "solid", fgColor: { rgb: "A7F3D0" }, bgColor: { rgb: "A7F3D0" } },
+              alignment: { horizontal: "center", vertical: "center", wrapText: false },
               border: {
                 top: { style: "medium", color: { rgb: "10B981" } },
                 bottom: { style: "medium", color: { rgb: "10B981" } },
@@ -649,12 +656,12 @@ function QuoteComparison() {
               }
             };
           } else {
-            // Alternating row colors with better contrast
+            // Alternating rows
             const bgColor = dataRowIndex % 2 === 1 ? "F8FAFC" : "FFFFFF";
-            worksheet[cellAddress].s = {
-              font: { sz: 10, color: { rgb: "1E293B" } },
-              fill: { fgColor: { rgb: bgColor } },
-              alignment: { horizontal: "center", vertical: "center" },
+            cell.s = {
+              font: { name: 'Calibri', sz: 10, color: { rgb: "1E293B" } },
+              fill: { patternType: "solid", fgColor: { rgb: bgColor }, bgColor: { rgb: bgColor } },
+              alignment: { horizontal: "center", vertical: "center", wrapText: false },
               border: {
                 top: { style: "thin", color: { rgb: "E2E8F0" } },
                 bottom: { style: "thin", color: { rgb: "E2E8F0" } },
@@ -664,28 +671,28 @@ function QuoteComparison() {
             };
           }
 
-          // Special highlighting for columns
-          // Rank column - Light blue background
+          // Column-specific colors
+          // Rank column - Light blue
           if (C === 0) {
-            worksheet[cellAddress].s.fill = { fgColor: { rgb: isBestPrice ? "A7F3D0" : "EFF6FF" } };
-            worksheet[cellAddress].s.font = { ...worksheet[cellAddress].s.font, bold: true };
+            cell.s.fill = { patternType: "solid", fgColor: { rgb: isBestPrice ? "A7F3D0" : "EFF6FF" }, bgColor: { rgb: isBestPrice ? "A7F3D0" : "EFF6FF" } };
+            cell.s.font = { ...cell.s.font, bold: true };
           }
 
-          // Unit Price column - Light yellow background
+          // Unit Price column - Light yellow
           if (C === 2) {
-            worksheet[cellAddress].s.fill = { fgColor: { rgb: isBestPrice ? "A7F3D0" : "FEF9C3" } };
-            worksheet[cellAddress].s.font = { ...worksheet[cellAddress].s.font, bold: true };
+            cell.s.fill = { patternType: "solid", fgColor: { rgb: isBestPrice ? "A7F3D0" : "FEF9C3" }, bgColor: { rgb: isBestPrice ? "A7F3D0" : "FEF9C3" } };
+            cell.s.font = { ...cell.s.font, bold: true };
           }
 
-          // Savings column - Light green if there are savings
+          // Savings column - Light green
           if (C === 6 && !isBestPrice) {
-            worksheet[cellAddress].s.fill = { fgColor: { rgb: "D1FAE5" } };
-            worksheet[cellAddress].s.font = { ...worksheet[cellAddress].s.font, color: { rgb: "065F46" } };
+            cell.s.fill = { patternType: "solid", fgColor: { rgb: "D1FAE5" }, bgColor: { rgb: "D1FAE5" } };
+            cell.s.font = { ...cell.s.font, color: { rgb: "065F46" } };
           }
 
-          // Status column - Bold orange for best price
+          // Status column - Orange for best
           if (C === 7 && isBestPrice) {
-            worksheet[cellAddress].s.font = { bold: true, color: { rgb: "EA580C" }, sz: 11 };
+            cell.s.font = { name: 'Calibri', bold: true, color: { rgb: "EA580C" }, sz: 11 };
           }
         }
       }
@@ -693,15 +700,15 @@ function QuoteComparison() {
 
     // Set row heights
     worksheet['!rows'] = [
-      { hpx: 35 },  // Title row
-      { hpx: 8 },   // Empty row
-      { hpx: 22 },  // Image/Product info row 1
-      { hpx: 22 },  // Image/Product info row 2
-      { hpx: 22 },  // Image/Product info row 3
-      { hpx: 22 },  // Image/Product info row 4
-      { hpx: 8 },   // Empty row
-      { hpx: 8 },   // Empty row
-      { hpx: 28 }   // Header row
+      { hpx: 35 },  // Title
+      { hpx: 8 },   // Empty
+      { hpx: 90 },  // Image placeholder (tall)
+      { hpx: 22 },  // Category
+      { hpx: 22 },  // Generated
+      { hpx: 22 },  // Total quotes
+      { hpx: 8 },   // Empty
+      { hpx: 8 },   // Empty
+      { hpx: 28 }   // Header
     ];
 
     // Add worksheet to workbook
@@ -710,8 +717,8 @@ function QuoteComparison() {
     // Generate filename
     const filename = `Quote_Comparison_${selectedProduct.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    // Export
-    XLSX.writeFile(workbook, filename);
+    // Export with cellStyles enabled
+    XLSX.writeFile(workbook, filename, { cellStyles: true, bookSST: true });
   };
 
   const handleAIExplain = () => {
