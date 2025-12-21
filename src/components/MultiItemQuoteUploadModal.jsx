@@ -7,7 +7,7 @@ import {
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
+import { calculateMatchConfidence, findBestMatch } from '../utils/buyingIntentMatcher';
 import { generateAutoName, generateAutoDescription } from '../utils/autoNaming';
 import API_BASE_URL from '../config/api';
 
@@ -466,26 +466,36 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       console.log('[Modal] Saving quote data:', data);
       console.log('[Modal] Uploaded file:', uploadedFile);
 
-      // Auto-create draft Buying Intents for unlinked items
+      // Auto-create draft Buying Intents for unlinked items (with duplicate prevention)
       const updatedLineItems = [];
       for (const item of data.lineItems) {
         let linkedBuyingIntentId = item.linkedBuyingIntentId;
 
-        // If no linked intent, auto-create a draft one
+        // If no linked intent, check for existing matches first
         if (!linkedBuyingIntentId) {
-          console.log('[Modal] Auto-creating draft Buying Intent for:', item.raw_item_name);
+          // Check if a similar Buying Intent already exists
+          const bestMatch = findBestMatch(item, products);
 
-          const autoName = generateAutoName(data.supplierQuote, item);
-          const autoDescription = generateAutoDescription(data.supplierQuote, item);
-          const draftIntent = await actions.addProduct({
-            name: autoName,
-            status: 'draft',
-            category: item.category || null,
-            description: autoDescription
-          });
+          if (bestMatch && bestMatch.matchResult.confidence >= 85) {
+            // Found a strong match - use existing intent instead of creating duplicate
+            linkedBuyingIntentId = bestMatch.intent.id;
+            console.log('[Modal] Found existing match for:', item.raw_item_name, '→', bestMatch.intent.name, `(${bestMatch.matchResult.confidence}% confidence)`);
+          } else {
+            // No good match found - create new draft Buying Intent
+            console.log('[Modal] No existing match found. Auto-creating draft Buying Intent for:', item.raw_item_name);
 
-          linkedBuyingIntentId = draftIntent.id;
-          console.log('[Modal] Created draft Buying Intent:', draftIntent.id, autoName);
+            const autoName = generateAutoName(data.supplierQuote, item);
+            const autoDescription = generateAutoDescription(data.supplierQuote, item);
+            const draftIntent = await actions.addProduct({
+              name: autoName,
+              status: 'draft',
+              category: item.category || null,
+              description: autoDescription
+            });
+
+            linkedBuyingIntentId = draftIntent.id;
+            console.log('[Modal] Created draft Buying Intent:', draftIntent.id, autoName);
+          }
         }
 
         updatedLineItems.push({
