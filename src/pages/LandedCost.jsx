@@ -450,8 +450,10 @@ function LandedCost() {
       setLoadingCounts(true);
       const counts = {};
       for (const product of products) {
-        const items = await computed.getLineItemsForBuyingIntent(product.id);
-        counts[product.id] = items.length;
+        // Count both old quotes AND new line items (same as ProductDetail page)
+        const oldQuotes = computed.getProductQuotes(product.id);
+        const newLineItems = await computed.getLineItemsForBuyingIntent(product.id);
+        counts[product.id] = oldQuotes.length + newLineItems.length;
       }
       setQuoteCounts(counts);
       setLoadingCounts(false);
