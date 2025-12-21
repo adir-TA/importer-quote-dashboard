@@ -33,6 +33,10 @@ function Products() {
   const [collapsedCategories, setCollapsedCategories] = useState({}); // track which categories are collapsed
   const [loadingCounts, setLoadingCounts] = useState(true); // track loading state
 
+  // Bulk selection
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+
   // Load quote counts for all products
   useEffect(() => {
     const loadQuoteCounts = async () => {
@@ -186,6 +190,47 @@ function Products() {
     if (confirmed) actions.deleteProduct(productId);
   };
 
+  // Bulk selection handlers
+  const toggleSelection = (productId) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    setSelectedProducts(new Set(filteredProducts.map(p => p.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedProducts(new Set());
+    setSelectionMode(false);
+  };
+
+  const handleBulkDelete = async () => {
+    const count = selectedProducts.size;
+    const totalQuotes = Array.from(selectedProducts).reduce((sum, id) => sum + (quoteCounts[id] || 0), 0);
+
+    const confirmed = await confirm({
+      title: `Delete ${count} Buying Intent${count > 1 ? 's' : ''}`,
+      message: `Are you sure you want to delete ${count} buying intent${count > 1 ? 's' : ''}${totalQuotes > 0 ? ` and ${totalQuotes} linked quotes` : ''}? This action cannot be undone.`,
+      type: 'danger',
+      confirmText: `Delete ${count} Item${count > 1 ? 's' : ''}`
+    });
+
+    if (confirmed) {
+      for (const productId of selectedProducts) {
+        await actions.deleteProduct(productId);
+      }
+      deselectAll();
+    }
+  };
+
   const toggleCategory = (category) => {
     setCollapsedCategories(prev => ({
       ...prev,
@@ -197,10 +242,81 @@ function Products() {
     <div className="page">
       <div className="header">
         <h2>Buying Intents</h2>
-        <div className="header-actions">
-          <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-            <Plus size={16} /> New Buying Intent
-          </button>
+        <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
+          {selectionMode ? (
+            <>
+              {selectedProducts.size > 0 && (
+                <>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={deselectAll}
+                    style={{ fontSize: '0.875rem' }}
+                  >
+                    Cancel ({selectedProducts.size} selected)
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={selectAll}
+                    style={{
+                      background: '#3b82f6',
+                      color: 'white',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    <Check size={16} /> Select All
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={handleBulkDelete}
+                    style={{
+                      background: '#ef4444',
+                      color: 'white',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    <Trash2 size={16} /> Delete {selectedProducts.size}
+                  </button>
+                </>
+              )}
+              {selectedProducts.size === 0 && (
+                <>
+                  <button
+                    className="btn btn-ghost"
+                    onClick={deselectAll}
+                    style={{ fontSize: '0.875rem' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={selectAll}
+                    style={{
+                      background: '#3b82f6',
+                      color: 'white',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    <Check size={16} /> Select All
+                  </button>
+                </>
+              )}
+            </>
+          ) : (
+            <>
+              {products.length > 0 && (
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setSelectionMode(true)}
+                  style={{ fontSize: '0.875rem' }}
+                >
+                  <Check size={16} /> Select
+                </button>
+              )}
+              <button className="btn btn-primary" onClick={() => handleOpenModal()}>
+                <Plus size={16} /> New Buying Intent
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -525,15 +641,17 @@ function Products() {
                       {products.map(product => (
                         <div
                           key={product.id}
-                          onClick={() => navigate(`/products/${product.id}`)}
+                          onClick={() => selectionMode ? toggleSelection(product.id) : navigate(`/products/${product.id}`)}
                           style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '16px',
                             padding: '16px 20px',
-                            background: 'white',
+                            background: selectionMode && selectedProducts.has(product.id) ? '#eff6ff' : 'white',
                             borderRadius: '8px',
-                            border: `2px solid ${quoteCounts[product.id] > 0 ? '#10b981' : '#ef4444'}`,
+                            border: selectionMode && selectedProducts.has(product.id)
+                              ? '2px solid #3b82f6'
+                              : `2px solid ${quoteCounts[product.id] > 0 ? '#10b981' : '#ef4444'}`,
                             cursor: 'pointer',
                             transition: 'all 0.2s',
                           }}
@@ -546,6 +664,20 @@ function Products() {
                             e.currentTarget.style.boxShadow = 'none';
                           }}
                         >
+                          {selectionMode && (
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.has(product.id)}
+                              onChange={() => toggleSelection(product.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                cursor: 'pointer',
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
                           <Package size={20} style={{ color: '#94a3b8', flexShrink: 0 }} />
                           <div style={{ flex: 1 }}>
                             <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -582,26 +714,28 @@ function Products() {
                           }}>
                             {quoteCounts[product.id] || 0} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
                           </div>
-                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                            <button
-                              className="icon-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenModal(product);
-                              }}
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              className="icon-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(product.id);
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
+                          {!selectionMode && (
+                            <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+                              <button
+                                className="icon-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenModal(product);
+                                }}
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(product.id);
+                                }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
