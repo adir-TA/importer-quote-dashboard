@@ -497,27 +497,35 @@ function QuoteComparison() {
     // Create workbook
     const workbook = XLSX.utils.book_new();
 
-    // Prepare header data
+    // Prepare header data with image placeholder section
     const headerData = [
-      ['QUOTE COMPARISON REPORT'],
-      [''],
-      [`Product: ${selectedProduct.name}`],
-      [`Generated: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
-      [`Total Quotes Analyzed: ${quotesWithLanded.length}`],
-      [''],
-      ['Rank', 'Supplier', 'Unit Price', 'MOQ', 'Total (at MOQ)', 'Incoterm', 'Status']
+      ['QUOTE COMPARISON REPORT', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+      ['PRODUCT IMAGE', '', '', `Product: ${selectedProduct.name}`, '', '', '', ''],
+      ['[Insert Product', '', '', `Category: ${selectedProduct.category || 'General'}`, '', '', '', ''],
+      ['Image Here]', '', '', `Generated: ${new Date().toLocaleDateString()}`, '', '', '', ''],
+      ['', '', '', `Total Quotes: ${quotesWithLanded.length}`, '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+      ['', '', '', '', '', '', '', ''],
+      ['Rank', 'Supplier', 'Unit Price', 'MOQ', 'Total (at MOQ)', 'Incoterm', 'Savings', 'Status']
     ];
 
     // Prepare quote data
-    const quoteData = quotesWithLanded.map((quote, index) => [
-      index + 1,
-      quote.supplierName,
-      `${quote.currency || 'USD'} ${quote.unit_price.toFixed(2)}`,
-      quote.moq,
-      `${quote.currency || 'USD'} ${(quote.unit_price * quote.moq).toFixed(2)}`,
-      quote.incoterm || 'FOB',
-      index === 0 ? '⭐ Best Price' : ''
-    ]);
+    const quoteData = quotesWithLanded.map((quote, index) => {
+      const nextQuote = quotesWithLanded[index + 1];
+      const savings = nextQuote ? `${quote.currency || 'USD'} ${(nextQuote.unit_price - quote.unit_price).toFixed(2)}` : '-';
+
+      return [
+        index + 1,
+        quote.supplierName,
+        `${quote.currency || 'USD'} ${quote.unit_price.toFixed(2)}`,
+        quote.moq.toLocaleString(),
+        `${quote.currency || 'USD'} ${(quote.unit_price * quote.moq).toFixed(2)}`,
+        quote.incoterm || 'FOB',
+        savings,
+        index === 0 ? '⭐ BEST PRICE' : ''
+      ];
+    });
 
     // Combine all data
     const allData = [...headerData, ...quoteData];
@@ -528,20 +536,23 @@ function QuoteComparison() {
     // Set column widths
     worksheet['!cols'] = [
       { wch: 8 },   // Rank
-      { wch: 30 },  // Supplier
-      { wch: 15 },  // Unit Price
-      { wch: 10 },  // MOQ
-      { wch: 18 },  // Total
-      { wch: 12 },  // Incoterm
+      { wch: 28 },  // Supplier
+      { wch: 14 },  // Unit Price
+      { wch: 12 },  // MOQ
+      { wch: 16 },  // Total
+      { wch: 11 },  // Incoterm
+      { wch: 14 },  // Savings
       { wch: 15 }   // Status
     ];
 
-    // Merge cells for title
+    // Merge cells for title, image placeholder, and product info
     worksheet['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // Title row
-      { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } }, // Product row
-      { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } }, // Generated row
-      { s: { r: 4, c: 0 }, e: { r: 4, c: 6 } }  // Total quotes row
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } }, // Title row
+      { s: { r: 2, c: 0 }, e: { r: 5, c: 2 } }, // Image placeholder (4 rows x 3 cols)
+      { s: { r: 2, c: 3 }, e: { r: 2, c: 7 } }, // Product name
+      { s: { r: 3, c: 3 }, e: { r: 3, c: 7 } }, // Category
+      { s: { r: 4, c: 3 }, e: { r: 4, c: 7 } }, // Generated date
+      { s: { r: 5, c: 3 }, e: { r: 5, c: 7 } }  // Total quotes
     ];
 
     // Apply styles
@@ -555,75 +566,126 @@ function QuoteComparison() {
         // Initialize cell style
         worksheet[cellAddress].s = {};
 
-        // Title row (row 0)
+        // Title row (row 0) - Vibrant blue gradient effect
         if (R === 0) {
           worksheet[cellAddress].s = {
-            font: { bold: true, sz: 18, color: { rgb: "FFFFFF" } },
-            fill: { fgColor: { rgb: "4472C4" } },
-            alignment: { horizontal: "center", vertical: "center" }
-          };
-        }
-
-        // Info rows (rows 2-4)
-        if (R >= 2 && R <= 4) {
-          worksheet[cellAddress].s = {
-            font: { bold: true, sz: 11 },
-            fill: { fgColor: { rgb: "E7E6E6" } },
-            alignment: { horizontal: "left", vertical: "center" }
-          };
-        }
-
-        // Header row (row 6)
-        if (R === 6) {
-          worksheet[cellAddress].s = {
-            font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
-            fill: { fgColor: { rgb: "44546A" } },
+            font: { bold: true, sz: 20, color: { rgb: "FFFFFF" } },
+            fill: { fgColor: { rgb: "2563EB" } }, // Vibrant blue
             alignment: { horizontal: "center", vertical: "center" },
             border: {
-              top: { style: "thin", color: { rgb: "000000" } },
-              bottom: { style: "thin", color: { rgb: "000000" } },
-              left: { style: "thin", color: { rgb: "000000" } },
-              right: { style: "thin", color: { rgb: "000000" } }
+              bottom: { style: "medium", color: { rgb: "1E40AF" } }
             }
           };
         }
 
-        // Data rows (row 7+)
-        if (R >= 7) {
-          const dataRowIndex = R - 7; // 0-based index for quote data
+        // Image placeholder section (rows 2-5, cols 0-2) - Light blue with border
+        if (R >= 2 && R <= 5 && C >= 0 && C <= 2) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, sz: 11, color: { rgb: "1E40AF" } },
+            fill: { fgColor: { rgb: "DBEAFE" } }, // Light blue
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "medium", color: { rgb: "3B82F6" } },
+              bottom: { style: "medium", color: { rgb: "3B82F6" } },
+              left: { style: "medium", color: { rgb: "3B82F6" } },
+              right: { style: "medium", color: { rgb: "3B82F6" } }
+            }
+          };
+        }
+
+        // Product info section (rows 2-5, cols 3-7) - Gradient effect with colors
+        if (R >= 2 && R <= 5 && C >= 3) {
+          const colors = {
+            2: { bg: "FEF3C7", text: "92400E" }, // Yellow for product name
+            3: { bg: "E0E7FF", text: "3730A3" }, // Indigo for category
+            4: { bg: "DBEAFE", text: "1E40AF" }, // Blue for date
+            5: { bg: "D1FAE5", text: "065F46" }  // Green for total quotes
+          };
+          const color = colors[R];
+          worksheet[cellAddress].s = {
+            font: { bold: true, sz: 11, color: { rgb: color.text } },
+            fill: { fgColor: { rgb: color.bg } },
+            alignment: { horizontal: "left", vertical: "center" },
+            border: {
+              top: { style: "thin", color: { rgb: "CBD5E1" } },
+              bottom: { style: "thin", color: { rgb: "CBD5E1" } },
+              left: { style: "thin", color: { rgb: "CBD5E1" } },
+              right: { style: "thin", color: { rgb: "CBD5E1" } }
+            }
+          };
+        }
+
+        // Header row (row 8) - Dark professional header
+        if (R === 8) {
+          worksheet[cellAddress].s = {
+            font: { bold: true, color: { rgb: "FFFFFF" }, sz: 11 },
+            fill: { fgColor: { rgb: "1E293B" } }, // Dark slate
+            alignment: { horizontal: "center", vertical: "center" },
+            border: {
+              top: { style: "medium", color: { rgb: "000000" } },
+              bottom: { style: "medium", color: { rgb: "000000" } },
+              left: { style: "thin", color: { rgb: "475569" } },
+              right: { style: "thin", color: { rgb: "475569" } }
+            }
+          };
+        }
+
+        // Data rows (row 9+)
+        if (R >= 9) {
+          const dataRowIndex = R - 9;
           const isBestPrice = dataRowIndex === 0;
 
-          // Best price row highlighting
+          // Best price row - Vibrant green highlighting
           if (isBestPrice) {
             worksheet[cellAddress].s = {
-              font: { bold: true, sz: 11 },
-              fill: { fgColor: { rgb: "C6EFCE" } }, // Light green
+              font: { bold: true, sz: 11, color: { rgb: "065F46" } },
+              fill: { fgColor: { rgb: "A7F3D0" } }, // Vibrant green
               alignment: { horizontal: "center", vertical: "center" },
               border: {
-                top: { style: "thin", color: { rgb: "000000" } },
-                bottom: { style: "thin", color: { rgb: "000000" } },
-                left: { style: "thin", color: { rgb: "000000" } },
-                right: { style: "thin", color: { rgb: "000000" } }
+                top: { style: "medium", color: { rgb: "10B981" } },
+                bottom: { style: "medium", color: { rgb: "10B981" } },
+                left: { style: "thin", color: { rgb: "10B981" } },
+                right: { style: "thin", color: { rgb: "10B981" } }
               }
             };
           } else {
-            // Alternating row colors
-            const bgColor = dataRowIndex % 2 === 0 ? "FFFFFF" : "F2F2F2";
+            // Alternating row colors with better contrast
+            const bgColor = dataRowIndex % 2 === 1 ? "F8FAFC" : "FFFFFF";
             worksheet[cellAddress].s = {
+              font: { sz: 10, color: { rgb: "1E293B" } },
               fill: { fgColor: { rgb: bgColor } },
               alignment: { horizontal: "center", vertical: "center" },
               border: {
-                top: { style: "thin", color: { rgb: "D3D3D3" } },
-                bottom: { style: "thin", color: { rgb: "D3D3D3" } },
-                left: { style: "thin", color: { rgb: "D3D3D3" } },
-                right: { style: "thin", color: { rgb: "D3D3D3" } }
+                top: { style: "thin", color: { rgb: "E2E8F0" } },
+                bottom: { style: "thin", color: { rgb: "E2E8F0" } },
+                left: { style: "thin", color: { rgb: "E2E8F0" } },
+                right: { style: "thin", color: { rgb: "E2E8F0" } }
               }
             };
           }
 
-          // Highlight the "Status" column for best price
-          if (C === 6 && isBestPrice) {
-            worksheet[cellAddress].s.font = { bold: true, color: { rgb: "006100" }, sz: 11 };
+          // Special highlighting for columns
+          // Rank column - Light blue background
+          if (C === 0) {
+            worksheet[cellAddress].s.fill = { fgColor: { rgb: isBestPrice ? "A7F3D0" : "EFF6FF" } };
+            worksheet[cellAddress].s.font = { ...worksheet[cellAddress].s.font, bold: true };
+          }
+
+          // Unit Price column - Light yellow background
+          if (C === 2) {
+            worksheet[cellAddress].s.fill = { fgColor: { rgb: isBestPrice ? "A7F3D0" : "FEF9C3" } };
+            worksheet[cellAddress].s.font = { ...worksheet[cellAddress].s.font, bold: true };
+          }
+
+          // Savings column - Light green if there are savings
+          if (C === 6 && !isBestPrice) {
+            worksheet[cellAddress].s.fill = { fgColor: { rgb: "D1FAE5" } };
+            worksheet[cellAddress].s.font = { ...worksheet[cellAddress].s.font, color: { rgb: "065F46" } };
+          }
+
+          // Status column - Bold orange for best price
+          if (C === 7 && isBestPrice) {
+            worksheet[cellAddress].s.font = { bold: true, color: { rgb: "EA580C" }, sz: 11 };
           }
         }
       }
@@ -631,13 +693,15 @@ function QuoteComparison() {
 
     // Set row heights
     worksheet['!rows'] = [
-      { hpx: 30 },  // Title row
-      { hpx: 5 },   // Empty row
-      { hpx: 20 },  // Product info
-      { hpx: 20 },  // Generated info
-      { hpx: 20 },  // Total quotes
-      { hpx: 5 },   // Empty row
-      { hpx: 25 }   // Header row
+      { hpx: 35 },  // Title row
+      { hpx: 8 },   // Empty row
+      { hpx: 22 },  // Image/Product info row 1
+      { hpx: 22 },  // Image/Product info row 2
+      { hpx: 22 },  // Image/Product info row 3
+      { hpx: 22 },  // Image/Product info row 4
+      { hpx: 8 },   // Empty row
+      { hpx: 8 },   // Empty row
+      { hpx: 28 }   // Header row
     ];
 
     // Add worksheet to workbook
