@@ -375,6 +375,7 @@ function QuoteComparison() {
   const [aiAction, setAiAction] = useState('');
   const [loadingCounts, setLoadingCounts] = React.useState(true); // track loading state
   const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState('vibrant');
 
   // Load quote counts for all products
   React.useEffect(() => {
@@ -1236,7 +1237,7 @@ function QuoteComparison() {
         )}
       </div>
 
-      {/* Theme Selector Modal */}
+      {/* Theme Selector Modal - Split Screen */}
       {showThemeSelector && (
         <div style={{
           position: 'fixed',
@@ -1255,19 +1256,32 @@ function QuoteComparison() {
           <div style={{
             background: 'white',
             borderRadius: '16px',
-            padding: '32px',
-            maxWidth: '800px',
-            width: '90%',
-            maxHeight: '80vh',
-            overflow: 'auto',
+            maxWidth: '1200px',
+            width: '95%',
+            height: '85vh',
             boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
           }}
           onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
-                Choose Export Theme
-              </h2>
+            {/* Header */}
+            <div style={{
+              padding: '24px 32px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                  Choose Export Theme
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                  Select a theme and preview before exporting
+                </p>
+              </div>
               <button
                 onClick={() => setShowThemeSelector(false)}
                 style={{
@@ -1288,193 +1302,359 @@ function QuoteComparison() {
               </button>
             </div>
 
-            <p style={{ color: '#64748b', marginBottom: '32px', fontSize: '0.95rem' }}>
-              Select a color theme for your Excel export. Each theme provides a different professional look.
-            </p>
-
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
-              gap: '20px',
-            }}>
-              {Object.entries(exportThemes).map(([key, theme]) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    handleExportExcel(key);
-                    setShowThemeSelector(false);
-                  }}
-                  style={{
-                    background: 'white',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '12px',
-                    padding: '20px',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    transition: 'all 0.2s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.boxShadow = '0 8px 24px rgba(59, 130, 246, 0.2)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.boxShadow = 'none';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
+            {/* Split Content */}
+            <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+              {/* Left Sidebar - Theme List */}
+              <div style={{
+                width: '320px',
+                borderRight: '1px solid #e5e7eb',
+                display: 'flex',
+                flexDirection: 'column',
+              }}>
+                <div style={{
+                  padding: '20px',
+                  borderBottom: '1px solid #e5e7eb',
+                }}>
                   <h3 style={{
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    color: '#1e293b',
-                    marginBottom: '8px',
-                  }}>
-                    {theme.name}
-                  </h3>
-                  <p style={{
-                    color: '#64748b',
                     fontSize: '0.875rem',
-                    marginBottom: '16px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    color: '#64748b',
+                    margin: 0,
                   }}>
-                    {theme.description}
-                  </p>
+                    Available Themes
+                  </h3>
+                </div>
 
-                  {/* Mini Table Preview */}
-                  <div style={{
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    overflow: 'hidden',
-                    marginBottom: '16px',
-                    fontSize: '0.7rem',
-                  }}>
-                    {/* Title */}
-                    <div style={{
-                      background: `#${theme.colors.title.bg.substring(2)}`,
-                      color: `#${theme.colors.title.text.substring(2)}`,
-                      padding: '8px',
-                      fontWeight: 'bold',
-                      textAlign: 'center',
-                      fontSize: '0.75rem',
-                    }}>
-                      QUOTE COMPARISON REPORT
-                    </div>
-
-                    {/* Info Section */}
-                    <div style={{ display: 'flex', gap: '4px', padding: '4px' }}>
+                <div style={{
+                  flex: 1,
+                  overflow: 'auto',
+                  padding: '8px',
+                }}>
+                  {Object.entries(exportThemes).map(([key, theme]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedTheme(key)}
+                      style={{
+                        width: '100%',
+                        padding: '16px',
+                        marginBottom: '8px',
+                        background: selectedTheme === key ? '#eff6ff' : 'white',
+                        border: `2px solid ${selectedTheme === key ? '#3b82f6' : '#e5e7eb'}`,
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedTheme !== key) {
+                          e.currentTarget.style.borderColor = '#cbd5e1';
+                          e.currentTarget.style.background = '#f9fafb';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedTheme !== key) {
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.background = 'white';
+                        }
+                      }}
+                    >
                       <div style={{
-                        flex: 1,
-                        background: `#${theme.colors.imagePlaceholder.bg.substring(2)}`,
-                        color: `#${theme.colors.imagePlaceholder.text.substring(2)}`,
-                        padding: '6px',
-                        textAlign: 'center',
-                        fontSize: '0.6rem',
-                        border: `1px solid #${theme.colors.imagePlaceholder.border.substring(2)}`,
-                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '8px',
                       }}>
-                        IMAGE
-                      </div>
-                      <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '2px' }}>
                         <div style={{
-                          background: `#${theme.colors.productName.bg.substring(2)}`,
-                          color: `#${theme.colors.productName.text.substring(2)}`,
-                          padding: '3px 6px',
-                          fontSize: '0.6rem',
-                          borderRadius: '2px',
-                        }}>Product</div>
-                        <div style={{
-                          background: `#${theme.colors.category.bg.substring(2)}`,
-                          color: `#${theme.colors.category.text.substring(2)}`,
-                          padding: '3px 6px',
-                          fontSize: '0.6rem',
-                          borderRadius: '2px',
-                        }}>Category</div>
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          border: `2px solid ${selectedTheme === key ? '#3b82f6' : '#d1d5db'}`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {selectedTheme === key && (
+                            <div style={{
+                              width: '10px',
+                              height: '10px',
+                              borderRadius: '50%',
+                              background: '#3b82f6',
+                            }} />
+                          )}
+                        </div>
+                        <h4 style={{
+                          fontSize: '0.95rem',
+                          fontWeight: 600,
+                          color: '#1e293b',
+                          margin: 0,
+                        }}>
+                          {theme.name}
+                        </h4>
                       </div>
-                    </div>
+                      <p style={{
+                        color: '#64748b',
+                        fontSize: '0.8rem',
+                        margin: '0 0 12px 28px',
+                      }}>
+                        {theme.description}
+                      </p>
+                      <div style={{
+                        display: 'flex',
+                        gap: '6px',
+                        marginLeft: '28px',
+                      }}>
+                        {theme.preview.map((color, index) => (
+                          <div
+                            key={index}
+                            style={{
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '4px',
+                              background: color,
+                              border: '1px solid rgba(0,0,0,0.1)',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                    {/* Table Header */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '40px 1fr 60px 50px',
-                      background: `#${theme.colors.header.bg.substring(2)}`,
-                      color: `#${theme.colors.header.text.substring(2)}`,
-                      padding: '6px 8px',
-                      fontWeight: 'bold',
-                      fontSize: '0.65rem',
-                      gap: '4px',
-                      textAlign: 'center',
-                    }}>
-                      <div>Rank</div>
-                      <div>Supplier</div>
-                      <div>Price</div>
-                      <div>Status</div>
-                    </div>
-
-                    {/* Best Price Row */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '40px 1fr 60px 50px',
-                      background: `#${theme.colors.bestPrice.bg.substring(2)}`,
-                      color: `#${theme.colors.bestPrice.text.substring(2)}`,
-                      padding: '6px 8px',
-                      fontSize: '0.65rem',
-                      gap: '4px',
-                      textAlign: 'center',
-                      borderBottom: '1px solid #e5e7eb',
-                    }}>
-                      <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>1</div>
-                      <div>Supplier A</div>
-                      <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>$0.32</div>
-                      <div style={{ color: `#${theme.colors.bestPrice.status.substring(2)}`, fontWeight: 'bold' }}>BEST</div>
-                    </div>
-
-                    {/* Regular Row */}
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: '40px 1fr 60px 50px',
-                      background: `#${theme.colors.alternatingRow.odd.substring(2)}`,
-                      padding: '6px 8px',
-                      fontSize: '0.65rem',
-                      gap: '4px',
-                      textAlign: 'center',
-                    }}>
-                      <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>2</div>
-                      <div>Supplier B</div>
-                      <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '2px', borderRadius: '2px', fontWeight: 'bold' }}>$0.35</div>
-                      <div>-</div>
-                    </div>
-                  </div>
-
-                  <div style={{
-                    display: 'flex',
-                    gap: '8px',
-                    alignItems: 'center',
+              {/* Right Side - Large Preview */}
+              <div style={{
+                flex: 1,
+                display: 'flex',
+                flexDirection: 'column',
+                background: '#f9fafb',
+              }}>
+                <div style={{
+                  padding: '20px 32px',
+                  background: 'white',
+                  borderBottom: '1px solid #e5e7eb',
+                }}>
+                  <h3 style={{
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    color: '#64748b',
+                    margin: 0,
                   }}>
-                    <span style={{
-                      fontSize: '0.75rem',
-                      color: '#94a3b8',
-                      fontWeight: 500,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.5px',
-                    }}>
-                      Colors:
-                    </span>
-                    {theme.preview.map((color, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          width: '28px',
-                          height: '28px',
-                          borderRadius: '6px',
-                          background: color,
-                          border: '2px solid white',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                        }}
-                      />
-                    ))}
-                  </div>
-                </button>
-              ))}
+                    Preview
+                  </h3>
+                </div>
+
+                <div style={{
+                  flex: 1,
+                  overflow: 'auto',
+                  padding: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {/* Large Excel Preview */}
+                  {(() => {
+                    const theme = exportThemes[selectedTheme];
+                    return (
+                      <div style={{
+                        background: 'white',
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+                        overflow: 'hidden',
+                        maxWidth: '700px',
+                        width: '100%',
+                      }}>
+                        {/* Title */}
+                        <div style={{
+                          background: `#${theme.colors.title.bg.substring(2)}`,
+                          color: `#${theme.colors.title.text.substring(2)}`,
+                          padding: '20px',
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          fontSize: '1.25rem',
+                        }}>
+                          QUOTE COMPARISON REPORT
+                        </div>
+
+                        {/* Info Section */}
+                        <div style={{ display: 'flex', gap: '12px', padding: '16px' }}>
+                          <div style={{
+                            flex: 1,
+                            background: `#${theme.colors.imagePlaceholder.bg.substring(2)}`,
+                            color: `#${theme.colors.imagePlaceholder.text.substring(2)}`,
+                            padding: '40px 20px',
+                            textAlign: 'center',
+                            fontSize: '0.8rem',
+                            fontWeight: 'bold',
+                            border: `2px solid #${theme.colors.imagePlaceholder.border.substring(2)}`,
+                            borderRadius: '8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}>
+                            PRODUCT IMAGE<br/>[Insert Image Here]
+                          </div>
+                          <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{
+                              background: `#${theme.colors.productName.bg.substring(2)}`,
+                              color: `#${theme.colors.productName.text.substring(2)}`,
+                              padding: '12px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              borderRadius: '6px',
+                            }}>Product: {selectedProduct?.name || 'Adhesive Tape'}</div>
+                            <div style={{
+                              background: `#${theme.colors.category.bg.substring(2)}`,
+                              color: `#${theme.colors.category.text.substring(2)}`,
+                              padding: '12px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              borderRadius: '6px',
+                            }}>Category: {selectedProduct?.category || 'Other'}</div>
+                            <div style={{
+                              background: `#${theme.colors.date.bg.substring(2)}`,
+                              color: `#${theme.colors.date.text.substring(2)}`,
+                              padding: '12px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              borderRadius: '6px',
+                            }}>Generated: {new Date().toLocaleDateString()}</div>
+                            <div style={{
+                              background: `#${theme.colors.totalQuotes.bg.substring(2)}`,
+                              color: `#${theme.colors.totalQuotes.text.substring(2)}`,
+                              padding: '12px 16px',
+                              fontSize: '0.9rem',
+                              fontWeight: 'bold',
+                              borderRadius: '6px',
+                            }}>Total Quotes: {quotesWithLanded.length || 5}</div>
+                          </div>
+                        </div>
+
+                        {/* Table Header */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          background: `#${theme.colors.header.bg.substring(2)}`,
+                          color: `#${theme.colors.header.text.substring(2)}`,
+                          padding: '12px 16px',
+                          fontWeight: 'bold',
+                          fontSize: '0.85rem',
+                          gap: '12px',
+                          textAlign: 'center',
+                          borderTop: '1px solid #e5e7eb',
+                        }}>
+                          <div>Rank</div>
+                          <div>Supplier</div>
+                          <div>Unit Price</div>
+                          <div>MOQ</div>
+                          <div>Total</div>
+                          <div>Status</div>
+                        </div>
+
+                        {/* Best Price Row */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          background: `#${theme.colors.bestPrice.bg.substring(2)}`,
+                          color: `#${theme.colors.bestPrice.text.substring(2)}`,
+                          padding: '12px 16px',
+                          fontSize: '0.85rem',
+                          gap: '12px',
+                          textAlign: 'center',
+                          borderBottom: '1px solid #e5e7eb',
+                        }}>
+                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>1</div>
+                          <div>A Sarah</div>
+                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>USD 0.32</div>
+                          <div>1</div>
+                          <div>USD 0.32</div>
+                          <div style={{ color: `#${theme.colors.bestPrice.status.substring(2)}`, fontWeight: 'bold' }}>⭐ BEST</div>
+                        </div>
+
+                        {/* Regular Row */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          background: `#${theme.colors.alternatingRow.odd.substring(2)}`,
+                          padding: '12px 16px',
+                          fontSize: '0.85rem',
+                          gap: '12px',
+                          textAlign: 'center',
+                          borderBottom: '1px solid #e5e7eb',
+                        }}>
+                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>2</div>
+                          <div>Jasion</div>
+                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>USD 0.33</div>
+                          <div>1</div>
+                          <div>USD 0.33</div>
+                          <div>-</div>
+                        </div>
+
+                        {/* Regular Row 2 */}
+                        <div style={{
+                          display: 'grid',
+                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          background: `#${theme.colors.alternatingRow.even.substring(2)}`,
+                          padding: '12px 16px',
+                          fontSize: '0.85rem',
+                          gap: '12px',
+                          textAlign: 'center',
+                        }}>
+                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>3</div>
+                          <div>Melo</div>
+                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>USD 0.34</div>
+                          <div>1</div>
+                          <div>USD 0.34</div>
+                          <div>-</div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Export Button */}
+                <div style={{
+                  padding: '20px 32px',
+                  background: 'white',
+                  borderTop: '1px solid #e5e7eb',
+                  display: 'flex',
+                  justifyContent: 'flex-end',
+                  gap: '12px',
+                }}>
+                  <button
+                    onClick={() => setShowThemeSelector(false)}
+                    className="btn btn-secondary"
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleExportExcel(selectedTheme);
+                      setShowThemeSelector(false);
+                    }}
+                    className="btn btn-primary"
+                    style={{
+                      padding: '10px 24px',
+                      fontSize: '0.9rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <FileSpreadsheet size={18} />
+                    Export with {exportThemes[selectedTheme].name}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
