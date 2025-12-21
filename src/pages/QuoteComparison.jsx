@@ -377,6 +377,18 @@ function QuoteComparison() {
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('vibrant');
 
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (showThemeSelector) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showThemeSelector]);
+
   // Load quote counts for all products
   React.useEffect(() => {
     const loadQuoteCounts = async () => {
@@ -1453,8 +1465,9 @@ function QuoteComparison() {
                   overflow: 'auto',
                   padding: '32px',
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'center',
+                  justifyContent: 'flex-start',
                 }}>
                   {/* Large Excel Preview */}
                   {(() => {
@@ -1468,15 +1481,17 @@ function QuoteComparison() {
                         overflow: 'hidden',
                         maxWidth: '700px',
                         width: '100%',
+                        marginBottom: '32px',
                       }}>
-                        {/* Title */}
+                        {/* Title - Always Visible */}
                         <div style={{
                           background: `#${theme.colors.title.bg.substring(2)}`,
                           color: `#${theme.colors.title.text.substring(2)}`,
-                          padding: '20px',
+                          padding: '24px',
                           fontWeight: 'bold',
                           textAlign: 'center',
-                          fontSize: '1.25rem',
+                          fontSize: '1.5rem',
+                          letterSpacing: '0.5px',
                         }}>
                           QUOTE COMPARISON REPORT
                         </div>
