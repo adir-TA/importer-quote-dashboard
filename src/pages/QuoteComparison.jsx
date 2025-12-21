@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  ArrowLeft, FileSpreadsheet, FileText, Sparkles, 
+import {
+  ArrowLeft, FileSpreadsheet, FileText, Sparkles,
   TrendingDown, MessageSquare, Trophy, X, Check, CheckCircle2,
   FileDown, Calculator, Package, ChevronDown, Search, AlertCircle, AlertTriangle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import * as XLSX from 'xlsx';
 
 // ============================================
 // FORMATTING HELPERS (Display only - never in calculations)
@@ -488,11 +489,55 @@ function QuoteComparison() {
   };
 
   const handleExportExcel = () => {
-    alert('Excel export: Comparison data would be downloaded.');
-  };
+    if (!selectedProduct || quotesWithLanded.length === 0) {
+      alert('No quotes available to export');
+      return;
+    }
 
-  const handleExportPDF = () => {
-    alert('PDF export: Comparison report would be generated.');
+    // Prepare data for Excel
+    const excelData = quotesWithLanded.map((quote, index) => ({
+      'Rank': index + 1,
+      'Supplier': quote.supplierName,
+      'Unit Price': `${quote.currency || 'USD'} ${quote.unit_price.toFixed(2)}`,
+      'MOQ': quote.moq,
+      'Total (at MOQ)': `${quote.currency || 'USD'} ${(quote.unit_price * quote.moq).toFixed(2)}`,
+      'Incoterm': quote.incoterm || 'FOB',
+      'Status': index === 0 ? 'Best Price' : ''
+    }));
+
+    // Add summary header rows
+    const summaryData = [
+      { 'Rank': 'Quote Comparison Report' },
+      { 'Rank': `Product: ${selectedProduct.name}` },
+      { 'Rank': `Generated: ${new Date().toLocaleString()}` },
+      { 'Rank': `Total Quotes: ${quotesWithLanded.length}` },
+      { 'Rank': '' }, // Empty row for spacing
+    ];
+
+    // Combine summary and data
+    const worksheetData = [...summaryData, ...excelData];
+
+    // Create workbook and worksheet
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData, { skipHeader: false });
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Quote Comparison');
+
+    // Set column widths
+    worksheet['!cols'] = [
+      { wch: 8 },  // Rank
+      { wch: 25 }, // Supplier
+      { wch: 15 }, // Unit Price
+      { wch: 12 }, // MOQ
+      { wch: 18 }, // Total
+      { wch: 12 }, // Incoterm
+      { wch: 15 }  // Status
+    ];
+
+    // Generate filename
+    const filename = `Quote_Comparison_${selectedProduct.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+    // Export
+    XLSX.writeFile(workbook, filename);
   };
 
   const handleAIExplain = () => {
@@ -533,24 +578,6 @@ function QuoteComparison() {
               Compare suppliers for a buying intent and select the best price
             </p>
           </div>
-        </div>
-        <div className="header-actions">
-          <button
-            className="btn"
-            onClick={handleExportExcel}
-            style={{ background: '#217346', color: 'white' }}
-            disabled={quotesWithLanded.length === 0}
-          >
-            <FileSpreadsheet size={16} /> Excel
-          </button>
-          <button
-            className="btn"
-            onClick={handleExportPDF}
-            style={{ background: '#dc2626', color: 'white' }}
-            disabled={quotesWithLanded.length === 0}
-          >
-            <FileText size={16} /> PDF
-          </button>
         </div>
       </div>
 
@@ -774,10 +801,25 @@ function QuoteComparison() {
 
                 {/* Comparison Table */}
                 <div className="card">
-                  <div className="card-header">
+                  <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span className="card-title">
                       <TrendingDown size={18} /> {quotesWithLanded.length} Quotes for {selectedProduct?.name}
                     </span>
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleExportExcel}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '6px 12px',
+                        fontSize: '0.875rem',
+                      }}
+                      title="Export comparison to Excel"
+                    >
+                      <FileSpreadsheet size={16} />
+                      Export to Excel
+                    </button>
                   </div>
                   <div className="card-body" style={{ padding: 0 }}>
                     <table className="table comparison-table">
