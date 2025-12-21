@@ -108,69 +108,91 @@ export function generateAutoName(supplierQuote, lineItem = null) {
 export function generateAutoDescription(supplierQuote, lineItem) {
   const lines = [];
 
-  // Header
+  // Header - cleaner format
   const supplierName = cleanSupplierName(supplierQuote?.supplierName || 'Unknown supplier');
-  lines.push(`📦 Auto-created from: ${supplierName}`);
+  lines.push(`Auto-created from ${supplierName}`);
   lines.push('');
 
-  // Product specs
-  const specs = [];
+  // === PRODUCT DETAILS ===
+  const details = [];
 
   if (lineItem.sku) {
-    specs.push(`• SKU: ${lineItem.sku}`);
+    details.push(`SKU: ${lineItem.sku}`);
   }
 
   if (lineItem.dimensions || lineItem.product_dimensions_text) {
-    specs.push(`• Size: ${lineItem.dimensions || lineItem.product_dimensions_text}`);
+    details.push(`Size: ${lineItem.dimensions || lineItem.product_dimensions_text}`);
   }
 
+  // Handle weight - show "Not Specified" if missing
   if (lineItem.weight_g) {
     const kg = (lineItem.weight_g / 1000).toFixed(2);
-    specs.push(`• Weight: ${kg}kg (${lineItem.weight_g}g)`);
+    details.push(`Weight: ${kg}kg`);
+  } else {
+    details.push(`Weight: Not Specified`);
   }
 
-  if (specs.length > 0) {
-    lines.push('SPECIFICATIONS');
-    lines.push(...specs);
+  if (details.length > 0) {
+    lines.push('PRODUCT');
+    details.forEach(detail => lines.push(`  ${detail}`));
     lines.push('');
   }
 
-  // Pricing & order info
+  // === PRICING & QUANTITY ===
   const pricing = [];
 
   if (lineItem.unitPrice) {
     const currency = supplierQuote.currency || 'USD';
-    pricing.push(`• Price: ${currency} ${lineItem.unitPrice}`);
+    pricing.push(`Price: ${currency} ${lineItem.unitPrice}/pc`);
   }
 
-  if (lineItem.moq) {
-    pricing.push(`• MOQ: ${lineItem.moq} units`);
+  // Smart quantity handling - use quantity if available, otherwise MOQ
+  // If quantity equals MOQ, specify it's the MOQ
+  const hasQuantity = lineItem.quantity != null;
+  const hasMoq = lineItem.moq != null;
+
+  if (hasQuantity && hasMoq) {
+    // Both quantity and MOQ exist
+    if (lineItem.quantity === lineItem.moq) {
+      // They're the same - show as "Quantity: X (MOQ)"
+      pricing.push(`Quantity: ${lineItem.quantity} (MOQ)`);
+    } else {
+      // Different - show both
+      pricing.push(`Quantity: ${lineItem.quantity}`);
+      pricing.push(`MOQ: ${lineItem.moq}`);
+    }
+  } else if (hasQuantity) {
+    // Only quantity
+    pricing.push(`Quantity: ${lineItem.quantity}`);
+  } else if (hasMoq) {
+    // Only MOQ - show as "Quantity: X (MOQ)"
+    pricing.push(`Quantity: ${lineItem.moq} (MOQ)`);
   }
 
   if (pricing.length > 0) {
     lines.push('PRICING');
-    lines.push(...pricing);
+    pricing.forEach(item => lines.push(`  ${item}`));
     lines.push('');
   }
 
-  // Packing details
+  // === PACKING ===
   const packing = [];
 
   if (lineItem.packing_pcs_per_ctn) {
-    packing.push(`• Packing: ${lineItem.packing_pcs_per_ctn} pcs/carton`);
+    packing.push(`${lineItem.packing_pcs_per_ctn} pcs/carton`);
   }
 
   if (lineItem.carton_length_cm && lineItem.carton_width_cm && lineItem.carton_height_cm) {
-    packing.push(`• Carton: ${lineItem.carton_length_cm}×${lineItem.carton_width_cm}×${lineItem.carton_height_cm}cm`);
+    packing.push(`Carton: ${lineItem.carton_length_cm}×${lineItem.carton_width_cm}×${lineItem.carton_height_cm}cm`);
   }
 
   if (lineItem.cbm_per_carton) {
-    packing.push(`• CBM: ${lineItem.cbm_per_carton} m³/carton`);
+    packing.push(`CBM: ${lineItem.cbm_per_carton} m³`);
   }
 
   if (packing.length > 0) {
     lines.push('PACKING');
-    lines.push(...packing);
+    packing.forEach(item => lines.push(`  ${item}`));
   }
 
   return lines.join('\n');

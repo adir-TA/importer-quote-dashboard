@@ -146,9 +146,10 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           display: '-webkit-box',
-          WebkitLineClamp: 2,
+          WebkitLineClamp: 3,
           WebkitBoxOrient: 'vertical',
           lineHeight: '1.4',
+          whiteSpace: 'pre-line',
         }}>
           {product.description}
         </p>
