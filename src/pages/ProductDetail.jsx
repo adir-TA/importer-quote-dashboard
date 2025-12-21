@@ -123,7 +123,7 @@ function ProductDetail() {
   };
 
   const handleCompare = () => {
-    navigate('/comparison');
+    navigate('/comparison', { state: { productId: id } });
   };
 
   // Handle quote save from upload modal (multi-item)
