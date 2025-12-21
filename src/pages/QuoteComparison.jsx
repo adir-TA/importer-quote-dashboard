@@ -481,8 +481,25 @@ function QuoteComparison() {
         setLineItems([]);
         return;
       }
-      const items = await computed.getLineItemsForBuyingIntent(selectedProductId);
-      setLineItems(items);
+
+      // Load BOTH old quotes AND new line items (same as ProductDetail page)
+      const oldQuotes = computed.getProductQuotes(selectedProductId);
+      const newLineItems = await computed.getLineItemsForBuyingIntent(selectedProductId);
+
+      // Transform old quotes to line item format
+      const oldQuotesAsLineItems = oldQuotes.map(quote => ({
+        id: quote.id,
+        unit_price: quote.unitPrice || quote.fields?.unitPrice || 0,
+        moq: quote.moq || quote.fields?.moq || 1,
+        currency: quote.currency || quote.fields?.currency || 'USD',
+        incoterm: quote.incoterm || quote.fields?.incoterm || 'FOB',
+        supplierName: quote.supplierName || quote.supplier_name,
+        supplier: null,
+        created_at: quote.created_at,
+      }));
+
+      // Combine old quotes and new line items
+      setLineItems([...oldQuotesAsLineItems, ...newLineItems]);
     };
     loadLineItems();
   }, [selectedProductId, computed]);
