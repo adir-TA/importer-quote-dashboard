@@ -548,7 +548,23 @@ function Products() {
                         >
                           <Package size={20} style={{ color: '#94a3b8', flexShrink: 0 }} />
                           <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, marginBottom: '4px' }}>{product.name}</div>
+                            <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {product.name}
+                              {product.status === 'draft' && (
+                                <span style={{
+                                  padding: '2px 8px',
+                                  background: '#fef3c7',
+                                  color: '#92400e',
+                                  borderRadius: '4px',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.3px',
+                                }}>
+                                  Draft
+                                </span>
+                              )}
+                            </div>
                             {product.description && (
                               <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                                 {product.description}

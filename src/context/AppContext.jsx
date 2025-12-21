@@ -107,10 +107,16 @@ export function AppProvider({ children }) {
       setProducts(prev => [product, ...prev]);
       return product;
     }
-    
-    const { data, error } = await supabase
+
+    const { data, error} = await supabase
       .from('products')
-      .insert({ user_id: user.id, name: product.name, category: product.category || null, description: product.description || null })
+      .insert({
+        user_id: user.id,
+        name: product.name,
+        category: product.category || null,
+        description: product.description || null,
+        status: product.status || 'draft' // Auto-created intents start as draft
+      })
       .select()
       .single();
     if (error) throw error;
@@ -123,10 +129,21 @@ export function AppProvider({ children }) {
       setProducts(prev => prev.map(p => p.id === product.id ? { ...p, ...product } : p));
       return product;
     }
-    
+
+    const updateData = {
+      name: product.name,
+      category: product.category,
+      description: product.description
+    };
+
+    // Include status if provided
+    if (product.status !== undefined) {
+      updateData.status = product.status;
+    }
+
     const { data, error } = await supabase
       .from('products')
-      .update({ name: product.name, category: product.category, description: product.description })
+      .update(updateData)
       .eq('id', product.id)
       .select()
       .single();
@@ -146,6 +163,31 @@ export function AppProvider({ children }) {
     if (error) throw error;
     setProducts(prev => prev.filter(p => p.id !== productId));
     setQuotes(prev => prev.filter(q => q.product_id !== productId));
+  };
+
+  const finalizeBuyingIntent = async (productId, newName = null) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) throw new Error('Product not found');
+
+    const updateData = {
+      status: 'finalized'
+    };
+
+    // Update name if provided
+    if (newName && newName.trim()) {
+      updateData.name = newName.trim();
+    }
+
+    const { data, error } = await supabase
+      .from('products')
+      .update(updateData)
+      .eq('id', productId)
+      .select()
+      .single();
+
+    if (error) throw error;
+    setProducts(prev => prev.map(p => p.id === productId ? data : p));
+    return data;
   };
 
   // DELETE ALL SEED/FAKE DATA FROM DATABASE
@@ -681,7 +723,7 @@ export function AppProvider({ children }) {
   const value = {
     state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },
     actions: {
-      addProduct, updateProduct, deleteProduct,
+      addProduct, updateProduct, deleteProduct, finalizeBuyingIntent,
       addQuote, updateQuote, deleteQuote,
       addSupplierQuote, // NEW: Multi-item quote support
       addSupplier, updateSupplier, deleteSupplier,

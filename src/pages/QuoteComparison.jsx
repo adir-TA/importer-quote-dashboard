@@ -1064,11 +1064,89 @@ function QuoteComparison() {
                   </div>
                 )}
 
+                {/* Draft Finalize Prompt */}
+                {selectedProduct?.status === 'draft' && (
+                  <div style={{
+                    marginBottom: '20px',
+                    padding: '16px 20px',
+                    background: 'linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)',
+                    border: '2px solid #fbbf24',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                  }}>
+                    <AlertCircle size={24} style={{ color: '#92400e', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, color: '#92400e', marginBottom: '4px' }}>
+                        This Buying Intent was auto-created
+                      </div>
+                      <div style={{ fontSize: '0.875rem', color: '#78350f' }}>
+                        Give it a meaningful name to finalize and organize your quotes better
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const newName = prompt('Enter a name for this Buying Intent:', selectedProduct.name);
+                        if (newName && newName.trim()) {
+                          try {
+                            await actions.finalizeBuyingIntent(selectedProduct.id, newName.trim());
+                            alert('Buying Intent finalized successfully!');
+                          } catch (err) {
+                            alert(`Failed to finalize: ${err.message}`);
+                          }
+                        }
+                      }}
+                      style={{
+                        padding: '10px 20px',
+                        background: '#f59e0b',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        fontSize: '0.875rem',
+                        whiteSpace: 'nowrap',
+                        boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#d97706';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = '#f59e0b';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 158, 11, 0.3)';
+                      }}
+                    >
+                      Name & Finalize
+                    </button>
+                  </div>
+                )}
+
                 {/* Comparison Table */}
                 <div className="card">
                   <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span className="card-title">
-                      <TrendingDown size={18} /> {quotesWithLanded.length} Quotes for {selectedProduct?.name}
+                    <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <TrendingDown size={18} /> {quotesWithLanded.length} Quotes for {selectedProduct?.name}
+                      </span>
+                      {selectedProduct?.status === 'draft' && (
+                        <span style={{
+                          padding: '3px 10px',
+                          background: '#fef3c7',
+                          color: '#92400e',
+                          borderRadius: '4px',
+                          fontSize: '0.7rem',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.3px',
+                        }}>
+                          Draft
+                        </span>
+                      )}
                     </span>
                     <button
                       className="btn btn-ghost btn-sm"

@@ -8,6 +8,7 @@ import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtractio
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { calculateMatchConfidence } from '../utils/buyingIntentMatcher';
+import { generateAutoName } from '../utils/autoNaming';
 import API_BASE_URL from '../config/api';
 
 // ============================================
@@ -460,18 +461,45 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       return;
     }
 
-    // Validate that all line items have a linked buying intent
-    const unlinkedItems = editableLineItems.filter(item => !item.linkedBuyingIntentId);
-    if (unlinkedItems.length > 0) {
-      alert(`All line items must be linked to a Buying Intent.\n\n${unlinkedItems.length} item(s) are not linked yet.`);
-      return;
-    }
-
     setSaving(true);
     try {
       console.log('[Modal] Saving quote data:', data);
       console.log('[Modal] Uploaded file:', uploadedFile);
-      const result = await actions.addSupplierQuote(data.supplierQuote, data.lineItems);
+
+      // Auto-create draft Buying Intents for unlinked items
+      const updatedLineItems = [];
+      for (const item of data.lineItems) {
+        let linkedBuyingIntentId = item.linkedBuyingIntentId;
+
+        // If no linked intent, auto-create a draft one
+        if (!linkedBuyingIntentId) {
+          console.log('[Modal] Auto-creating draft Buying Intent for:', item.raw_item_name);
+
+          const autoName = generateAutoName(data.supplierQuote, item);
+          const draftIntent = await actions.addProduct({
+            name: autoName,
+            status: 'draft',
+            category: item.category || null,
+            description: `Auto-created from ${data.supplierQuote.supplierName || 'supplier'}`
+          });
+
+          linkedBuyingIntentId = draftIntent.id;
+          console.log('[Modal] Created draft Buying Intent:', draftIntent.id, autoName);
+        }
+
+        updatedLineItems.push({
+          ...item,
+          linkedBuyingIntentId
+        });
+      }
+
+      // Update data with auto-linked items
+      const finalData = {
+        ...data,
+        lineItems: updatedLineItems
+      };
+
+      const result = await actions.addSupplierQuote(finalData.supplierQuote, finalData.lineItems);
       console.log('✅ [Modal] Saved supplier quote:', result);
 
       // Auto-upload the quote file as a document
@@ -487,7 +515,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
         // Get unique buying intent IDs from line items
         const uniqueBuyingIntentIds = [...new Set(
-          data.lineItems
+          finalData.lineItems
             .filter(item => item.linkedBuyingIntentId)
             .map(item => item.linkedBuyingIntentId)
         )];
@@ -1448,8 +1476,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               display: 'flex',
                                               justifyContent: 'space-between',
                                               alignItems: 'center',
-                                              borderColor: !item.linkedBuyingIntentId ? '#f59e0b' : '#e5e7eb',
-                                              borderWidth: !item.linkedBuyingIntentId ? '2px' : '1px',
+                                              borderColor: '#e5e7eb', // No warning needed - will auto-create
                                             }}
                                           >
                                             <span style={{
@@ -1644,40 +1671,19 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 })()}
                                               </div>
 
-                                              {/* Create new button */}
+                                              {/* Auto-create info */}
                                               <div style={{
                                                 position: 'sticky',
                                                 bottom: 0,
-                                                background: 'white',
+                                                background: '#f9fafb',
                                                 borderTop: '2px solid #e5e7eb',
+                                                padding: '10px 16px',
+                                                fontSize: '0.75rem',
+                                                color: '#64748b',
+                                                textAlign: 'center',
+                                                fontStyle: 'italic',
                                               }}>
-                                                <button
-                                                  onClick={() => {
-                                                    setShowCreateIntent(index);
-                                                    setNewIntentName('');
-                                                    setOpenBuyingIntentDropdown(null);
-                                                    setBuyingIntentSearch('');
-                                                  }}
-                                                  style={{
-                                                    width: '100%',
-                                                    padding: '12px 16px',
-                                                    textAlign: 'left',
-                                                    border: 'none',
-                                                    background: '#f0fdf4',
-                                                    color: '#10b981',
-                                                    cursor: 'pointer',
-                                                    fontSize: '0.875rem',
-                                                    fontWeight: 600,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: '8px',
-                                                  }}
-                                                  onMouseEnter={(e) => e.target.style.background = '#dcfce7'}
-                                                  onMouseLeave={(e) => e.target.style.background = '#f0fdf4'}
-                                                >
-                                                  <Plus size={16} />
-                                                  Create New Buying Intent
-                                                </button>
+                                                If not selected, a Buying Intent will be created automatically
                                               </div>
                                             </div>
                                           )}

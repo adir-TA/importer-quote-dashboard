@@ -12,6 +12,7 @@ create table products (
   name text not null, -- Human-readable target spec (e.g., "Aluminum container 225×175×42")
   category text,
   description text,
+  status text default 'draft' check (status in ('draft', 'finalized')), -- Auto-created intents start as draft
   created_at timestamp with time zone default now()
 );
 
