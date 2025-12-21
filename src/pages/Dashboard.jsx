@@ -132,75 +132,78 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
 // ============================================
 function Dashboard() {
   const navigate = useNavigate();
-  const { state } = useAppContext();
-  const { products, quotes, fees } = state;
+  const { state, computed } = useAppContext();
+  const { products, quotes } = state;
 
-  // Product selection for best landed cost
+  // Product selection for best price
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [quoteCounts, setQuoteCounts] = React.useState({});
+  const [loadingCounts, setLoadingCounts] = React.useState(true);
+
+  // Load quote counts for all products
+  React.useEffect(() => {
+    const loadQuoteCounts = async () => {
+      setLoadingCounts(true);
+      const counts = {};
+      for (const product of products) {
+        // Count both old quotes AND new line items
+        const oldQuotes = computed.getProductQuotes(product.id);
+        const newLineItems = await computed.getLineItemsForBuyingIntent(product.id);
+        counts[product.id] = oldQuotes.length + newLineItems.length;
+      }
+      setQuoteCounts(counts);
+      setLoadingCounts(false);
+    };
+    if (products.length > 0) {
+      loadQuoteCounts();
+    } else {
+      setLoadingCounts(false);
+    }
+  }, [products, computed]);
 
   // Get selected product
   const selectedProduct = useMemo(() => {
     return products.find(p => p.id === selectedProductId);
   }, [products, selectedProductId]);
 
-  // Calculate best quote for SELECTED product only
+  // Calculate best quote (lowest price) for SELECTED product only
   const bestQuoteForProduct = useMemo(() => {
     if (!selectedProductId) return null;
-    
+
     const productQuotes = quotes.filter(q => q.product_id === selectedProductId);
     if (productQuotes.length === 0) return null;
 
     let bestQuote = null;
-    let lowestLandedPerUnit = Infinity;
+    let lowestPrice = Infinity;
 
     productQuotes.forEach(quote => {
       const unit_price = parseFloat(quote.unitPrice) || 0;
       const quantity = parseInt(quote.moq) || 1;
-      
+
       if (unit_price <= 0 || quantity <= 0) return;
-      
-      const FOB_total = unit_price * quantity;
 
-      let total_fees = 0;
-      fees.forEach(fee => {
-        const feeValue = parseFloat(fee.value) || 0;
-        if (fee.type === 'percentage') {
-          total_fees += (FOB_total * feeValue) / 100;
-        } else {
-          total_fees += feeValue;
-        }
-      });
-
-      const total_landed = FOB_total + total_fees;
-      const landed_per_unit = total_landed / quantity;
-
-      if (landed_per_unit < lowestLandedPerUnit) {
-        lowestLandedPerUnit = landed_per_unit;
+      if (unit_price < lowestPrice) {
+        lowestPrice = unit_price;
         bestQuote = {
           ...quote,
           unit_price,
           quantity,
-          FOB_total,
-          total_fees,
-          total_landed,
-          landed_per_unit,
         };
       }
     });
 
     return bestQuote;
-  }, [selectedProductId, quotes, fees]);
+  }, [selectedProductId, quotes]);
 
   // Quote count for selected product
   const productQuoteCount = useMemo(() => {
     if (!selectedProductId) return 0;
-    return quotes.filter(q => q.product_id === selectedProductId).length;
-  }, [selectedProductId, quotes]);
+    return quoteCounts[selectedProductId] || 0;
+  }, [selectedProductId, quoteCounts]);
 
   const stats = [
     { label: 'Buying Intents', value: products.length, icon: Package, color: '#7c5cfc', bgColor: 'rgba(124, 92, 252, 0.1)' },
     { label: 'Quotes', value: quotes.length, icon: FileText, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' },
-    { label: 'Fees Configured', value: fees.length, icon: Calculator, color: '#10b981', bgColor: 'rgba(16, 185, 129, 0.1)' },
   ];
 
   return (
@@ -209,7 +212,7 @@ function Dashboard() {
         <div>
           <h2>Decision Dashboard</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Make confident sourcing decisions with accurate landed cost comparisons
+            Make confident sourcing decisions by comparing supplier prices
           </p>
         </div>
       </div>
@@ -221,7 +224,7 @@ function Dashboard() {
             <div className="hero-icon">📦</div>
             <div className="hero-text">
               <h3>Start Finding the Best Quote</h3>
-              <p>Define what you want to buy, collect supplier quotes, and compare landed costs</p>
+              <p>Define what you want to buy, collect supplier quotes, and compare prices</p>
             </div>
           </div>
           <button className="btn btn-primary btn-lg" onClick={() => navigate('/products')}>
@@ -248,26 +251,18 @@ function Dashboard() {
             </div>
             <ArrowRight size={16} className="step-arrow" />
           </div>
-          <div className="workflow-step" onClick={() => navigate('/landed-cost')}>
+          <div className="workflow-step active" onClick={() => navigate('/comparison')}>
             <div className="step-number">3</div>
             <div className="step-content">
-              <h4>Fees</h4>
-              <p>Configure import fees & duties</p>
-            </div>
-            <ArrowRight size={16} className="step-arrow" />
-          </div>
-          <div className="workflow-step active" onClick={() => navigate('/comparison')}>
-            <div className="step-number">4</div>
-            <div className="step-content">
               <h4>Compare</h4>
-              <p>Find the best landed cost</p>
+              <p>Find the best price</p>
             </div>
             <CheckCircle size={16} className="step-check" />
           </div>
         </div>
 
         {/* Stats */}
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
           {stats.map(stat => (
             <div key={stat.label} className="stat-card" style={{ '--stat-color': stat.color, '--stat-bg': stat.bgColor }}>
               <div className="stat-icon-wrapper" style={{ background: stat.bgColor }}>
@@ -281,11 +276,70 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Product-Scoped Best Landed Cost */}
+        {/* Recently Used Buying Intents */}
+        {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
+              Recently Used
+            </h3>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+              {products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).map(product => (
+                <button
+                  key={product.id}
+                  onClick={() => setSelectedProductId(product.id)}
+                  style={{
+                    padding: '12px 18px',
+                    background: selectedProductId === product.id ? '#eff6ff' : 'white',
+                    border: selectedProductId === product.id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    transition: 'all 0.2s',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                  }}
+                  onMouseEnter={(e) => {
+                    if (selectedProductId !== product.id) {
+                      e.currentTarget.style.background = '#f9fafb';
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (selectedProductId !== product.id) {
+                      e.currentTarget.style.background = 'white';
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
+                  }}
+                >
+                  <Package size={18} style={{ color: '#64748b' }} />
+                  <span>{product.name}</span>
+                  <span style={{
+                    padding: '3px 10px',
+                    background: '#d1fae5',
+                    color: '#065f46',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}>
+                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Product-Scoped Best Price */}
         <div className="best-quote-card">
           <div className="best-quote-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '16px', marginBottom: '16px' }}>
             <TrendingDown size={20} color="var(--success)" />
-            <span>Best Landed Cost</span>
+            <span>Best Price</span>
           </div>
           
           {/* Product Selector */}
@@ -313,27 +367,22 @@ function Dashboard() {
           {selectedProductId ? (
             bestQuoteForProduct ? (
               <>
-                <div style={{ 
-                  fontSize: '0.8rem', 
-                  color: 'var(--text-muted)', 
+                <div style={{
+                  fontSize: '0.8rem',
+                  color: 'var(--text-muted)',
                   marginBottom: '12px',
-                  fontWeight: 500 
+                  fontWeight: 500
                 }}>
-                  Best landed cost for <strong style={{ color: 'var(--text-primary)' }}>{selectedProduct?.name}</strong>
+                  Best price for <strong style={{ color: 'var(--text-primary)' }}>{selectedProduct?.name}</strong>
                 </div>
                 <div className="best-quote-content">
                   <div className="best-quote-supplier">
                     <strong>{bestQuoteForProduct.supplierName}</strong>
                     <span className="best-quote-product">{bestQuoteForProduct.incoterm || 'FOB'}</span>
                   </div>
-                  <div className="best-quote-price">
-                    <div className="best-quote-unit">{formatCurrency(bestQuoteForProduct.unit_price)}/unit</div>
-                    <div className="best-quote-label">FOB Price</div>
-                  </div>
-                  <div className="best-quote-arrow">→</div>
                   <div className="best-quote-price landed">
-                    <div className="best-quote-unit">{formatCurrency(bestQuoteForProduct.landed_per_unit)}/unit</div>
-                    <div className="best-quote-label">Landed Cost</div>
+                    <div className="best-quote-unit">{formatCurrency(bestQuoteForProduct.unit_price)}/unit</div>
+                    <div className="best-quote-label">Unit Price</div>
                   </div>
                 </div>
                 <button className="btn btn-secondary" onClick={() => navigate('/comparison')}>
@@ -342,17 +391,17 @@ function Dashboard() {
                 </button>
               </>
             ) : (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '24px', 
+              <div style={{
+                textAlign: 'center',
+                padding: '24px',
                 color: 'var(--text-muted)',
                 background: 'var(--bg-secondary)',
                 borderRadius: 'var(--radius-md)'
               }}>
                 <Package size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
                 <p style={{ margin: 0 }}>No quotes for {selectedProduct?.name} yet</p>
-                <button 
-                  className="btn btn-ghost" 
+                <button
+                  className="btn btn-ghost"
                   style={{ marginTop: '12px' }}
                   onClick={() => navigate(`/products/${selectedProductId}`)}
                 >
@@ -361,15 +410,15 @@ function Dashboard() {
               </div>
             )
           ) : (
-            <div style={{ 
-              textAlign: 'center', 
-              padding: '24px', 
+            <div style={{
+              textAlign: 'center',
+              padding: '24px',
               color: 'var(--text-muted)',
               background: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-md)'
             }}>
               <Package size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>Select a buying intent above to see best landed cost</p>
+              <p style={{ margin: 0 }}>Select a buying intent above to see best price</p>
             </div>
           )}
         </div>
@@ -379,10 +428,6 @@ function Dashboard() {
           <button className="quick-action-card" onClick={() => navigate('/products')}>
             <Package size={24} />
             <span>Buying Intents</span>
-          </button>
-          <button className="quick-action-card" onClick={() => navigate('/landed-cost')}>
-            <Calculator size={24} />
-            <span>Configure Fees</span>
           </button>
           <button className="quick-action-card" onClick={() => navigate('/comparison')}>
             <GitCompare size={24} />
