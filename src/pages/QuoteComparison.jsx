@@ -570,52 +570,54 @@ function QuoteComparison() {
           </div>
         ) : (
           <>
-        {/* Recently Used Buying Intents - Subtle history section */}
+        {/* Recently Used Buying Intents */}
         {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
-          <div style={{ marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '0.75rem', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8', marginBottom: '8px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
               Recently Used
             </h3>
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
               {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (
                 <button
                   key={product.id}
                   onClick={() => handleProductChange(product.id)}
                   style={{
-                    padding: '8px 14px',
-                    background: '#f9fafb',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
+                    padding: '12px 18px',
+                    background: 'white',
+                    border: '2px solid #e5e7eb',
+                    borderRadius: '10px',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '8px',
+                    gap: '10px',
                     transition: 'all 0.2s',
-                    fontSize: '0.8rem',
-                    fontWeight: 400,
-                    color: '#64748b',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'white';
+                    e.currentTarget.style.background = '#f9fafb';
                     e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.color = '#1e40af';
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = '#f9fafb';
+                    e.currentTarget.style.background = 'white';
                     e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.color = '#64748b';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
+                  <Package size={18} style={{ color: '#64748b' }} />
                   <span>{product.name}</span>
                   <span style={{
-                    padding: '2px 6px',
-                    background: '#e0e7ff',
-                    color: '#4338ca',
-                    borderRadius: '4px',
-                    fontSize: '0.7rem',
-                    fontWeight: 500,
+                    padding: '3px 10px',
+                    background: '#d1fae5',
+                    color: '#065f46',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
                   }}>
-                    {quoteCounts[product.id]}
+                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
                   </span>
                 </button>
               ))}
