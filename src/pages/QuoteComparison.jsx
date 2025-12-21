@@ -1263,7 +1263,6 @@ function QuoteComparison() {
           justifyContent: 'center',
           zIndex: 1000,
         }}
-        onClick={() => setShowThemeSelector(false)}
         >
           <div style={{
             background: 'white',
@@ -1465,11 +1464,10 @@ function QuoteComparison() {
                   overflow: 'auto',
                   padding: '32px',
                   display: 'flex',
-                  flexDirection: 'column',
                   alignItems: 'center',
-                  justifyContent: 'flex-start',
+                  justifyContent: 'center',
                 }}>
-                  {/* Large Excel Preview */}
+                  {/* Compact Excel Preview */}
                   {(() => {
                     const theme = exportThemes[selectedTheme];
                     return (
@@ -1479,152 +1477,143 @@ function QuoteComparison() {
                         borderRadius: '12px',
                         boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
                         overflow: 'hidden',
-                        maxWidth: '700px',
+                        maxWidth: '550px',
                         width: '100%',
-                        marginBottom: '32px',
                       }}>
-                        {/* Title - Always Visible */}
+                        {/* Title - Compact */}
                         <div style={{
                           background: `#${theme.colors.title.bg.substring(2)}`,
                           color: `#${theme.colors.title.text.substring(2)}`,
-                          padding: '24px',
+                          padding: '16px',
                           fontWeight: 'bold',
                           textAlign: 'center',
-                          fontSize: '1.5rem',
+                          fontSize: '1.1rem',
                           letterSpacing: '0.5px',
                         }}>
                           QUOTE COMPARISON REPORT
                         </div>
 
-                        {/* Info Section */}
-                        <div style={{ display: 'flex', gap: '12px', padding: '16px' }}>
+                        {/* Info Section - Compact */}
+                        <div style={{ display: 'flex', gap: '8px', padding: '12px' }}>
                           <div style={{
                             flex: 1,
                             background: `#${theme.colors.imagePlaceholder.bg.substring(2)}`,
                             color: `#${theme.colors.imagePlaceholder.text.substring(2)}`,
-                            padding: '40px 20px',
+                            padding: '24px 12px',
                             textAlign: 'center',
-                            fontSize: '0.8rem',
+                            fontSize: '0.7rem',
                             fontWeight: 'bold',
                             border: `2px solid #${theme.colors.imagePlaceholder.border.substring(2)}`,
-                            borderRadius: '8px',
+                            borderRadius: '6px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}>
-                            PRODUCT IMAGE<br/>[Insert Image Here]
+                            PRODUCT IMAGE<br/>[Insert Image]
                           </div>
-                          <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ flex: 2, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <div style={{
                               background: `#${theme.colors.productName.bg.substring(2)}`,
                               color: `#${theme.colors.productName.text.substring(2)}`,
-                              padding: '12px 16px',
-                              fontSize: '0.9rem',
+                              padding: '8px 12px',
+                              fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              borderRadius: '6px',
+                              borderRadius: '4px',
                             }}>Product: {selectedProduct?.name || 'Adhesive Tape'}</div>
                             <div style={{
                               background: `#${theme.colors.category.bg.substring(2)}`,
                               color: `#${theme.colors.category.text.substring(2)}`,
-                              padding: '12px 16px',
-                              fontSize: '0.9rem',
+                              padding: '8px 12px',
+                              fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              borderRadius: '6px',
+                              borderRadius: '4px',
                             }}>Category: {selectedProduct?.category || 'Other'}</div>
                             <div style={{
                               background: `#${theme.colors.date.bg.substring(2)}`,
                               color: `#${theme.colors.date.text.substring(2)}`,
-                              padding: '12px 16px',
-                              fontSize: '0.9rem',
+                              padding: '8px 12px',
+                              fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              borderRadius: '6px',
+                              borderRadius: '4px',
                             }}>Generated: {new Date().toLocaleDateString()}</div>
                             <div style={{
                               background: `#${theme.colors.totalQuotes.bg.substring(2)}`,
                               color: `#${theme.colors.totalQuotes.text.substring(2)}`,
-                              padding: '12px 16px',
-                              fontSize: '0.9rem',
+                              padding: '8px 12px',
+                              fontSize: '0.8rem',
                               fontWeight: 'bold',
-                              borderRadius: '6px',
+                              borderRadius: '4px',
                             }}>Total Quotes: {quotesWithLanded.length || 5}</div>
                           </div>
                         </div>
 
-                        {/* Table Header */}
+                        {/* Table Header - Compact */}
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          gridTemplateColumns: '50px 1.5fr 80px 60px',
                           background: `#${theme.colors.header.bg.substring(2)}`,
                           color: `#${theme.colors.header.text.substring(2)}`,
-                          padding: '12px 16px',
+                          padding: '10px 12px',
                           fontWeight: 'bold',
-                          fontSize: '0.85rem',
-                          gap: '12px',
+                          fontSize: '0.75rem',
+                          gap: '8px',
                           textAlign: 'center',
                           borderTop: '1px solid #e5e7eb',
                         }}>
                           <div>Rank</div>
                           <div>Supplier</div>
-                          <div>Unit Price</div>
-                          <div>MOQ</div>
-                          <div>Total</div>
+                          <div>Price</div>
                           <div>Status</div>
                         </div>
 
-                        {/* Best Price Row */}
+                        {/* Best Price Row - Compact */}
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          gridTemplateColumns: '50px 1.5fr 80px 60px',
                           background: `#${theme.colors.bestPrice.bg.substring(2)}`,
                           color: `#${theme.colors.bestPrice.text.substring(2)}`,
-                          padding: '12px 16px',
-                          fontSize: '0.85rem',
-                          gap: '12px',
+                          padding: '10px 12px',
+                          fontSize: '0.75rem',
+                          gap: '8px',
                           textAlign: 'center',
                           borderBottom: '1px solid #e5e7eb',
                         }}>
-                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>1</div>
+                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>1</div>
                           <div>A Sarah</div>
-                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>USD 0.32</div>
-                          <div>1</div>
-                          <div>USD 0.32</div>
-                          <div style={{ color: `#${theme.colors.bestPrice.status.substring(2)}`, fontWeight: 'bold' }}>⭐ BEST</div>
+                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>$0.32</div>
+                          <div style={{ color: `#${theme.colors.bestPrice.status.substring(2)}`, fontWeight: 'bold' }}>BEST</div>
                         </div>
 
-                        {/* Regular Row */}
+                        {/* Regular Row - Compact */}
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          gridTemplateColumns: '50px 1.5fr 80px 60px',
                           background: `#${theme.colors.alternatingRow.odd.substring(2)}`,
-                          padding: '12px 16px',
-                          fontSize: '0.85rem',
-                          gap: '12px',
+                          padding: '10px 12px',
+                          fontSize: '0.75rem',
+                          gap: '8px',
                           textAlign: 'center',
                           borderBottom: '1px solid #e5e7eb',
                         }}>
-                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>2</div>
+                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>2</div>
                           <div>Jasion</div>
-                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>USD 0.33</div>
-                          <div>1</div>
-                          <div>USD 0.33</div>
+                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>$0.33</div>
                           <div>-</div>
                         </div>
 
-                        {/* Regular Row 2 */}
+                        {/* Regular Row 2 - Compact */}
                         <div style={{
                           display: 'grid',
-                          gridTemplateColumns: '60px 2fr 1fr 80px 1.5fr 100px',
+                          gridTemplateColumns: '50px 1.5fr 80px 60px',
                           background: `#${theme.colors.alternatingRow.even.substring(2)}`,
-                          padding: '12px 16px',
-                          fontSize: '0.85rem',
-                          gap: '12px',
+                          padding: '10px 12px',
+                          fontSize: '0.75rem',
+                          gap: '8px',
                           textAlign: 'center',
                         }}>
-                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>3</div>
+                          <div style={{ background: `#${theme.colors.rankColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>3</div>
                           <div>Melo</div>
-                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '4px', borderRadius: '4px', fontWeight: 'bold' }}>USD 0.34</div>
-                          <div>1</div>
-                          <div>USD 0.34</div>
+                          <div style={{ background: `#${theme.colors.priceColumn.bg.substring(2)}`, padding: '3px', borderRadius: '3px', fontWeight: 'bold' }}>$0.34</div>
                           <div>-</div>
                         </div>
                       </div>
