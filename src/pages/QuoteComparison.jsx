@@ -566,7 +566,7 @@ function QuoteComparison() {
         ) : (
           <>
         {/* Recently Used Buying Intents */}
-        {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
+        {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
           <div style={{ marginBottom: '24px' }}>
             <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
               Recently Used
@@ -578,8 +578,8 @@ function QuoteComparison() {
                   onClick={() => handleProductChange(product.id)}
                   style={{
                     padding: '12px 18px',
-                    background: 'white',
-                    border: '2px solid #e5e7eb',
+                    background: selectedProductId === product.id ? '#eff6ff' : 'white',
+                    border: selectedProductId === product.id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
                     borderRadius: '10px',
                     cursor: 'pointer',
                     display: 'flex',
@@ -590,16 +590,20 @@ function QuoteComparison() {
                     fontWeight: 500,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                    if (selectedProductId !== product.id) {
+                      e.currentTarget.style.background = '#f9fafb';
+                      e.currentTarget.style.borderColor = '#3b82f6';
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                    }
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'white';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    if (selectedProductId !== product.id) {
+                      e.currentTarget.style.background = 'white';
+                      e.currentTarget.style.borderColor = '#e5e7eb';
+                      e.currentTarget.style.transform = 'translateY(0)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }
                   }}
                 >
                   <Package size={18} style={{ color: '#64748b' }} />
