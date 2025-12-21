@@ -385,7 +385,7 @@ function Dashboard() {
                     <div className="best-quote-label">Unit Price</div>
                   </div>
                 </div>
-                <button className="btn btn-secondary" onClick={() => navigate('/comparison')}>
+                <button className="btn btn-secondary" onClick={() => navigate('/comparison', { state: { productId: selectedProductId } })}>
                   <GitCompare size={16} />
                   Compare {productQuoteCount} Quotes
                 </button>

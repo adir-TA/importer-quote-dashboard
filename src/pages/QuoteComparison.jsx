@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   ArrowLeft, FileSpreadsheet, FileText, Sparkles, 
   TrendingDown, MessageSquare, Trophy, X, Check, CheckCircle2,
@@ -355,12 +355,13 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
 // ============================================
 function QuoteComparison() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { state, computed } = useAppContext();
   const { products } = state;
   const [lineItems, setLineItems] = React.useState([]);
   const [quoteCounts, setQuoteCounts] = React.useState({});
 
-  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedProductId, setSelectedProductId] = useState(location.state?.productId || null);
   const [selectedSupplierId, setSelectedSupplierId] = useState(null);
   const [isSelectionLocked, setIsSelectionLocked] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
