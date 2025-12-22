@@ -324,25 +324,37 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   });
   const [openBuyingIntentDropdown, setOpenBuyingIntentDropdown] = useState(null); // index of line item with open dropdown
   const [buyingIntentSearch, setBuyingIntentSearch] = useState('');
+  const [isReady, setIsReady] = useState(false);
+
+  // Wait for one render cycle before initializing hook
+  React.useEffect(() => {
+    if (isOpen) {
+      setIsReady(true);
+    } else {
+      setIsReady(false);
+    }
+  }, [isOpen]);
+
+  const hookResult = useMultiItemQuoteExtraction(settings?.apiKey, products);
 
   const {
-    step,
-    progress,
-    error,
-    supplierFields,
-    editableLineItems,
-    uploadedFile,
-    missingSupplierFields,
-    invalidLineItems,
-    canSave,
-    processFile,
-    processText,
-    updateSupplierField,
-    updateLineItem,
-    deleteLineItem,
-    getQuoteData,
-    reset,
-  } = useMultiItemQuoteExtraction(settings.apiKey, products);
+    step = 'idle',
+    progress = '',
+    error = null,
+    supplierFields = {},
+    editableLineItems = [],
+    uploadedFile = null,
+    missingSupplierFields = [],
+    invalidLineItems = [],
+    canSave = false,
+    processFile = () => {},
+    processText = () => {},
+    updateSupplierField = () => {},
+    updateLineItem = () => {},
+    deleteLineItem = () => {},
+    getQuoteData = () => {},
+    reset = () => {},
+  } = hookResult || {};
 
   // Get unique categories from products
   const categories = React.useMemo(() => {
@@ -433,13 +445,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [openBuyingIntentDropdown]);
 
-  if (!isOpen) return null;
-
-  // Safety check: ensure critical arrays are initialized before rendering
-  if (!Array.isArray(editableLineItems)) {
-    console.warn('[Modal] editableLineItems not initialized yet');
-    return null;
-  }
+  if (!isOpen || !isReady) return null;
 
   // ============================================
   // HANDLERS
