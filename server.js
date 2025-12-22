@@ -22,6 +22,146 @@ if (!supabaseUrl || !supabaseServiceKey) {
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+// ============================================
+// EXTRACTION SYSTEM PROMPT
+// ============================================
+// These rules are ALWAYS enforced during extraction
+const EXTRACTION_SYSTEM_PROMPT = `You are a precise quote extraction AI. Follow these rules EXACTLY:
+
+PRODUCT NAME RULES (CRITICAL):
+- product_name MUST be clean product/material name ONLY
+- NEVER include: size, dimensions, weight, GSM, material specs, packing, MOQ, price
+- Examples:
+  ✓ CORRECT: "Cleaning Cloth", "Aluminum Foil Container", "Paper Cup"
+  ✗ WRONG: "Cleaning Cloth 50x80cm", "Container - 225x175mm", "Cup 8oz 50pcs/box"
+- Put specs in dedicated fields:
+  - Dimensions → dimensions field (e.g. "50x80cm", "225×175×42mm")
+  - Model/SKU → sku field (e.g. "C430", "LS-N22542")
+  - Weight → weight_g field (convert to grams)
+  - Material → material field if exists
+  - Packing → packing_pcs_per_ctn field
+
+VARIANT SPLITTING (CRITICAL):
+- Each purchasable option = ONE separate row
+- If table shows: "C430 - 38x50cm - $0.50" AND "C430 - 50x80cm - $0.65"
+  → Extract as TWO separate items, not one merged item
+- If different prices → separate rows
+- If different packings → separate rows
+- If different sizes → separate rows
+- NEVER merge variants into one row
+
+SUPPLIER INFO EXTRACTION:
+- Parse ENTIRE document including header/footer/letterhead
+- Extract from top-of-page and bottom-of-page text
+- Look for:
+  - supplierName: Company name (often ends with "Co., Ltd.", "Inc.", etc.)
+  - supplierEmail: Email with @ symbol (use regex to find it)
+  - supplierPhone: Phone with country code (+86, etc.) or local format
+  - supplierAddress: Full address if present
+- If ambiguous, extract best guess and set confidence to "low"
+- If truly missing, set to null (do NOT guess)
+
+CONFIDENCE TRACKING:
+- Mark confidence for each field: "high", "medium", "low"
+- High = explicitly stated, clear, unambiguous
+- Medium = inferred from context, somewhat clear
+- Low = ambiguous, multiple interpretations possible
+
+HEADER/FOOTER PARSING:
+- Read text above and below the main table
+- Company name often in letterhead (top-left or center)
+- Email often labeled "Email:", "E-mail:", "Mail:"
+- Phone often labeled "Tel:", "Phone:", "Mob:", "WhatsApp:"
+- Look for patterns like: info@company.com, +86-xxx-xxxx`;
+
+// ============================================
+// POST-EXTRACTION SANITIZER
+// ============================================
+// Enforces clean product names at code level (not just prompt)
+function sanitizeExtractedData(data) {
+  if (!data || !data.lineItems) return data;
+
+  // Forbidden patterns in product_name
+  const forbiddenPatterns = [
+    /\d+\s*[x×*]\s*\d+/i,  // dimensions: 50x80, 225×175
+    /\d+\s*(cm|mm|inch|in|ft)/i,  // units: 50cm, 175mm
+    /\d+\s*(gsm|g|kg|oz|lb)/i,  // weight: 100gsm, 50g
+    /(moq|pcs\/box|pcs\/ctn|box|pack|carton)/i,  // packing terms
+    /\$\d+|\d+\s*(usd|eur|cny|rmb)/i,  // prices
+  ];
+
+  data.lineItems = data.lineItems.map(item => {
+    let productName = item.productName || '';
+    const raw_product_name = productName; // Keep original for debugging
+
+    // Check for forbidden patterns
+    let cleaned = productName;
+    let extracted = {
+      dimensions: item.dimensions || null,
+      weight: item.weight_g || null,
+      packing: item.packing_pcs_per_ctn || null,
+    };
+
+    forbiddenPatterns.forEach(pattern => {
+      const match = cleaned.match(pattern);
+      if (match) {
+        const matchedText = match[0];
+
+        // Try to categorize and move to appropriate field
+        if (/\d+\s*[x×*]\s*\d+/i.test(matchedText)) {
+          // Dimensions
+          if (!extracted.dimensions) {
+            extracted.dimensions = matchedText.trim();
+          }
+        } else if (/\d+\s*(cm|mm|inch)/i.test(matchedText)) {
+          // Also dimensions
+          if (!extracted.dimensions) {
+            extracted.dimensions = matchedText.trim();
+          }
+        } else if (/\d+\s*(gsm|g|kg)/i.test(matchedText)) {
+          // Weight
+          if (!extracted.weight) {
+            const weightMatch = matchedText.match(/(\d+)\s*(gsm|g|kg)/i);
+            if (weightMatch) {
+              let grams = parseInt(weightMatch[1]);
+              if (weightMatch[2].toLowerCase() === 'kg') grams *= 1000;
+              extracted.weight = grams;
+            }
+          }
+        } else if (/(pcs\/box|pcs\/ctn|pack)/i.test(matchedText)) {
+          // Packing
+          if (!extracted.packing) {
+            const packMatch = matchedText.match(/(\d+)\s*pcs/i);
+            if (packMatch) extracted.packing = parseInt(packMatch[1]);
+          }
+        }
+
+        // Remove from product name
+        cleaned = cleaned.replace(matchedText, '').trim();
+      }
+    });
+
+    // Clean up extra separators
+    cleaned = cleaned
+      .replace(/\s*-\s*-\s*/g, ' - ')  // Double dashes
+      .replace(/\s+-\s*$/g, '')  // Trailing dash
+      .replace(/^\s*-\s*/g, '')  // Leading dash
+      .replace(/\s+/g, ' ')  // Multiple spaces
+      .trim();
+
+    return {
+      ...item,
+      productName: cleaned || raw_product_name, // Fallback to original if fully stripped
+      raw_product_name,
+      dimensions: extracted.dimensions || item.dimensions,
+      weight_g: extracted.weight || item.weight_g,
+      packing_pcs_per_ctn: extracted.packing || item.packing_pcs_per_ctn,
+    };
+  });
+
+  return data;
+}
+
 // Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -200,7 +340,9 @@ app.post('/api/extract-quote', async (req, res) => {
               contentItem,
               {
                 type: 'text',
-                text: `You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
+                text: `${EXTRACTION_SYSTEM_PROMPT}
+
+You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
 
 SUPPLIER INFO EXTRACTION (PRIORITY):
 Before extracting line items, find supplier/factory information in the document header/footer:
@@ -364,8 +506,9 @@ JSON STRUCTURE (return ONLY this, no markdown):
   "notes": "important notes" or null,
   "lineItems": [
     {
-      "productName": "auto-generated or extracted name (NEVER null)",
+      "productName": "clean product name ONLY (NO specs/dimensions/weight)",
       "sku": "model/item number" or null,
+      "material": "material type (e.g. cotton, aluminum, paper)" or null,
       "unitPrice": 1.23 (per PIECE only, no symbol) or null,
       "priceConfidence": "high" or "medium" or "low",
       "priceEstimated": true or false,
@@ -422,8 +565,11 @@ Return ONLY the JSON object, nothing else.`
 
     const rawData = JSON.parse(jsonMatch[0]);
 
+    // Apply sanitizer to enforce clean product names
+    const sanitizedData = sanitizeExtractedData(rawData);
+
     // Return the extracted data
-    res.json({ success: true, data: rawData });
+    res.json({ success: true, data: sanitizedData });
 
   } catch (error) {
     console.error('[Extraction Error]', error);
@@ -466,7 +612,9 @@ app.post('/api/extract-quote-from-text', async (req, res) => {
         messages: [
           {
             role: 'user',
-            content: `Extract supplier quote information from this message. Parse all pricing, quantities, and terms.
+            content: `${EXTRACTION_SYSTEM_PROMPT}
+
+Extract supplier quote information from this message. Parse all pricing, quantities, and terms.
 
 MESSAGE:
 ${text}
@@ -488,8 +636,9 @@ Extract into this JSON format (return ONLY JSON, no markdown):
   "notes": "important notes (like local fees, delivery options)" or null,
   "lineItems": [
     {
-      "productName": "auto-generated name (NEVER null, use description from text)",
+      "productName": "clean product name ONLY (NO specs/dimensions/weight)",
       "sku": "model/item number" or null,
+      "material": "material type (e.g. cotton, aluminum, paper)" or null,
       "unitPrice": 1.23 (per piece, number only) or null,
       "priceConfidence": "high" or "medium" or "low",
       "moq": 1000 (number only) or null,
@@ -545,10 +694,13 @@ RULES:
 
     const rawData = JSON.parse(jsonMatch[0]);
 
+    // Apply sanitizer to enforce clean product names
+    const sanitizedData = sanitizeExtractedData(rawData);
+
     console.log('✅ [TEXT EXTRACTION] Successfully extracted quote from text');
 
     // Return the extracted data
-    res.json({ success: true, data: rawData });
+    res.json({ success: true, data: sanitizedData });
 
   } catch (error) {
     console.error('[Text Extraction Error]', error);

@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import {
   X, Upload, FileText, Image, AlertCircle, CheckCircle, Loader,
   Trash2, Plus, Info, ChevronDown, ChevronRight, Lock, Check, Search,
-  User, Package
+  User, Package, Eye
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
@@ -39,6 +39,204 @@ function FieldConfidenceBadge({ field, label }) {
   }
 
   return null;
+}
+
+// Product Specs Popover - Shows all product specifications
+function ProductSpecsPopover({ item, onClose, anchorRef }) {
+  const hasSpecs = item.material || item.dimensions || item.weight_g ||
+                   item.packing_pcs_per_ctn || item.carton_length_cm ||
+                   item.cbm_per_carton || item.raw_product_name;
+
+  if (!hasSpecs) {
+    return null;
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        marginTop: '4px',
+        background: 'white',
+        border: '2px solid #3b82f6',
+        borderRadius: '8px',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        zIndex: 1000,
+        minWidth: '280px',
+        maxWidth: '350px',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        padding: '12px 16px',
+        background: '#eff6ff',
+        borderBottom: '1px solid #bfdbfe',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+      }}>
+        <div style={{
+          fontSize: '0.85rem',
+          fontWeight: 600,
+          color: '#1e40af',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+        }}>
+          <Info size={14} />
+          Product Specifications
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '2px',
+            color: '#64748b',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+          title="Close"
+        >
+          <X size={16} />
+        </button>
+      </div>
+
+      {/* Content */}
+      <div style={{ padding: '12px 16px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {item.raw_product_name && item.raw_product_name !== item.productName && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                Raw Name (Debug)
+              </div>
+              <div style={{
+                fontSize: '0.8rem',
+                color: '#374151',
+                background: '#f9fafb',
+                padding: '6px 8px',
+                borderRadius: '4px',
+                fontFamily: 'monospace',
+                border: '1px solid #e5e7eb',
+              }}>
+                {item.raw_product_name}
+              </div>
+            </div>
+          )}
+
+          {item.material && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                Material
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                {item.material}
+              </div>
+            </div>
+          )}
+
+          {item.dimensions && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                Dimensions
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                {item.dimensions}
+              </div>
+            </div>
+          )}
+
+          {item.weight_g && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                Weight
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                {item.weight_g}g
+              </div>
+            </div>
+          )}
+
+          {item.packing_pcs_per_ctn && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                Packing
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                {item.packing_pcs_per_ctn} pcs/carton
+              </div>
+            </div>
+          )}
+
+          {(item.carton_length_cm || item.carton_width_cm || item.carton_height_cm) && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                Carton Dimensions
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                {item.carton_length_cm || '?'} × {item.carton_width_cm || '?'} × {item.carton_height_cm || '?'} cm
+              </div>
+            </div>
+          )}
+
+          {item.cbm_per_carton && (
+            <div>
+              <div style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: '#64748b',
+                textTransform: 'uppercase',
+                marginBottom: '3px',
+              }}>
+                CBM per Carton
+              </div>
+              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+                {item.cbm_per_carton} m³
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 // Confidence Badge Component - Suggestions Only
@@ -339,6 +537,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   });
   const [openBuyingIntentDropdown, setOpenBuyingIntentDropdown] = useState(null); // index of line item with open dropdown
   const [buyingIntentSearch, setBuyingIntentSearch] = useState('');
+  const [openSpecsPopover, setOpenSpecsPopover] = useState(null); // index of line item with open specs popover
 
   const hookResult = useMultiItemQuoteExtraction(settings?.apiKey, products);
 
@@ -437,7 +636,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }
   }, [uploadedFile]);
 
-  // Close dropdowns on Escape key
+  // Close dropdowns and popovers on Escape key
   React.useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape') {
@@ -445,11 +644,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
           setOpenBuyingIntentDropdown(null);
           setBuyingIntentSearch('');
         }
+        if (openSpecsPopover !== null) {
+          setOpenSpecsPopover(null);
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [openBuyingIntentDropdown]);
+  }, [openBuyingIntentDropdown, openSpecsPopover]);
 
   // No early return needed - component only mounts when isOpen is true (conditional rendering in parent)
 
@@ -706,6 +908,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     setSelectedCategories([]);
     setOpenBuyingIntentDropdown(null);
     setBuyingIntentSearch('');
+    setOpenSpecsPopover(null);
     if (filePreviewUrl) {
       URL.revokeObjectURL(filePreviewUrl);
       setFilePreviewUrl(null);
@@ -1378,14 +1581,59 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                           return (
                             <React.Fragment key={item.id}>
                               <tr style={styles.tr}>
-                                <td style={styles.td}>
-                                  <input
-                                    type="text"
-                                    value={item.productName}
-                                    onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
-                                    style={styles.tableInput}
-                                    placeholder="Required"
-                                  />
+                                <td style={{ ...styles.td, position: 'relative' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <input
+                                      type="text"
+                                      value={item.productName}
+                                      onChange={(e) => updateLineItem(index, 'productName', e.target.value)}
+                                      style={{ ...styles.tableInput, flex: 1 }}
+                                      placeholder="Required"
+                                    />
+                                    {/* Info button for specs popover */}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setOpenSpecsPopover(openSpecsPopover === index ? null : index);
+                                      }}
+                                      style={{
+                                        background: openSpecsPopover === index ? '#eff6ff' : '#f9fafb',
+                                        border: openSpecsPopover === index ? '1px solid #3b82f6' : '1px solid #e5e7eb',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        padding: '6px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        color: openSpecsPopover === index ? '#3b82f6' : '#64748b',
+                                        transition: 'all 0.2s',
+                                        flexShrink: 0,
+                                      }}
+                                      title="View product specifications"
+                                      onMouseEnter={(e) => {
+                                        if (openSpecsPopover !== index) {
+                                          e.target.style.background = '#f3f4f6';
+                                          e.target.style.color = '#3b82f6';
+                                        }
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (openSpecsPopover !== index) {
+                                          e.target.style.background = '#f9fafb';
+                                          e.target.style.color = '#64748b';
+                                        }
+                                      }}
+                                    >
+                                      <Eye size={14} />
+                                    </button>
+                                  </div>
+
+                                  {/* Specs popover */}
+                                  {openSpecsPopover === index && (
+                                    <ProductSpecsPopover
+                                      item={item}
+                                      onClose={() => setOpenSpecsPopover(null)}
+                                    />
+                                  )}
                                 </td>
                                 <td style={styles.td}>
                                   <input

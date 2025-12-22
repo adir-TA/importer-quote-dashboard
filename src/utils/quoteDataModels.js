@@ -44,8 +44,10 @@
  * A single line item from a multi-SKU quote
  * @typedef {Object} ExtractedLineItem
  * @property {string} id - Unique ID
- * @property {ExtractedField<string>} productName
+ * @property {ExtractedField<string>} productName - Clean product name (no specs)
+ * @property {ExtractedField<string>} [raw_product_name] - Original extracted name (for debugging)
  * @property {ExtractedField<string>} sku
+ * @property {ExtractedField<string>} [material] - Material type (cotton, aluminum, paper, etc.)
  * @property {ExtractedField<number>} unitPrice
  * @property {ExtractedField<string>} currency
  * @property {ExtractedField<number>} moq
