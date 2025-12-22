@@ -96,24 +96,30 @@ export function formatApiError(error) {
   const codeMessages = {
     'MISSING_IMAGE': 'Please select a file to upload',
     'MISSING_API_KEY': 'Please add your Anthropic API key in Settings',
-    'ANTHROPIC_API_ERROR': 'Failed to connect to AI service',
-    'EMPTY_RESPONSE': 'AI service returned empty response',
-    'PARSE_ERROR': 'Failed to parse quote data',
-    'EXTRACTION_FAILED': 'Quote extraction failed',
-    'INVALID_JSON': 'Server returned invalid response',
-    'INVALID_RESPONSE': 'Server returned invalid response',
+    'MISSING_BODY': 'Request error - please try again',
+    'PAYLOAD_TOO_LARGE': 'File is too large',
+    'ANTHROPIC_API_ERROR': 'AI service error',
+    'EMPTY_RESPONSE': 'No response from AI',
+    'PARSE_ERROR': 'Could not parse extracted data',
+    'EXTRACTION_FAILED': 'Extraction failed',
+    'INVALID_JSON': 'Invalid server response',
+    'INVALID_RESPONSE': 'Invalid server response',
     'NETWORK_ERROR': 'Network connection failed',
   };
 
-  const contextMessage = codeMessages[code] || '';
-  const baseMessage = message || 'An error occurred';
+  const contextMessage = codeMessages[code] || 'An error occurred';
 
-  // Build user-friendly message
-  let fullMessage = contextMessage ? `${contextMessage}: ${baseMessage}` : baseMessage;
+  // Build concise user-friendly message
+  let fullMessage = `${contextMessage}`;
 
-  // Add request ID for support
-  if (requestId && requestId !== 'client_parse_error' && requestId !== 'client_network_error') {
-    fullMessage += `\n\nReference ID: ${requestId}`;
+  // Only add details if they provide value
+  if (message && message !== contextMessage) {
+    fullMessage += `: ${message}`;
+  }
+
+  // Add request ID for support (if from server)
+  if (requestId && requestId.startsWith('req_')) {
+    fullMessage += `\n\nRequest ID: ${requestId}`;
   }
 
   return fullMessage;

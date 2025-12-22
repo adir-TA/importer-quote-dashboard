@@ -576,82 +576,70 @@ app.post('/api/extract-quote', async (req, res) => {
   const requestId = generateRequestId();
 
   // ============================================
-  // MILESTONE (a): RECEIVED REQUEST
+  // GUARDRAIL: Set response headers
   // ============================================
-  const contentLength = req.headers['content-length'] || 'unknown';
-  const contentType = req.headers['content-type'] || 'unknown';
+  res.setHeader('Content-Type', 'application/json');
 
-  console.log(`🚀 [${requestId}] (a) RECEIVED REQUEST`);
-  console.log(`   - Content-Type: ${contentType}`);
-  console.log(`   - Content-Length: ${contentLength} bytes`);
+  console.log(`🚀 [${requestId}] START`);
 
   try {
+    // ============================================
+    // GUARDRAIL: Validate request body exists
+    // ============================================
+    if (!req.body) {
+      console.error(`❌ [${requestId}] No request body`);
+      return sendError(res, 'Request body is required', 400, 'MISSING_BODY');
+    }
+
     const { image, mediaType, apiKey } = req.body;
+
+    // ============================================
+    // MILESTONE: RECEIVED FILE
+    // ============================================
+    const contentLength = req.headers['content-length'] || 'unknown';
+    console.log(`📥 [${requestId}] RECEIVED FILE`);
+    console.log(`   - Content-Length: ${contentLength} bytes`);
+    console.log(`   - Media type: ${mediaType || 'unknown'}`);
 
     // Validate inputs
     if (!image) {
-      console.log(`❌ [${requestId}] Missing image data`);
+      console.error(`❌ [${requestId}] Missing image data`);
       return sendError(res, 'Image data required', 400, 'MISSING_IMAGE');
     }
 
     if (!apiKey) {
-      console.log(`❌ [${requestId}] Missing API key`);
+      console.error(`❌ [${requestId}] Missing API key`);
       return sendError(res, 'Anthropic API key required', 400, 'MISSING_API_KEY');
     }
 
-    // Check payload size (Vercel serverless limit is ~4.5MB)
+    // ============================================
+    // GUARDRAIL: Check payload size (Vercel limit: 4.5MB)
+    // ============================================
     const imageSize = Buffer.byteLength(image, 'base64');
-    console.log(`📏 [${requestId}] Base64 image size: ${(imageSize / 1024 / 1024).toFixed(2)} MB`);
+    const imageSizeMB = (imageSize / 1024 / 1024).toFixed(2);
+    console.log(`📏 [${requestId}] File size: ${imageSizeMB} MB`);
 
-    if (imageSize > 4 * 1024 * 1024) { // 4MB limit
-      console.log(`❌ [${requestId}] Image too large: ${(imageSize / 1024 / 1024).toFixed(2)} MB`);
-      return sendError(res, 'Image too large. Maximum size is 4MB.', 413, 'PAYLOAD_TOO_LARGE');
+    if (imageSize > 4 * 1024 * 1024) { // 4MB limit for safety
+      console.error(`❌ [${requestId}] File too large: ${imageSizeMB} MB`);
+      return sendError(res, `File too large (${imageSizeMB} MB). Maximum is 4 MB.`, 413, 'PAYLOAD_TOO_LARGE');
     }
 
     const MODEL = 'claude-sonnet-4-5-20250929';
     const isPdf = mediaType === 'application/pdf';
 
-    console.log(`📋 [${requestId}] Extraction path: ${isPdf ? 'PDF' : 'IMAGE'}`);
+    console.log(`📋 [${requestId}] Type: ${isPdf ? 'PDF' : 'IMAGE'}`);
     console.log(`🤖 [${requestId}] Model: ${MODEL}`);
 
     // ============================================
-    // MILESTONE (b): PDF TEXT EXTRACTION
+    // SKIP PDF TEXT EXTRACTION (Vercel incompatible)
     // ============================================
-    let pdfTextData = null;
-    let regexSupplierInfo = null;
+    // pdf-parse uses native bindings that don't work on Vercel
+    // Let Anthropic handle PDFs natively instead
+    const pdfTextData = null;
+    const regexSupplierInfo = null;
 
     if (isPdf) {
-      console.log(`📄 [${requestId}] (b) CONVERTING PDF TO TEXT...`);
-
-      try {
-        const pdfBuffer = Buffer.from(image, 'base64');
-        console.log(`   - PDF buffer size: ${(pdfBuffer.length / 1024).toFixed(2)} KB`);
-
-        pdfTextData = await extractHeaderFooterFromPdf(pdfBuffer);
-
-        console.log(`   - Extracted ${pdfTextData.pageCount} page(s)`);
-        console.log(`   - Header: ${pdfTextData.headerText.length} chars`);
-        console.log(`   - Footer: ${pdfTextData.footerText.length} chars`);
-        console.log(`   - Body: ${pdfTextData.bodyText.length} chars`);
-
-        console.log(`🔍 [${requestId}] Running regex supplier extraction...`);
-        regexSupplierInfo = extractSupplierInfo({
-          headerText: pdfTextData.headerText,
-          footerText: pdfTextData.footerText,
-          bodyText: pdfTextData.bodyText,
-        });
-
-        console.log(`   - Email: ${regexSupplierInfo.supplierEmail.value || 'not found'}`);
-        console.log(`   - Name: ${regexSupplierInfo.supplierName.value || 'not found'}`);
-        console.log(`   - Phone: ${regexSupplierInfo.supplierPhone.value || 'not found'}`);
-      } catch (pdfError) {
-        console.error(`❌ [${requestId}] PDF parsing failed:`, {
-          name: pdfError.name,
-          message: pdfError.message,
-          stack: pdfError.stack,
-        });
-        return sendError(res, `PDF parsing failed: ${pdfError.message}`, 500, 'PDF_PARSE_ERROR');
-      }
+      console.log(`📄 [${requestId}] PDF detected - using native PDF support (skipping pdf-parse)`);
     }
 
     const contentItem = isPdf ? {
@@ -868,72 +856,27 @@ Return ONLY the JSON object, nothing else.`
     const sanitizedData = sanitizeExtractedData(rawData);
 
     // ============================================
-    // MERGE REGEX-EXTRACTED SUPPLIER INFO
+    // MILESTONE: RETURNING OK
     // ============================================
-    // Priority: Use regex results when confidence is high
-    if (regexSupplierInfo) {
-      console.log('[MERGE] Merging regex supplier info with LLM results...');
-
-      // Helper to create field object
-      const createField = (regexField, llmValue) => {
-        if (regexField.confidence === 'high' && regexField.value) {
-          return {
-            value: regexField.value,
-            status: 'extracted',
-            confidence: 'high',
-            source: regexField.source, // 'header', 'footer', or 'body'
-          };
-        }
-        // Fall back to LLM result
-        return llmValue || { value: null, status: 'not_found' };
-      };
-
-      // Merge each field
-      if (!sanitizedData.supplierName || sanitizedData.supplierName.status === 'not_found') {
-        sanitizedData.supplierName = createField(regexSupplierInfo.supplierName, sanitizedData.supplierName);
-      }
-
-      if (!sanitizedData.supplierEmail || sanitizedData.supplierEmail.status === 'not_found') {
-        sanitizedData.supplierEmail = createField(regexSupplierInfo.supplierEmail, sanitizedData.supplierEmail);
-      }
-
-      if (!sanitizedData.supplierPhone || sanitizedData.supplierPhone.status === 'not_found') {
-        sanitizedData.supplierPhone = createField(regexSupplierInfo.supplierPhone, sanitizedData.supplierPhone);
-      }
-
-      if (!sanitizedData.supplierAddress || sanitizedData.supplierAddress.status === 'not_found') {
-        sanitizedData.supplierAddress = createField(regexSupplierInfo.supplierAddress, sanitizedData.supplierAddress);
-      }
-
-      console.log('[MERGE] After merge - supplierName:', sanitizedData.supplierName);
-      console.log('[MERGE] After merge - supplierEmail:', sanitizedData.supplierEmail);
-      console.log('[MERGE] After merge - supplierPhone:', sanitizedData.supplierPhone);
-    }
-
-    // ============================================
-    // MILESTONE (f): RETURNING RESPONSE
-    // ============================================
-    console.log(`✅ [${requestId}] (f) RETURNING RESPONSE`);
+    console.log(`✅ [${requestId}] RETURNING OK`);
     console.log(`   - Supplier name: ${sanitizedData.supplierName?.value || 'not found'}`);
     console.log(`   - Supplier email: ${sanitizedData.supplierEmail?.value || 'not found'}`);
     console.log(`   - Line items: ${sanitizedData.lineItems?.length || 0}`);
-    console.log(`✅ [${requestId}] EXTRACTION COMPLETED SUCCESSFULLY`);
 
     // Return the extracted data with standardized success response
     return sendSuccess(res, sanitizedData);
 
   } catch (error) {
     // ============================================
-    // FATAL ERROR HANDLER
+    // FATAL ERROR HANDLER - ALWAYS RETURN JSON
     // ============================================
-    console.error(`❌ [${requestId}] FATAL ERROR - Extraction failed`);
-    console.error(`   - Error name: ${error.name}`);
-    console.error(`   - Error message: ${error.message}`);
-    console.error(`   - Error cause: ${error.cause || 'N/A'}`);
-    console.error(`   - Stack trace:`);
+    console.error(`❌ [${requestId}] FATAL ERROR`);
+    console.error(`   - Name: ${error.name}`);
+    console.error(`   - Message: ${error.message}`);
+    console.error(`   - Stack:`);
     console.error(error.stack);
 
-    // Catch ANY unhandled errors and return proper JSON
+    // ALWAYS return JSON, never throw
     return sendError(res, error, 500, 'EXTRACTION_FAILED');
   }
 });
