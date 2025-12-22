@@ -8,7 +8,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
-import pdfParse from 'pdf-parse';
+import { createRequire } from 'module';
+
+// pdf-parse is CommonJS, need to use require
+const require = createRequire(import.meta.url);
+const pdfParse = require('pdf-parse');
 
 dotenv.config();
 
