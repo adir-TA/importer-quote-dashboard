@@ -8,6 +8,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
+import pdfParse from 'pdf-parse';
 
 dotenv.config();
 
@@ -162,6 +163,238 @@ function sanitizeExtractedData(data) {
   return data;
 }
 
+// ============================================
+// SUPPLIER INFO EXTRACTION WITH REGEX
+// ============================================
+/**
+ * Extracts supplier information from text using regex patterns
+ * Priority: headerText > footerText > bodyText
+ * @param {Object} options - Extraction options
+ * @param {string} options.headerText - Text from top 20% of page
+ * @param {string} options.footerText - Text from bottom 20% of page
+ * @param {string} options.bodyText - Full page text
+ * @returns {Object} Extracted supplier info with confidence and source
+ */
+function extractSupplierInfo({ headerText = '', footerText = '', bodyText = '' }) {
+  console.log('[SUPPLIER EXTRACTION] Starting...');
+  console.log('[SUPPLIER EXTRACTION] Header length:', headerText.length);
+  console.log('[SUPPLIER EXTRACTION] Footer length:', footerText.length);
+  console.log('[SUPPLIER EXTRACTION] Body length:', bodyText.length);
+
+  const result = {
+    supplierName: { value: null, confidence: 'not_found', source: null },
+    supplierEmail: { value: null, confidence: 'not_found', source: null },
+    supplierPhone: { value: null, confidence: 'not_found', source: null },
+    supplierAddress: { value: null, confidence: 'not_found', source: null },
+  };
+
+  // Combine texts with priority
+  const allText = `${headerText}\n\n${footerText}\n\n${bodyText}`;
+
+  // ============================================
+  // EMAIL EXTRACTION
+  // ============================================
+  const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+  const emailMatches = [];
+
+  // Try header first
+  let match = headerText.match(emailRegex);
+  if (match && match.length > 0) {
+    emailMatches.push({ email: match[0], source: 'header' });
+  }
+
+  // Try footer if not found in header
+  if (emailMatches.length === 0) {
+    match = footerText.match(emailRegex);
+    if (match && match.length > 0) {
+      emailMatches.push({ email: match[0], source: 'footer' });
+    }
+  }
+
+  // Try body if still not found
+  if (emailMatches.length === 0) {
+    match = bodyText.match(emailRegex);
+    if (match && match.length > 0) {
+      emailMatches.push({ email: match[0], source: 'body' });
+    }
+  }
+
+  if (emailMatches.length > 0) {
+    result.supplierEmail = {
+      value: emailMatches[0].email,
+      confidence: 'high',
+      source: emailMatches[0].source,
+    };
+    console.log('[SUPPLIER EXTRACTION] Email found:', result.supplierEmail);
+  }
+
+  // ============================================
+  // PHONE EXTRACTION
+  // ============================================
+  // Patterns: +86-xxx-xxxx, (0086)xxx-xxxx, Tel: xxx, etc.
+  const phoneRegex = /(?:Tel|TEL|Phone|PHONE|Mob|Mobile|WhatsApp|WeChat)[:\s]*([+\d\s()-]{8,})|(?:\+86|0086)[- ]?[\d\s()-]{8,}|(?:\(\d{3,4}\))[- ]?[\d\s-]{6,}/gi;
+
+  const phoneMatches = [];
+
+  // Try header first
+  match = headerText.match(phoneRegex);
+  if (match && match.length > 0) {
+    phoneMatches.push({ phone: match[0].trim(), source: 'header' });
+  }
+
+  // Try footer if not found
+  if (phoneMatches.length === 0) {
+    match = footerText.match(phoneRegex);
+    if (match && match.length > 0) {
+      phoneMatches.push({ phone: match[0].trim(), source: 'footer' });
+    }
+  }
+
+  if (phoneMatches.length > 0) {
+    result.supplierPhone = {
+      value: phoneMatches[0].phone,
+      confidence: 'high',
+      source: phoneMatches[0].source,
+    };
+    console.log('[SUPPLIER EXTRACTION] Phone found:', result.supplierPhone);
+  }
+
+  // ============================================
+  // SUPPLIER NAME EXTRACTION
+  // ============================================
+  // Look for company names with patterns like "CO., LTD", "TRADING", "IMPORT", "EXPORT"
+  const lines = (headerText + '\n' + footerText).split('\n').filter(l => l.trim().length > 0);
+
+  const companyPatterns = [
+    /CO\.,?\s*LTD\.?/i,
+    /COMPANY\s*LIMITED/i,
+    /TRADING\s*CO/i,
+    /IMPORT.*EXPORT|EXPORT.*IMPORT/i,
+    /CORPORATION/i,
+    /INDUSTRIAL/i,
+    /FACTORY/i,
+    /LTD\.?$/i,
+    /INC\.?$/i,
+  ];
+
+  let bestMatch = null;
+  let bestScore = 0;
+  let bestSource = null;
+
+  // Score each line
+  lines.forEach(line => {
+    let score = 0;
+    const cleanLine = line.trim();
+
+    // Skip very short lines
+    if (cleanLine.length < 5) return;
+
+    // Check if line matches company patterns
+    companyPatterns.forEach(pattern => {
+      if (pattern.test(cleanLine)) {
+        score += 10;
+      }
+    });
+
+    // Prefer lines near email
+    if (result.supplierEmail.value && cleanLine.toLowerCase().includes(result.supplierEmail.value.toLowerCase())) {
+      score += 5;
+    }
+
+    // Prefer all caps company names (common in headers)
+    if (cleanLine === cleanLine.toUpperCase() && cleanLine.length > 10) {
+      score += 3;
+    }
+
+    // Check if in header or footer
+    const source = headerText.includes(line) ? 'header' : 'footer';
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = cleanLine;
+      bestSource = source;
+    }
+  });
+
+  if (bestMatch && bestScore > 0) {
+    result.supplierName = {
+      value: bestMatch,
+      confidence: bestScore >= 10 ? 'high' : 'medium',
+      source: bestSource,
+    };
+    console.log('[SUPPLIER EXTRACTION] Company name found:', result.supplierName);
+  }
+
+  // ============================================
+  // ADDRESS EXTRACTION (basic heuristic)
+  // ============================================
+  // Look for lines containing address keywords near company name
+  const addressKeywords = ['address', 'addr', 'room', 'floor', 'building', 'street', 'road', 'city', 'province', 'district'];
+
+  lines.forEach(line => {
+    const lowerLine = line.toLowerCase();
+    if (addressKeywords.some(keyword => lowerLine.includes(keyword))) {
+      if (!result.supplierAddress.value || result.supplierAddress.confidence !== 'high') {
+        const source = headerText.includes(line) ? 'header' : footerText.includes(line) ? 'footer' : 'body';
+        result.supplierAddress = {
+          value: line.trim(),
+          confidence: 'medium',
+          source,
+        };
+      }
+    }
+  });
+
+  console.log('[SUPPLIER EXTRACTION] Final results:', JSON.stringify(result, null, 2));
+  return result;
+}
+
+// ============================================
+// PDF HEADER/FOOTER EXTRACTION
+// ============================================
+/**
+ * Extracts text from PDF with separate header and footer regions
+ * @param {Buffer} pdfBuffer - PDF file buffer
+ * @returns {Promise<Object>} Object with headerText, footerText, and bodyText
+ */
+async function extractHeaderFooterFromPdf(pdfBuffer) {
+  try {
+    const data = await pdfParse(pdfBuffer);
+    const fullText = data.text;
+    const lines = fullText.split('\n');
+
+    // Simple heuristic: top 20% = header, bottom 20% = footer
+    const headerLineCount = Math.ceil(lines.length * 0.2);
+    const footerLineCount = Math.ceil(lines.length * 0.2);
+
+    const headerLines = lines.slice(0, headerLineCount);
+    const footerLines = lines.slice(-footerLineCount);
+
+    const headerText = headerLines.join('\n');
+    const footerText = footerLines.join('\n');
+
+    console.log('[PDF EXTRACTION] Total lines:', lines.length);
+    console.log('[PDF EXTRACTION] Header lines:', headerLineCount);
+    console.log('[PDF EXTRACTION] Footer lines:', footerLineCount);
+    console.log('[PDF EXTRACTION] Header text preview:', headerText.substring(0, 200));
+
+    return {
+      headerText,
+      footerText,
+      bodyText: fullText,
+      pageCount: data.numpages,
+    };
+  } catch (error) {
+    console.error('[PDF EXTRACTION] Error:', error);
+    return {
+      headerText: '',
+      footerText: '',
+      bodyText: '',
+      pageCount: 0,
+    };
+  }
+}
+
 // Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -287,7 +520,7 @@ app.post('/api/documents/signed-url', async (req, res) => {
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
   // UNIQUE LOG - Verify server code updated
-  console.log('🚀🚀🚀 [EXTRACTION v2025-12-15-FIX929] SONNET 4.5 MODEL FIX 🚀🚀🚀');
+  console.log('🚀🚀🚀 [EXTRACTION v2025-12-15-HEADER-FOOTER-FIX] WITH REGEX SUPPLIER EXTRACTION 🚀🚀🚀');
 
   try {
     const { image, mediaType, apiKey } = req.body;
@@ -305,6 +538,27 @@ app.post('/api/extract-quote', async (req, res) => {
 
     // Determine content type based on media type
     const isPdf = mediaType === 'application/pdf';
+
+    // ============================================
+    // PDF TEXT EXTRACTION (for header/footer)
+    // ============================================
+    let pdfTextData = null;
+    let regexSupplierInfo = null;
+
+    if (isPdf) {
+      console.log('[PDF] Extracting text from PDF for header/footer analysis...');
+      const pdfBuffer = Buffer.from(image, 'base64');
+      pdfTextData = await extractHeaderFooterFromPdf(pdfBuffer);
+
+      console.log('[PDF] Running regex-based supplier extraction...');
+      regexSupplierInfo = extractSupplierInfo({
+        headerText: pdfTextData.headerText,
+        footerText: pdfTextData.footerText,
+        bodyText: pdfTextData.bodyText,
+      });
+      console.log('[PDF] Regex extraction complete:', regexSupplierInfo);
+    }
+
     const contentItem = isPdf ? {
       type: 'document',
       source: {
@@ -320,6 +574,26 @@ app.post('/api/extract-quote', async (req, res) => {
         data: image,
       },
     };
+
+    // Build prompt with header/footer context
+    let supplierExtractionGuidance = '';
+    if (pdfTextData && (pdfTextData.headerText || pdfTextData.footerText)) {
+      supplierExtractionGuidance = `
+CRITICAL - HEADER/FOOTER TEXT PROVIDED:
+The following text was extracted from the document header and footer:
+
+===== HEADER TEXT =====
+${pdfTextData.headerText}
+=======================
+
+===== FOOTER TEXT =====
+${pdfTextData.footerText}
+=======================
+
+MANDATORY: You MUST extract supplier information (name, email, phone, address) from the above header/footer text.
+DO NOT return "not found" if the information exists in the header/footer above.
+`;
+    }
 
     // Call Anthropic API
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -343,10 +617,11 @@ app.post('/api/extract-quote', async (req, res) => {
                 text: `${EXTRACTION_SYSTEM_PROMPT}
 
 You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
+${supplierExtractionGuidance}
 
 SUPPLIER INFO EXTRACTION (PRIORITY):
 Before extracting line items, find supplier/factory information in the document header/footer:
-- supplierName: Company name (look for "From:", letterhead, company seal)
+- supplierName: Company name (look for "From:", letterhead, company seal, CO., LTD)
 - supplierContact: Contact person name (if explicitly stated)
 - supplierEmail: Email address (look for "Email:", "E-mail:", "Mail:" in header/footer)
 - supplierPhone: Phone/WhatsApp number (look for "Tel:", "Phone:", "WhatsApp:", "Mob:")
@@ -358,6 +633,7 @@ RULES FOR SUPPLIER INFO:
 - If not found → set to null
 - Email must be actual email address (contains @)
 - Phone must include country code if shown (+86, etc.)
+- If header/footer text is provided above, YOU MUST use it for extraction
 
 STEP-BY-STEP INSTRUCTIONS (DO NOT SKIP):
 
@@ -567,6 +843,49 @@ Return ONLY the JSON object, nothing else.`
 
     // Apply sanitizer to enforce clean product names
     const sanitizedData = sanitizeExtractedData(rawData);
+
+    // ============================================
+    // MERGE REGEX-EXTRACTED SUPPLIER INFO
+    // ============================================
+    // Priority: Use regex results when confidence is high
+    if (regexSupplierInfo) {
+      console.log('[MERGE] Merging regex supplier info with LLM results...');
+
+      // Helper to create field object
+      const createField = (regexField, llmValue) => {
+        if (regexField.confidence === 'high' && regexField.value) {
+          return {
+            value: regexField.value,
+            status: 'extracted',
+            confidence: 'high',
+            source: regexField.source, // 'header', 'footer', or 'body'
+          };
+        }
+        // Fall back to LLM result
+        return llmValue || { value: null, status: 'not_found' };
+      };
+
+      // Merge each field
+      if (!sanitizedData.supplierName || sanitizedData.supplierName.status === 'not_found') {
+        sanitizedData.supplierName = createField(regexSupplierInfo.supplierName, sanitizedData.supplierName);
+      }
+
+      if (!sanitizedData.supplierEmail || sanitizedData.supplierEmail.status === 'not_found') {
+        sanitizedData.supplierEmail = createField(regexSupplierInfo.supplierEmail, sanitizedData.supplierEmail);
+      }
+
+      if (!sanitizedData.supplierPhone || sanitizedData.supplierPhone.status === 'not_found') {
+        sanitizedData.supplierPhone = createField(regexSupplierInfo.supplierPhone, sanitizedData.supplierPhone);
+      }
+
+      if (!sanitizedData.supplierAddress || sanitizedData.supplierAddress.status === 'not_found') {
+        sanitizedData.supplierAddress = createField(regexSupplierInfo.supplierAddress, sanitizedData.supplierAddress);
+      }
+
+      console.log('[MERGE] After merge - supplierName:', sanitizedData.supplierName);
+      console.log('[MERGE] After merge - supplierEmail:', sanitizedData.supplierEmail);
+      console.log('[MERGE] After merge - supplierPhone:', sanitizedData.supplierPhone);
+    }
 
     // Return the extracted data
     res.json({ success: true, data: sanitizedData });

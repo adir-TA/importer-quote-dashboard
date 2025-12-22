@@ -26,12 +26,38 @@ import API_BASE_URL from '../config/api';
 
 const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
-// Helper component for field confidence badges
+// Helper component for field confidence badges with source
 function FieldConfidenceBadge({ field, label }) {
   if (!field) return <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>(Not found)</span>;
 
   if (field.status === 'extracted') {
-    return <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>✓ Found</span>;
+    const sourceColors = {
+      header: { bg: '#dbeafe', text: '#1e40af', label: 'Header' },
+      footer: { bg: '#fce7f3', text: '#9f1239', label: 'Footer' },
+      body: { bg: '#fef3c7', text: '#a16207', label: 'Body' },
+    };
+
+    const sourceStyle = field.source && sourceColors[field.source];
+
+    return (
+      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+        <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>✓ Found</span>
+        {sourceStyle && (
+          <span style={{
+            fontSize: '0.65rem',
+            background: sourceStyle.bg,
+            color: sourceStyle.text,
+            padding: '2px 6px',
+            borderRadius: '3px',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: '0.3px',
+          }}>
+            {sourceStyle.label}
+          </span>
+        )}
+      </div>
+    );
   }
 
   if (field.status === 'not_found') {
