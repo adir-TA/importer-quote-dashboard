@@ -101,6 +101,7 @@ export function formatApiError(error) {
     'PAYLOAD_TOO_LARGE': 'File is too large',
     'ANTHROPIC_API_ERROR': 'AI service error',
     'EMPTY_RESPONSE': 'No response from AI',
+    'EMPTY_EXTRACTION': 'No data extracted from document',
     'PARSE_ERROR': 'Could not parse extracted data',
     'EXTRACTION_FAILED': 'Extraction failed',
     'TIMEOUT': 'Request timed out',

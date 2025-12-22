@@ -313,6 +313,149 @@ function sanitizeExtractedData(data) {
 }
 
 // ============================================
+// SUPPLIER INFO EXTRACTION WITH REGEX
+// ============================================
+/**
+ * Extracts supplier information from text using regex patterns
+ * @param {Object} options - Extraction options
+ * @param {string} options.headerText - Text from top 20% of page
+ * @param {string} options.footerText - Text from bottom 20% of page
+ * @param {string} options.bodyText - Full page text
+ * @returns {Object} Extracted supplier info with confidence and source
+ */
+function extractSupplierInfoFromText({ headerText = '', footerText = '', bodyText = '' }) {
+  const result = {
+    supplierName: { value: null, confidence: 'not_found', source: null },
+    supplierEmail: { value: null, confidence: 'not_found', source: null },
+    supplierPhone: { value: null, confidence: 'not_found', source: null },
+    supplierAddress: { value: null, confidence: 'not_found', source: null },
+  };
+
+  // ============================================
+  // EMAIL EXTRACTION
+  // ============================================
+  const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+  const emailMatches = [];
+
+  // Try header first
+  let match = headerText.match(emailRegex);
+  if (match && match.length > 0) {
+    emailMatches.push({ email: match[0], source: 'header' });
+  }
+
+  // Try footer if not found in header
+  if (emailMatches.length === 0) {
+    match = footerText.match(emailRegex);
+    if (match && match.length > 0) {
+      emailMatches.push({ email: match[0], source: 'footer' });
+    }
+  }
+
+  // Try body if still not found
+  if (emailMatches.length === 0) {
+    match = bodyText.match(emailRegex);
+    if (match && match.length > 0) {
+      emailMatches.push({ email: match[0], source: 'body' });
+    }
+  }
+
+  if (emailMatches.length > 0) {
+    result.supplierEmail = {
+      value: emailMatches[0].email,
+      confidence: 'high',
+      source: emailMatches[0].source,
+    };
+  }
+
+  // ============================================
+  // PHONE EXTRACTION
+  // ============================================
+  const phoneRegex = /(?:Tel|TEL|Phone|PHONE|Mob|Mobile|WhatsApp|WeChat)[:\s]*([+\d\s()-]{8,})|(?:\+86|0086)[- ]?[\d\s()-]{8,}|(?:\(\d{3,4}\))[- ]?[\d\s-]{6,}/gi;
+  const phoneMatches = [];
+
+  // Try header first
+  match = headerText.match(phoneRegex);
+  if (match && match.length > 0) {
+    phoneMatches.push({ phone: match[0].trim(), source: 'header' });
+  }
+
+  // Try footer if not found
+  if (phoneMatches.length === 0) {
+    match = footerText.match(phoneRegex);
+    if (match && match.length > 0) {
+      phoneMatches.push({ phone: match[0].trim(), source: 'footer' });
+    }
+  }
+
+  if (phoneMatches.length > 0) {
+    result.supplierPhone = {
+      value: phoneMatches[0].phone,
+      confidence: 'high',
+      source: phoneMatches[0].source,
+    };
+  }
+
+  // ============================================
+  // SUPPLIER NAME EXTRACTION
+  // ============================================
+  const lines = (headerText + '\n' + footerText).split('\n').filter(l => l.trim().length > 0);
+  const companyPatterns = [
+    /CO\.,?\s*LTD\.?/i,
+    /COMPANY\s*LIMITED/i,
+    /TRADING\s*CO/i,
+    /IMPORT.*EXPORT|EXPORT.*IMPORT/i,
+    /CORPORATION/i,
+    /INDUSTRIAL/i,
+    /FACTORY/i,
+    /LTD\.?$/i,
+    /INC\.?$/i,
+  ];
+
+  let bestMatch = null;
+  let bestScore = 0;
+  let bestSource = null;
+
+  lines.forEach(line => {
+    let score = 0;
+    const cleanLine = line.trim();
+
+    if (cleanLine.length < 5) return;
+
+    companyPatterns.forEach(pattern => {
+      if (pattern.test(cleanLine)) {
+        score += 10;
+      }
+    });
+
+    if (result.supplierEmail.value && cleanLine.toLowerCase().includes(result.supplierEmail.value.toLowerCase())) {
+      score += 5;
+    }
+
+    if (cleanLine === cleanLine.toUpperCase() && cleanLine.length > 10) {
+      score += 3;
+    }
+
+    const source = headerText.includes(line) ? 'header' : 'footer';
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = cleanLine;
+      bestSource = source;
+    }
+  });
+
+  if (bestMatch && bestScore > 0) {
+    result.supplierName = {
+      value: bestMatch,
+      confidence: bestScore >= 10 ? 'high' : 'medium',
+      source: bestSource,
+    };
+  }
+
+  return result;
+}
+
+// ============================================
 // TIMEOUT WRAPPER FOR ASYNC OPERATIONS
 // ============================================
 /**
@@ -635,19 +778,78 @@ app.post('/api/extract-quote', async (req, res) => {
     const MODEL = 'claude-sonnet-4-5-20250929';
     const isPdf = mediaType === 'application/pdf';
 
-    console.log(`📋 [${requestId}] Type: ${isPdf ? 'PDF' : 'IMAGE'}`);
+    console.log(`📋 [${requestId}] File type: ${isPdf ? 'PDF' : 'IMAGE'}, size: ${imageSize} bytes (${imageSizeMB} MB)`);
     console.log(`🤖 [${requestId}] Model: ${MODEL}`);
 
     // ============================================
-    // STEP: pdf-parse (SKIPPED - Vercel incompatible)
+    // STEP: pdf-text (optional - for logging/debugging)
     // ============================================
-    // pdf-parse uses canvas/native bindings that fail on Vercel
-    // Anthropic supports PDFs natively, so we don't need server-side parsing
-    step = 'pdf-parse';
-    console.log(`📋 [${requestId}] Step: ${step} (SKIPPED - using native PDF support)`);
+    step = 'pdf-text';
+    let pdfTextData = null;
+    let regexSupplierInfo = null;
 
     if (isPdf) {
-      console.log(`📄 [${requestId}] PDF detected - Anthropic will handle it natively`);
+      console.log(`📋 [${requestId}] Step: ${step}`);
+
+      // Try to extract text for debugging/logging (optional, won't crash if fails)
+      try {
+        // Dynamic import to avoid cold-start crash
+        // Only import if we're in local development or pdf-parse is available
+        const pdfBuffer = Buffer.from(image, 'base64');
+
+        // Try to use pdf-parse if available (dynamic import won't crash if missing)
+        try {
+          const { default: pdfParse } = await import('pdf-parse');
+          const pdfData = await pdfParse(pdfBuffer);
+          const fullText = pdfData.text || '';
+          const lines = fullText.split('\n');
+
+          // Extract header (top 20%) and footer (bottom 20%)
+          const headerLineCount = Math.ceil(lines.length * 0.2);
+          const footerLineCount = Math.ceil(lines.length * 0.2);
+          const headerText = lines.slice(0, headerLineCount).join('\n');
+          const footerText = lines.slice(-footerLineCount).join('\n');
+
+          pdfTextData = {
+            headerText,
+            footerText,
+            bodyText: fullText,
+            pageCount: pdfData.numpages,
+          };
+
+          console.log(`📄 [${requestId}] PDF text extracted successfully`);
+          console.log(`   - Pages: ${pdfData.numpages}`);
+          console.log(`   - Total text length: ${fullText.length} chars`);
+          console.log(`   - Header length: ${headerText.length} chars`);
+          console.log(`   - Footer length: ${footerText.length} chars`);
+          console.log(`   - Header preview: ${headerText.substring(0, 200).replace(/\n/g, ' ')}`);
+          console.log(`   - Body preview: ${fullText.substring(0, 200).replace(/\n/g, ' ')}`);
+
+          // Validate extracted text
+          if (fullText.trim().length < 50) {
+            console.warn(`⚠️  [${requestId}] WARNING: Extracted text is very short (${fullText.length} chars)`);
+            console.warn(`   This may indicate OCR/parsing issues. Will proceed with native PDF support.`);
+          }
+
+          // Try regex-based supplier extraction from header/footer
+          if (headerText || footerText) {
+            regexSupplierInfo = extractSupplierInfoFromText({ headerText, footerText, bodyText: fullText });
+            console.log(`📧 [${requestId}] Regex supplier extraction:`);
+            console.log(`   - Email: ${regexSupplierInfo.supplierEmail?.value || 'not found'} (${regexSupplierInfo.supplierEmail?.source || 'n/a'})`);
+            console.log(`   - Phone: ${regexSupplierInfo.supplierPhone?.value || 'not found'} (${regexSupplierInfo.supplierPhone?.source || 'n/a'})`);
+            console.log(`   - Name: ${regexSupplierInfo.supplierName?.value || 'not found'} (${regexSupplierInfo.supplierName?.source || 'n/a'})`);
+          }
+
+        } catch (pdfParseError) {
+          // pdf-parse not available or failed - not critical, Anthropic handles PDFs natively
+          console.log(`📄 [${requestId}] pdf-parse not available (${pdfParseError.message}), using native PDF support`);
+        }
+
+      } catch (error) {
+        // Text extraction failed - not critical
+        console.warn(`⚠️  [${requestId}] PDF text extraction failed: ${error.message}`);
+        console.log(`   Will proceed with Anthropic's native PDF support`);
+      }
     }
 
     // ============================================
@@ -857,6 +1059,48 @@ Return ONLY the JSON object, nothing else.`
     const sanitizedData = sanitizeExtractedData(rawData);
 
     // ============================================
+    // STEP: validate-results
+    // ============================================
+    step = 'validate-results';
+    console.log(`📋 [${requestId}] Step: ${step}`);
+
+    const itemCount = sanitizedData.lineItems?.length || 0;
+    console.log(`   - Validated line items: ${itemCount}`);
+
+    // Fail fast if we got 0 items (likely extraction failure)
+    if (itemCount === 0) {
+      console.error(`❌ [${requestId}] Extraction returned 0 items`);
+      console.error(`   - Raw data preview: ${JSON.stringify(sanitizedData).substring(0, 300)}`);
+      console.error(`   - Model output preview: ${content.substring(0, 500)}`);
+
+      return sendError(
+        res,
+        'Extraction returned 0 items. The PDF may be image-based (requiring OCR) or the table format is not recognized. Please try a different file or contact support.',
+        500,
+        'EMPTY_EXTRACTION',
+        requestId,
+        step
+      );
+    }
+
+    // Merge regex-based supplier info if available
+    if (regexSupplierInfo) {
+      // Override with regex-extracted values if LLM didn't find them
+      if (!sanitizedData.supplierEmail && regexSupplierInfo.supplierEmail?.value) {
+        sanitizedData.supplierEmail = regexSupplierInfo.supplierEmail;
+        console.log(`   ✓ Using regex-extracted email: ${regexSupplierInfo.supplierEmail.value}`);
+      }
+      if (!sanitizedData.supplierPhone && regexSupplierInfo.supplierPhone?.value) {
+        sanitizedData.supplierPhone = regexSupplierInfo.supplierPhone;
+        console.log(`   ✓ Using regex-extracted phone: ${regexSupplierInfo.supplierPhone.value}`);
+      }
+      if (!sanitizedData.supplierName && regexSupplierInfo.supplierName?.value) {
+        sanitizedData.supplierName = regexSupplierInfo.supplierName;
+        console.log(`   ✓ Using regex-extracted name: ${regexSupplierInfo.supplierName.value}`);
+      }
+    }
+
+    // ============================================
     // STEP: done
     // ============================================
     step = 'done';
@@ -865,8 +1109,27 @@ Return ONLY the JSON object, nothing else.`
     console.log(`   - Supplier email: ${sanitizedData.supplierEmail?.value || 'not found'}`);
     console.log(`   - Line items: ${sanitizedData.lineItems?.length || 0}`);
 
+    // Add debug metadata (non-production only)
+    const responseData = {
+      ...sanitizedData,
+      ...(process.env.NODE_ENV !== 'production' && {
+        _debug: {
+          requestId,
+          pdfTextExtracted: !!pdfTextData,
+          bodyTextLen: pdfTextData?.bodyText?.length || 0,
+          headerTextLen: pdfTextData?.headerText?.length || 0,
+          footerTextLen: pdfTextData?.footerText?.length || 0,
+          headerPreview: pdfTextData?.headerText?.substring(0, 200).replace(/\n/g, ' ') || 'N/A',
+          bodyPreview: pdfTextData?.bodyText?.substring(0, 200).replace(/\n/g, ' ') || 'N/A',
+          regexFoundEmail: !!regexSupplierInfo?.supplierEmail?.value,
+          regexFoundPhone: !!regexSupplierInfo?.supplierPhone?.value,
+          regexFoundName: !!regexSupplierInfo?.supplierName?.value,
+        },
+      }),
+    };
+
     // Return the extracted data with standardized success response
-    return sendSuccess(res, sanitizedData);
+    return sendSuccess(res, responseData);
 
   } catch (error) {
     // ============================================
