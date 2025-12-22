@@ -245,66 +245,80 @@ function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
               <tr>
                 <th>Product / SKU</th>
                 <th>Unit Price</th>
-                <th>MOQ</th>
+                <th>Quantity</th>
                 <th>Dimensions</th>
                 <th>Packing</th>
                 {hasMultipleItems && <th></th>}
               </tr>
             </thead>
             <tbody>
-              {extraction?.lineItems?.map((item, idx) => (
-                <tr key={item.id} className={selectedIndex === idx ? 'selected' : ''}>
-                  <td>
-                    <div className="product-info">
-                      <span className="product-name">
-                        {wasFound(item.productName) ? item.productName.value : 'Unknown product'}
-                      </span>
-                      {wasFound(item.sku) && (
-                        <span className="product-sku">{item.sku.value}</span>
-                      )}
-                    </div>
-                  </td>
-                  <td>
-                    {wasFound(item.unitPrice) ? (
-                      <span className="price-value">
-                        {wasFound(extraction.currency) ? extraction.currency.value : '$'}
-                        {typeof item.unitPrice.value === 'number' 
-                          ? item.unitPrice.value.toLocaleString() 
-                          : item.unitPrice.value}
-                      </span>
-                    ) : (
-                      <span className="missing-value">—</span>
-                    )}
-                  </td>
-                  <td>
-                    {wasFound(item.moq) ? (
-                      item.moq.value.toLocaleString()
-                    ) : (
-                      <span className="missing-value">Not found</span>
-                    )}
-                  </td>
-                  <td>
-                    {wasFound(item.dimensions) ? item.dimensions.value : '—'}
-                  </td>
-                  <td>
-                    {wasFound(item.packing) ? item.packing.value : '—'}
-                  </td>
-                  {hasMultipleItems && (
+              {extraction?.lineItems?.map((item, idx) => {
+                // Support new quantity_value/quantity_type while maintaining backwards compatibility
+                const hasQuantity = wasFound(item.quantity_value) || wasFound(item.moq);
+                const quantityValue = wasFound(item.quantity_value)
+                  ? item.quantity_value.value
+                  : wasFound(item.moq)
+                    ? item.moq.value
+                    : null;
+                const quantityType = item.quantity_type?.value || item.quantity_type || 'UNKNOWN';
+
+                return (
+                  <tr key={item.id} className={selectedIndex === idx ? 'selected' : ''}>
                     <td>
-                      <button 
-                        className={`item-select-btn ${selectedIndex === idx ? 'selected' : ''}`}
-                        onClick={() => selectItem(idx)}
-                      >
-                        {selectedIndex === idx ? (
-                          <><Check size={14} /> Selected</>
-                        ) : (
-                          'Use this item'
+                      <div className="product-info">
+                        <span className="product-name">
+                          {wasFound(item.productName) ? item.productName.value : 'Unknown product'}
+                        </span>
+                        {wasFound(item.sku) && (
+                          <span className="product-sku">{item.sku.value}</span>
                         )}
-                      </button>
+                      </div>
                     </td>
-                  )}
-                </tr>
-              ))}
+                    <td>
+                      {wasFound(item.unitPrice) ? (
+                        <span className="price-value">
+                          {wasFound(extraction.currency) ? extraction.currency.value : '$'}
+                          {typeof item.unitPrice.value === 'number'
+                            ? item.unitPrice.value.toLocaleString()
+                            : item.unitPrice.value}
+                        </span>
+                      ) : (
+                        <span className="missing-value">—</span>
+                      )}
+                    </td>
+                    <td>
+                      {hasQuantity ? (
+                        <>
+                          {quantityValue.toLocaleString()}
+                          {quantityType === 'MOQ' && <span className="quantity-type-badge"> (MOQ)</span>}
+                        </>
+                      ) : (
+                        <span className="missing-value">Not found</span>
+                      )}
+                    </td>
+                    <td>
+                      {wasFound(item.dimensions) ? item.dimensions.value : '—'}
+                    </td>
+                    <td>
+                      {wasFound(item.packing) ? item.packing.value : '—'}
+                    </td>
+                    {hasMultipleItems && (
+                      <td>
+                        <button
+                          className={`item-select-btn ${selectedIndex === idx ? 'selected' : ''}`}
+                          onClick={() => selectItem(idx)}
+                        >
+                          {selectedIndex === idx ? (
+                            <><Check size={14} /> Selected</>
+                          ) : (
+                            'Use this item'
+                          )}
+                        </button>
+                      </td>
+                    )}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -378,24 +392,30 @@ function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
             </select>
           </div>
 
-          {/* MOQ */}
+          {/* Quantity (with MOQ indicator) */}
           <div className={`form-row ${missingFields.includes('moq') ? 'has-error' : ''}`}>
-            <label>MOQ <span className="required-mark">*</span></label>
+            <label>Quantity <span className="required-mark">*</span></label>
             <input
               type="number"
               min="1"
               value={formValues.moq}
               onChange={(e) => updateField('moq', e.target.value)}
-              placeholder="Enter minimum order quantity"
+              placeholder="Enter quantity"
             />
             {missingFields.includes('moq') && (
               <span className="error-hint">Not found in document — enter manually</span>
             )}
-            {/* Confidence Warning for MOQ */}
-            {selectedItem?.moq?.confidence === 'low' && !missingFields.includes('moq') && (
+            {/* Show quantity type if available */}
+            {selectedItem?.quantity_type?.value === 'MOQ' && !missingFields.includes('moq') && (
+              <div className="info-note" style={{ marginTop: '6px', fontSize: '0.75rem', color: '#6b7280' }}>
+                This is a Minimum Order Quantity (MOQ)
+              </div>
+            )}
+            {/* Confidence Warning for quantity */}
+            {(selectedItem?.moq?.confidence === 'low' || selectedItem?.quantity_value?.confidence === 'low') && !missingFields.includes('moq') && (
               <div className="confidence-warning" style={{ marginTop: '8px', padding: '8px 12px', background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', fontSize: '0.85rem', color: '#92400e' }}>
                 <AlertCircle size={14} style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-                <strong>Low Confidence:</strong> MOQ extraction was unclear. Please verify this value.
+                <strong>Low Confidence:</strong> Quantity extraction was unclear. Please verify this value.
               </div>
             )}
           </div>
@@ -870,6 +890,12 @@ function QuoteUploadModal({ isOpen, onClose, onSave, productId, productName }) {
 
         .price-value {
           font-weight: 600;
+        }
+
+        .quantity-type-badge {
+          font-size: 0.7rem;
+          color: var(--text-muted, #6b7280);
+          font-weight: 400;
         }
 
         .item-select-btn {

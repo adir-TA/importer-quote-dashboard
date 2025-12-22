@@ -225,6 +225,60 @@ HEADER/FOOTER PARSING:
 - Look for patterns like: info@company.com, +86-xxx-xxxx`;
 
 // ============================================
+// QUANTITY/MOQ POST-PROCESSOR
+// ============================================
+/**
+ * Detects and corrects quantity_type based on heuristics
+ * - Small values (< 100) likely MOQ
+ * - Large values (> 10000) likely regular quantity
+ */
+function detectAndCorrectQuantityType(data) {
+  if (!data || !data.lineItems) return data;
+
+  data.lineItems = data.lineItems.map(item => {
+    const qtyValue = item.quantity_value || item.moq || item.quantity;
+    const qtyType = item.quantity_type || 'UNKNOWN';
+
+    // If no quantity data, skip
+    if (!qtyValue) {
+      return {
+        ...item,
+        quantity_value: null,
+        quantity_type: 'UNKNOWN',
+      };
+    }
+
+    // Heuristic detection
+    let correctedType = qtyType;
+
+    // Small values likely MOQ
+    if (qtyValue < 100 && qtyType === 'UNKNOWN') {
+      correctedType = 'MOQ';
+    }
+
+    // Very large values likely regular quantity
+    if (qtyValue > 10000 && qtyType === 'MOQ') {
+      correctedType = 'QTY';
+    }
+
+    // If old `moq` field exists and no quantity_value, use it
+    const finalValue = qtyValue;
+    const finalType = correctedType;
+
+    return {
+      ...item,
+      quantity_value: finalValue,
+      quantity_type: finalType,
+      // Keep legacy fields for backwards compatibility
+      moq: item.moq || null,
+      quantity: item.quantity || null,
+    };
+  });
+
+  return data;
+}
+
+// ============================================
 // POST-EXTRACTION SANITIZER
 // ============================================
 // Enforces clean product names at code level (not just prompt)
@@ -332,58 +386,89 @@ function extractSupplierInfoFromText({ headerText = '', footerText = '', bodyTex
   };
 
   // ============================================
-  // EMAIL EXTRACTION
+  // EMAIL EXTRACTION (Enhanced)
   // ============================================
   const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
   const emailMatches = [];
 
-  // Try header first
-  let match = headerText.match(emailRegex);
-  if (match && match.length > 0) {
-    emailMatches.push({ email: match[0], source: 'header' });
+  // Try header first (highest priority)
+  let matches = headerText.match(emailRegex);
+  if (matches && matches.length > 0) {
+    // Prefer non-noreply emails
+    const nonReply = matches.find(e => !e.toLowerCase().includes('noreply'));
+    emailMatches.push({ email: nonReply || matches[0], source: 'header' });
   }
 
   // Try footer if not found in header
   if (emailMatches.length === 0) {
-    match = footerText.match(emailRegex);
-    if (match && match.length > 0) {
-      emailMatches.push({ email: match[0], source: 'footer' });
+    matches = footerText.match(emailRegex);
+    if (matches && matches.length > 0) {
+      const nonReply = matches.find(e => !e.toLowerCase().includes('noreply'));
+      emailMatches.push({ email: nonReply || matches[0], source: 'footer' });
     }
   }
 
   // Try body if still not found
   if (emailMatches.length === 0) {
-    match = bodyText.match(emailRegex);
-    if (match && match.length > 0) {
-      emailMatches.push({ email: match[0], source: 'body' });
+    matches = bodyText.match(emailRegex);
+    if (matches && matches.length > 0) {
+      const nonReply = matches.find(e => !e.toLowerCase().includes('noreply'));
+      emailMatches.push({ email: nonReply || matches[0], source: 'body' });
     }
   }
 
   if (emailMatches.length > 0) {
     result.supplierEmail = {
-      value: emailMatches[0].email,
+      value: emailMatches[0].email.toLowerCase(), // Normalize
       confidence: 'high',
-      source: emailMatches[0].source,
+      source: `regex-${emailMatches[0].source}`,
     };
   }
 
   // ============================================
-  // PHONE EXTRACTION
+  // PHONE EXTRACTION (Enhanced with multiple patterns)
   // ============================================
-  const phoneRegex = /(?:Tel|TEL|Phone|PHONE|Mob|Mobile|WhatsApp|WeChat)[:\s]*([+\d\s()-]{8,})|(?:\+86|0086)[- ]?[\d\s()-]{8,}|(?:\(\d{3,4}\))[- ]?[\d\s-]{6,}/gi;
+  const phonePatterns = [
+    // Labeled phone (Tel:, Phone:, etc.)
+    /(?:Tel|TEL|T|Phone|PHONE|P|Mob|Mobile|MOB|WhatsApp|WeChat|Wechat|WX)[:\s]+([+\d\s().-]{9,})/gi,
+    // International format: +86 xxx-xxxx-xxxx
+    /(\+\d{1,3}[\s-]?\d{2,4}[\s-]?\d{3,4}[\s-]?\d{3,4})/g,
+    // Country code: (0086) or 0086
+    /((?:\(00\d{2}\)|00\d{2})[\s-]?\d{2,4}[\s-]?\d{3,4}[\s-]?\d{3,4})/g,
+    // Long digit sequences (at least 8 digits with optional separators)
+    /(\d{2,4}[\s.-]\d{3,4}[\s.-]\d{3,4}(?:[\s.-]\d{2,4})?)/g,
+  ];
+
   const phoneMatches = [];
 
   // Try header first
-  match = headerText.match(phoneRegex);
-  if (match && match.length > 0) {
-    phoneMatches.push({ phone: match[0].trim(), source: 'header' });
+  for (const pattern of phonePatterns) {
+    const matches = [...headerText.matchAll(new RegExp(pattern.source, pattern.flags))];
+    if (matches.length > 0) {
+      matches.forEach(m => {
+        const phone = (m[1] || m[0]).trim();
+        // Filter out obvious non-phones (too short, all same digit, etc.)
+        if (phone.replace(/[^\d]/g, '').length >= 8 && !/^(\d)\1+$/.test(phone.replace(/[^\d]/g, ''))) {
+          phoneMatches.push({ phone, source: 'header' });
+        }
+      });
+      if (phoneMatches.length > 0) break; // Found in header, stop
+    }
   }
 
   // Try footer if not found
   if (phoneMatches.length === 0) {
-    match = footerText.match(phoneRegex);
-    if (match && match.length > 0) {
-      phoneMatches.push({ phone: match[0].trim(), source: 'footer' });
+    for (const pattern of phonePatterns) {
+      const matches = [...footerText.matchAll(new RegExp(pattern.source, pattern.flags))];
+      if (matches.length > 0) {
+        matches.forEach(m => {
+          const phone = (m[1] || m[0]).trim();
+          if (phone.replace(/[^\d]/g, '').length >= 8 && !/^(\d)\1+$/.test(phone.replace(/[^\d]/g, ''))) {
+            phoneMatches.push({ phone, source: 'footer' });
+          }
+        });
+        if (phoneMatches.length > 0) break;
+      }
     }
   }
 
@@ -391,24 +476,27 @@ function extractSupplierInfoFromText({ headerText = '', footerText = '', bodyTex
     result.supplierPhone = {
       value: phoneMatches[0].phone,
       confidence: 'high',
-      source: phoneMatches[0].source,
+      source: `regex-${phoneMatches[0].source}`,
     };
   }
 
   // ============================================
-  // SUPPLIER NAME EXTRACTION
+  // SUPPLIER NAME EXTRACTION (Enhanced heuristics)
   // ============================================
   const lines = (headerText + '\n' + footerText).split('\n').filter(l => l.trim().length > 0);
-  const companyPatterns = [
-    /CO\.,?\s*LTD\.?/i,
-    /COMPANY\s*LIMITED/i,
-    /TRADING\s*CO/i,
-    /IMPORT.*EXPORT|EXPORT.*IMPORT/i,
-    /CORPORATION/i,
-    /INDUSTRIAL/i,
-    /FACTORY/i,
-    /LTD\.?$/i,
-    /INC\.?$/i,
+  const companyKeywords = [
+    { pattern: /CO\.,?\s*LTD\.?/i, score: 15 },
+    { pattern: /COMPANY\s*LIMITED/i, score: 15 },
+    { pattern: /LIMITED\s*COMPANY/i, score: 15 },
+    { pattern: /\bLTD\.?\b/i, score: 12 },
+    { pattern: /\bINC\.?\b/i, score: 12 },
+    { pattern: /TRADING\s*CO/i, score: 10 },
+    { pattern: /IMPORT.*EXPORT|EXPORT.*IMPORT/i, score: 10 },
+    { pattern: /CORPORATION/i, score: 10 },
+    { pattern: /INDUSTRIAL/i, score: 8 },
+    { pattern: /FACTORY/i, score: 8 },
+    { pattern: /MANUFACTURER/i, score: 8 },
+    { pattern: /GROUP/i, score: 5 },
   ];
 
   let bestMatch = null;
@@ -419,20 +507,37 @@ function extractSupplierInfoFromText({ headerText = '', footerText = '', bodyTex
     let score = 0;
     const cleanLine = line.trim();
 
-    if (cleanLine.length < 5) return;
+    // Skip very short lines or common headers
+    if (cleanLine.length < 5 || /^(page|total|quotation|invoice|from|to|date)/i.test(cleanLine)) {
+      return;
+    }
 
-    companyPatterns.forEach(pattern => {
+    // Check company keywords
+    companyKeywords.forEach(({ pattern, score: points }) => {
       if (pattern.test(cleanLine)) {
-        score += 10;
+        score += points;
       }
     });
 
+    // Boost if line is near email (likely company name + contact)
     if (result.supplierEmail.value && cleanLine.toLowerCase().includes(result.supplierEmail.value.toLowerCase())) {
+      score += 8;
+    }
+
+    // Boost if line is all caps and reasonable length (common for company names)
+    if (cleanLine === cleanLine.toUpperCase() && cleanLine.length >= 10 && cleanLine.length <= 80) {
       score += 5;
     }
 
-    if (cleanLine === cleanLine.toUpperCase() && cleanLine.length > 10) {
-      score += 3;
+    // Boost if line contains both letters and common business words
+    if (/[A-Z]/.test(cleanLine) && /\b(TRADING|IMPORT|EXPORT|INDUSTRIAL|MANUFACTURING)\b/i.test(cleanLine)) {
+      score += 7;
+    }
+
+    // Penalize if line contains too many numbers (likely not company name)
+    const digitRatio = (cleanLine.match(/\d/g) || []).length / cleanLine.length;
+    if (digitRatio > 0.3) {
+      score -= 5;
     }
 
     const source = headerText.includes(line) ? 'header' : 'footer';
@@ -444,11 +549,38 @@ function extractSupplierInfoFromText({ headerText = '', footerText = '', bodyTex
     }
   });
 
-  if (bestMatch && bestScore > 0) {
+  if (bestMatch && bestScore >= 8) { // Lower threshold since we have better scoring
     result.supplierName = {
       value: bestMatch,
-      confidence: bestScore >= 10 ? 'high' : 'medium',
-      source: bestSource,
+      confidence: bestScore >= 15 ? 'high' : (bestScore >= 10 ? 'medium' : 'low'),
+      source: `regex-${bestSource}`,
+    };
+  }
+
+  // ============================================
+  // ADDRESS EXTRACTION (Enhanced)
+  // ============================================
+  const addressKeywords = ['address', 'addr', 'room', 'floor', 'building', 'street', 'road', 'avenue', 'city', 'province', 'district', 'zip', 'postal'];
+  const addressLines = [];
+
+  lines.forEach(line => {
+    const lowerLine = line.toLowerCase();
+    // Check if line contains address keywords
+    if (addressKeywords.some(keyword => lowerLine.includes(keyword))) {
+      const source = headerText.includes(line) ? 'header' : footerText.includes(line) ? 'footer' : 'body';
+      addressLines.push({ address: line.trim(), source });
+    }
+  });
+
+  if (addressLines.length > 0) {
+    // Prefer header addresses
+    const headerAddr = addressLines.find(a => a.source === 'header');
+    const bestAddr = headerAddr || addressLines[0];
+
+    result.supplierAddress = {
+      value: bestAddr.address,
+      confidence: 'medium',
+      source: `regex-${bestAddr.source}`,
     };
   }
 
@@ -862,11 +994,23 @@ app.post('/api/extract-quote', async (req, res) => {
           const fullText = pdfData.text || '';
           const lines = fullText.split('\n');
 
-          // Extract header (top 20%) and footer (bottom 20%)
-          const headerLineCount = Math.ceil(lines.length * 0.2);
-          const footerLineCount = Math.ceil(lines.length * 0.2);
-          const headerText = lines.slice(0, headerLineCount).join('\n');
-          const footerText = lines.slice(-footerLineCount).join('\n');
+          // Smart header extraction: first ~30 lines OR lines before common document markers
+          const documentMarkers = ['QUOTATION', 'INVOICE', 'PROFORMA', 'PURCHASE ORDER', 'Item No', 'ITEM NO', 'Product', 'PRODUCT', 'Description', 'DESCRIPTION'];
+          let headerEndIndex = Math.min(30, lines.length);
+
+          // Find first occurrence of document marker
+          for (let i = 0; i < Math.min(50, lines.length); i++) {
+            const line = lines[i].toUpperCase();
+            if (documentMarkers.some(marker => line.includes(marker.toUpperCase()))) {
+              headerEndIndex = i;
+              break;
+            }
+          }
+
+          const headerLines = lines.slice(0, headerEndIndex);
+          const bodyLines = lines.slice(headerEndIndex);
+          const headerText = headerLines.join('\n');
+          const footerText = lines.slice(-Math.ceil(lines.length * 0.15)).join('\n'); // Bottom 15%
 
           pdfTextData = {
             headerText,
@@ -878,10 +1022,9 @@ app.post('/api/extract-quote', async (req, res) => {
           console.log(`📄 [${requestId}] PDF text extracted successfully`);
           console.log(`   - Pages: ${pdfData.numpages}`);
           console.log(`   - Total text length: ${fullText.length} chars`);
-          console.log(`   - Header length: ${headerText.length} chars`);
-          console.log(`   - Footer length: ${footerText.length} chars`);
+          console.log(`   - Header lines: ${headerEndIndex} (${headerText.length} chars)`);
+          console.log(`   - Body length: ${bodyLines.length} lines`);
           console.log(`   - Header preview: ${headerText.substring(0, 200).replace(/\n/g, ' ')}`);
-          console.log(`   - Body preview: ${fullText.substring(0, 200).replace(/\n/g, ' ')}`);
 
           // Validate extracted text
           if (fullText.trim().length < 200) {
@@ -891,13 +1034,14 @@ app.post('/api/extract-quote', async (req, res) => {
             extractionRoute = 'text';
           }
 
-          // Try regex-based supplier extraction from header/footer
+          // ENHANCED regex-based supplier extraction from header
           if (headerText || footerText) {
             regexSupplierInfo = extractSupplierInfoFromText({ headerText, footerText, bodyText: fullText });
-            console.log(`📧 [${requestId}] Regex supplier extraction:`);
+            console.log(`📧 [${requestId}] Regex supplier extraction (enhanced):`);
             console.log(`   - Email: ${regexSupplierInfo.supplierEmail?.value || 'not found'} (${regexSupplierInfo.supplierEmail?.source || 'n/a'})`);
             console.log(`   - Phone: ${regexSupplierInfo.supplierPhone?.value || 'not found'} (${regexSupplierInfo.supplierPhone?.source || 'n/a'})`);
             console.log(`   - Name: ${regexSupplierInfo.supplierName?.value || 'not found'} (${regexSupplierInfo.supplierName?.source || 'n/a'})`);
+            console.log(`   - Address: ${regexSupplierInfo.supplierAddress?.value || 'not found'} (${regexSupplierInfo.supplierAddress?.source || 'n/a'})`);
           }
 
         } catch (pdfParseError) {
@@ -990,6 +1134,14 @@ CRITICAL RULES:
 2. If header says "CBM" or "Meas", that column is NOT unitPrice
 3. Only extract from columns labeled with price-related words
 4. Extract ALL rows in the table
+
+QUANTITY/MOQ EXTRACTION (CRITICAL):
+For each line item, extract:
+- quantity_value: The numeric quantity mentioned (e.g., "MOQ 500" → 500, "Qty: 1000" → 1000)
+- quantity_type: One of: "MOQ", "QTY", or "UNKNOWN"
+  * Set to "MOQ" if labeled as MOQ, Minimum Order, Min Qty
+  * Set to "QTY" if labeled as Quantity, Qty, Order Qty
+  * Set to "UNKNOWN" if ambiguous or not specified
 
 PRIORITY: Extract ALL line items. Extract ALL logistics fields for landed cost.
 
@@ -1089,7 +1241,10 @@ Return ONLY the JSON object, nothing else.`
     console.log(`   - Line items: ${rawData.lineItems?.length || 0}`);
 
     // Apply sanitizer to enforce clean product names
-    const sanitizedData = sanitizeExtractedData(rawData);
+    let sanitizedData = sanitizeExtractedData(rawData);
+
+    // Apply quantity/MOQ post-processor
+    sanitizedData = detectAndCorrectQuantityType(sanitizedData);
 
     // ============================================
     // STEP: validate-results (with vision fallback)
@@ -1143,7 +1298,8 @@ Return ONLY the JSON object, nothing else.`
           console.error(`❌ [${requestId}] Vision fallback: Failed to extract JSON`);
           console.error(`   - Model output: ${content.substring(0, 400)}`);
         } else {
-          const visionSanitized = sanitizeExtractedData(visionData);
+          let visionSanitized = sanitizeExtractedData(visionData);
+          visionSanitized = detectAndCorrectQuantityType(visionSanitized);
           const visionItemCount = visionSanitized.lineItems?.length || 0;
 
           console.log(`   - Vision fallback extracted ${visionItemCount} items`);

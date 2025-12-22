@@ -134,6 +134,18 @@ export function useQuoteExtraction(productId, apiKey) {
    * Pre-fill form from extraction (only if found, never guess)
    */
   const prefillForm = useCallback((ext, item) => {
+    // Support new quantity_value field while maintaining backwards compatibility with moq
+    let quantityValue = '';
+    if (item) {
+      // Prefer new quantity_value field
+      if (wasFound(item.quantity_value)) {
+        quantityValue = String(item.quantity_value.value);
+      } else if (wasFound(item.moq)) {
+        // Fallback to legacy moq field
+        quantityValue = String(item.moq.value);
+      }
+    }
+
     setFormValues({
       // From extraction-level fields
       supplierName: wasFound(ext.supplierName) ? ext.supplierName.value : '',
@@ -141,7 +153,7 @@ export function useQuoteExtraction(productId, apiKey) {
       incoterm: wasFound(ext.incoterm) ? ext.incoterm.value : '',
       // From selected line item
       unitPrice: item && wasFound(item.unitPrice) ? String(item.unitPrice.value) : '',
-      moq: item && wasFound(item.moq) ? String(item.moq.value) : '', // EMPTY if not found, never guess
+      moq: quantityValue, // EMPTY if not found, never guess
     });
   }, []);
 
