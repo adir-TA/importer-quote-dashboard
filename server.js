@@ -9,6 +9,7 @@ import dotenv from 'dotenv';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
 import { createRequire } from 'module';
+import crypto from 'crypto';
 
 // pdf-parse is CommonJS, need to use require
 const require = createRequire(import.meta.url);
@@ -26,6 +27,55 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// ============================================
+// UTILITY: STANDARDIZED API RESPONSES
+// ============================================
+
+/**
+ * Generate a unique request ID for error tracking
+ */
+function generateRequestId() {
+  return `req_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+}
+
+/**
+ * Send a standardized success response
+ */
+function sendSuccess(res, data, statusCode = 200) {
+  return res.status(statusCode).json({
+    ok: true,
+    data,
+  });
+}
+
+/**
+ * Send a standardized error response
+ * @param {Object} res - Express response object
+ * @param {Error|string} error - Error object or message
+ * @param {number} statusCode - HTTP status code
+ * @param {string} code - Error code for categorization
+ */
+function sendError(res, error, statusCode = 500, code = 'INTERNAL_ERROR') {
+  const requestId = generateRequestId();
+  const message = typeof error === 'string' ? error : error.message;
+
+  // Log full error server-side with requestId
+  console.error(`[ERROR ${requestId}] ${code}:`, error);
+  if (error.stack) {
+    console.error(`[ERROR ${requestId}] Stack:`, error.stack);
+  }
+
+  // Send safe error to client (no stack traces)
+  return res.status(statusCode).json({
+    ok: false,
+    error: {
+      message,
+      code,
+      requestId,
+    },
+  });
+}
 
 // ============================================
 // EXTRACTION SYSTEM PROMPT
@@ -523,18 +573,18 @@ app.post('/api/documents/signed-url', async (req, res) => {
 
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
-  // UNIQUE LOG - Verify server code updated
-  console.log('🚀🚀🚀 [EXTRACTION v2025-12-15-HEADER-FOOTER-FIX] WITH REGEX SUPPLIER EXTRACTION 🚀🚀🚀');
+  const requestId = generateRequestId();
+  console.log(`🚀 [EXTRACTION ${requestId}] Starting quote extraction`);
 
   try {
     const { image, mediaType, apiKey } = req.body;
 
     if (!image) {
-      return res.status(400).json({ error: 'Image data required' });
+      return sendError(res, 'Image data required', 400, 'MISSING_IMAGE');
     }
 
     if (!apiKey) {
-      return res.status(400).json({ error: 'Anthropic API key required' });
+      return sendError(res, 'Anthropic API key required', 400, 'MISSING_API_KEY');
     }
 
     const MODEL = 'claude-sonnet-4-5-20250929';
@@ -818,29 +868,31 @@ Return ONLY the JSON object, nothing else.`
 
     if (!response.ok) {
       const error = await response.json();
-      console.error('[API Error] Status:', response.status);
-      console.error('[API Error] Full error:', JSON.stringify(error, null, 2));
-      console.error('[API Error] Model attempted:', MODEL);
-      console.error('[API Error] Error type:', error.error?.type);
-      console.error('[API Error] Error message:', error.error?.message);
-
-      // Return detailed error to help diagnose
-      return res.status(response.status).json({
-        error: `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}. Check server logs for details.`
+      console.error(`[ERROR ${requestId}] Anthropic API Error:`, {
+        status: response.status,
+        type: error.error?.type,
+        message: error.error?.message,
       });
+
+      return sendError(
+        res,
+        `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`,
+        response.status,
+        'ANTHROPIC_API_ERROR'
+      );
     }
 
     const data = await response.json();
     const content = data.content?.[0]?.text;
 
     if (!content) {
-      return res.status(500).json({ error: 'No response from Claude' });
+      return sendError(res, 'No response from Claude', 500, 'EMPTY_RESPONSE');
     }
 
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      return res.status(500).json({ error: 'Could not parse extraction result' });
+      return sendError(res, 'Could not parse extraction result from model output', 500, 'PARSE_ERROR');
     }
 
     const rawData = JSON.parse(jsonMatch[0]);
@@ -891,14 +943,14 @@ Return ONLY the JSON object, nothing else.`
       console.log('[MERGE] After merge - supplierPhone:', sanitizedData.supplierPhone);
     }
 
-    // Return the extracted data
-    res.json({ success: true, data: sanitizedData });
+    console.log(`✅ [EXTRACTION ${requestId}] Completed successfully`);
+
+    // Return the extracted data with standardized success response
+    return sendSuccess(res, sanitizedData);
 
   } catch (error) {
-    console.error('[Extraction Error]', error);
-    res.status(500).json({
-      error: error.message || 'Failed to extract quote data'
-    });
+    // Catch ANY unhandled errors and return proper JSON
+    return sendError(res, error, 500, 'EXTRACTION_FAILED');
   }
 });
 

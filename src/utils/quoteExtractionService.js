@@ -5,6 +5,7 @@
 // EXTRACTION RULES (NON-NEGOTIABLE):
 
 import API_BASE_URL from '../config/api.js';
+import { fetchJson, formatApiError } from './apiHelpers.js';
 // 1. If a field is NOT explicitly present → status: 'not_found'
 // 2. NEVER infer or guess ANY data
 // 3. NEVER invent values
@@ -54,7 +55,7 @@ async function extractFromImage(file, apiKey) {
   // Call BACKEND API (which proxies to Claude to avoid CORS)
   const API_URL = `${API_BASE_URL}/api/extract-quote`;
 
-  const response = await fetch(API_URL, {
+  const result = await fetchJson(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -66,14 +67,12 @@ async function extractFromImage(file, apiKey) {
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Extraction API request failed');
+  if (!result.ok) {
+    const errorMessage = formatApiError(result.error);
+    throw new Error(errorMessage);
   }
 
-  const result = await response.json();
-
-  if (!result.success || !result.data) {
+  if (!result.data) {
     throw new Error('No data returned from extraction API');
   }
 
@@ -323,7 +322,7 @@ async function processPdf(file, apiKey) {
   // Call backend API with PDF
   const API_URL = `${API_BASE_URL}/api/extract-quote`;
 
-  const response = await fetch(API_URL, {
+  const result = await fetchJson(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -335,14 +334,12 @@ async function processPdf(file, apiKey) {
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'PDF extraction failed');
+  if (!result.ok) {
+    const errorMessage = formatApiError(result.error);
+    throw new Error(errorMessage);
   }
 
-  const result = await response.json();
-
-  if (!result.success || !result.data) {
+  if (!result.data) {
     throw new Error('No data returned from PDF extraction');
   }
 
@@ -488,7 +485,7 @@ async function extractFromText(text, apiKey) {
   // Call BACKEND API
   const API_URL = `${API_BASE_URL}/api/extract-quote-from-text`;
 
-  const response = await fetch(API_URL, {
+  const result = await fetchJson(API_URL, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -499,14 +496,12 @@ async function extractFromText(text, apiKey) {
     }),
   });
 
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Text extraction API request failed');
+  if (!result.ok) {
+    const errorMessage = formatApiError(result.error);
+    throw new Error(errorMessage);
   }
 
-  const result = await response.json();
-
-  if (!result.success || !result.data) {
+  if (!result.data) {
     throw new Error('No data returned from text extraction API');
   }
 
