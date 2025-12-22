@@ -574,43 +574,84 @@ app.post('/api/documents/signed-url', async (req, res) => {
 // Extract quote from image
 app.post('/api/extract-quote', async (req, res) => {
   const requestId = generateRequestId();
-  console.log(`🚀 [EXTRACTION ${requestId}] Starting quote extraction`);
+
+  // ============================================
+  // MILESTONE (a): RECEIVED REQUEST
+  // ============================================
+  const contentLength = req.headers['content-length'] || 'unknown';
+  const contentType = req.headers['content-type'] || 'unknown';
+
+  console.log(`🚀 [${requestId}] (a) RECEIVED REQUEST`);
+  console.log(`   - Content-Type: ${contentType}`);
+  console.log(`   - Content-Length: ${contentLength} bytes`);
 
   try {
     const { image, mediaType, apiKey } = req.body;
 
+    // Validate inputs
     if (!image) {
+      console.log(`❌ [${requestId}] Missing image data`);
       return sendError(res, 'Image data required', 400, 'MISSING_IMAGE');
     }
 
     if (!apiKey) {
+      console.log(`❌ [${requestId}] Missing API key`);
       return sendError(res, 'Anthropic API key required', 400, 'MISSING_API_KEY');
     }
 
-    const MODEL = 'claude-sonnet-4-5-20250929';
-    console.log(`[API] Using model: ${MODEL} (UPGRADED TO SONNET 4.5!)`);
+    // Check payload size (Vercel serverless limit is ~4.5MB)
+    const imageSize = Buffer.byteLength(image, 'base64');
+    console.log(`📏 [${requestId}] Base64 image size: ${(imageSize / 1024 / 1024).toFixed(2)} MB`);
 
-    // Determine content type based on media type
+    if (imageSize > 4 * 1024 * 1024) { // 4MB limit
+      console.log(`❌ [${requestId}] Image too large: ${(imageSize / 1024 / 1024).toFixed(2)} MB`);
+      return sendError(res, 'Image too large. Maximum size is 4MB.', 413, 'PAYLOAD_TOO_LARGE');
+    }
+
+    const MODEL = 'claude-sonnet-4-5-20250929';
     const isPdf = mediaType === 'application/pdf';
 
+    console.log(`📋 [${requestId}] Extraction path: ${isPdf ? 'PDF' : 'IMAGE'}`);
+    console.log(`🤖 [${requestId}] Model: ${MODEL}`);
+
     // ============================================
-    // PDF TEXT EXTRACTION (for header/footer)
+    // MILESTONE (b): PDF TEXT EXTRACTION
     // ============================================
     let pdfTextData = null;
     let regexSupplierInfo = null;
 
     if (isPdf) {
-      console.log('[PDF] Extracting text from PDF for header/footer analysis...');
-      const pdfBuffer = Buffer.from(image, 'base64');
-      pdfTextData = await extractHeaderFooterFromPdf(pdfBuffer);
+      console.log(`📄 [${requestId}] (b) CONVERTING PDF TO TEXT...`);
 
-      console.log('[PDF] Running regex-based supplier extraction...');
-      regexSupplierInfo = extractSupplierInfo({
-        headerText: pdfTextData.headerText,
-        footerText: pdfTextData.footerText,
-        bodyText: pdfTextData.bodyText,
-      });
-      console.log('[PDF] Regex extraction complete:', regexSupplierInfo);
+      try {
+        const pdfBuffer = Buffer.from(image, 'base64');
+        console.log(`   - PDF buffer size: ${(pdfBuffer.length / 1024).toFixed(2)} KB`);
+
+        pdfTextData = await extractHeaderFooterFromPdf(pdfBuffer);
+
+        console.log(`   - Extracted ${pdfTextData.pageCount} page(s)`);
+        console.log(`   - Header: ${pdfTextData.headerText.length} chars`);
+        console.log(`   - Footer: ${pdfTextData.footerText.length} chars`);
+        console.log(`   - Body: ${pdfTextData.bodyText.length} chars`);
+
+        console.log(`🔍 [${requestId}] Running regex supplier extraction...`);
+        regexSupplierInfo = extractSupplierInfo({
+          headerText: pdfTextData.headerText,
+          footerText: pdfTextData.footerText,
+          bodyText: pdfTextData.bodyText,
+        });
+
+        console.log(`   - Email: ${regexSupplierInfo.supplierEmail.value || 'not found'}`);
+        console.log(`   - Name: ${regexSupplierInfo.supplierName.value || 'not found'}`);
+        console.log(`   - Phone: ${regexSupplierInfo.supplierPhone.value || 'not found'}`);
+      } catch (pdfError) {
+        console.error(`❌ [${requestId}] PDF parsing failed:`, {
+          name: pdfError.name,
+          message: pdfError.message,
+          stack: pdfError.stack,
+        });
+        return sendError(res, `PDF parsing failed: ${pdfError.message}`, 500, 'PDF_PARSE_ERROR');
+      }
     }
 
     const contentItem = isPdf ? {
@@ -628,6 +669,11 @@ app.post('/api/extract-quote', async (req, res) => {
         data: image,
       },
     };
+
+    // ============================================
+    // MILESTONE (c): BUILD MODEL REQUEST PAYLOAD
+    // ============================================
+    console.log(`🔧 [${requestId}] (c) BUILDING MODEL REQUEST...`);
 
     // Build prompt with header/footer context
     let supplierExtractionGuidance = '';
@@ -647,28 +693,21 @@ ${pdfTextData.footerText}
 MANDATORY: You MUST extract supplier information (name, email, phone, address) from the above header/footer text.
 DO NOT return "not found" if the information exists in the header/footer above.
 `;
+      console.log(`   - Injecting header/footer text (${pdfTextData.headerText.length + pdfTextData.footerText.length} chars)`);
     }
 
-    // Call Anthropic API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 4000,
-        temperature: 0,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              contentItem,
-              {
-                type: 'text',
-                text: `${EXTRACTION_SYSTEM_PROMPT}
+    const requestPayload = {
+      model: MODEL,
+      max_tokens: 4000,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            contentItem,
+            {
+              type: 'text',
+              text: `${EXTRACTION_SYSTEM_PROMPT}
 
 You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
 ${supplierExtractionGuidance}
@@ -738,141 +777,44 @@ CRITICAL RULES:
 3. Only extract from columns labeled with price-related words
 4. Extract ALL rows in the table
 
-═══════════════════════════════════════════════════════════════
-PRODUCT NAME GENERATION:
-═══════════════════════════════════════════════════════════════
-
-NEVER use "Unknown product" or null for productName.
-
-Auto-generate using this pattern:
-"<Material/Category> - <SKU> - <Dimensions>"
-
-Examples:
-- "Aluminium Foil Container - LS-NC323 - 323×265×48mm"
-- "Plastic Takeaway Box - TB-500 - 500ml"
-- "Paper Cup - PC-16OZ - 16oz"
-
-If no product name visible:
-1. Try to extract material/category from context
-2. ALWAYS include SKU if available
-3. ALWAYS include dimensions if available
-4. Minimum: "<SKU> - <Dimensions>"
-
-═══════════════════════════════════════════════════════════════
-MOQ EXTRACTION (FIRST-CLASS FIELD):
-═══════════════════════════════════════════════════════════════
-
-MOQ is a LINE-ITEM-LEVEL field, NOT a document-level field.
-
-Extract MOQ from table rows:
-✓ "600 pcs/ctn" → moq: 600
-✓ "1000 pcs/ctn" → moq: 1000
-✓ "MOQ: 5000" → moq: 5000
-✓ "Min Order: 2000" → moq: 2000
-
-MOQ may appear in columns labeled:
-- "MOQ"
-- "Min Order"
-- "Minimum Qty"
-- "Packing" (e.g., "600 pcs/ctn")
-
-CRITICAL: MOQ must be attached to each line item.
-If MOQ exists in the row → extract it and set high confidence.
-If missing → set moq to null (NOT zero).
-
-═══════════════════════════════════════════════════════════════
-CONFIDENCE SCORING:
-═══════════════════════════════════════════════════════════════
-
-For unitPrice and moq, add confidence scores:
-
-"high" = clearly labeled in document (exact header match + row alignment)
-"medium" = inferable from context but not explicitly labeled
-"low" = ambiguous, unclear, conflicting, or sanity-flagged
-
-═══════════════════════════════════════════════════════════════
-LOGISTICS FIELDS (CRITICAL FOR LANDED COST):
-═══════════════════════════════════════════════════════════════
-
-Extract these fields for EACH line item (required for landed cost calculation):
-
-1. weight_g: Product weight in grams (number only)
-   - "50g" → 50
-   - "0.05kg" → 50
-   - "Weight: 100g" → 100
-
-2. packing_pcs_per_ctn: How many pieces per carton (number only)
-   - "600 pcs/ctn" → 600
-   - "Packing: 1000pcs/carton" → 1000
-
-3. Carton dimensions (numbers only, in cm):
-   - carton_length_cm: "45×35×30cm" → 45
-   - carton_width_cm: "45×35×30cm" → 35
-   - carton_height_cm: "45×35×30cm" → 30
-
-4. cbm_per_carton: CBM value (number only)
-   - "Meas: 0.077" → 0.077
-   - "CBM: 0.104" → 0.104
-
-If logistics fields are in separate columns, extract them all.
-If not found → set to null (do NOT guess).
-
-═══════════════════════════════════════════════════════════════
-JSON STRUCTURE (return ONLY this, no markdown):
-═══════════════════════════════════════════════════════════════
-
-{
-  "supplierName": "exact company name" or null,
-  "supplierContact": "contact person" or null,
-  "supplierEmail": "email" or null,
-  "supplierPhone": "phone/whatsapp number" or null,
-  "supplierAddress": "full address" or null,
-  "currency": "USD" or "EUR" or "CNY" etc. or null,
-  "incoterm": "FOB Shanghai" or "CIF LA" etc. or null,
-  "quoteDate": "YYYY-MM-DD" or null,
-  "validUntil": "YYYY-MM-DD" or null,
-  "paymentTerms": "exact terms" or null,
-  "leadTime": "exact lead time" or null,
-  "notes": "important notes" or null,
-  "lineItems": [
-    {
-      "productName": "clean product name ONLY (NO specs/dimensions/weight)",
-      "sku": "model/item number" or null,
-      "material": "material type (e.g. cotton, aluminum, paper)" or null,
-      "unitPrice": 1.23 (per PIECE only, no symbol) or null,
-      "priceConfidence": "high" or "medium" or "low",
-      "priceEstimated": true or false,
-      "moq": 1000 (number only) or null,
-      "moqConfidence": "high" or "medium" or "low",
-      "quantity": 5000 or null,
-      "dimensions": "225×175×42mm" (exact text) or null,
-      "weight_g": 50 (grams, number only) or null,
-      "packing_pcs_per_ctn": 600 (number only) or null,
-      "carton_length_cm": 45.5 (cm, number only) or null,
-      "carton_width_cm": 35.0 (cm, number only) or null,
-      "carton_height_cm": 30.0 (cm, number only) or null,
-      "cbm_per_carton": 0.077 (number only) or null
-    }
-  ]
-}
-
 PRIORITY: Extract ALL line items. Extract ALL logistics fields for landed cost.
 
 Return ONLY the JSON object, nothing else.`
-              }
-            ]
-          }
-        ],
-      }),
+            }
+          ]
+        }
+      ],
+    };
+
+    const requestPayloadSize = JSON.stringify(requestPayload).length;
+    console.log(`   - Payload size: ${(requestPayloadSize / 1024).toFixed(2)} KB`);
+    console.log(`   - Message content items: ${requestPayload.messages[0].content.length}`);
+
+    // ============================================
+    // MILESTONE (d): CALL LLM API
+    // ============================================
+    console.log(`🌐 [${requestId}] (d) CALLING ANTHROPIC API...`);
+    const apiCallStart = Date.now();
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify(requestPayload),
     });
 
+    const apiCallDuration = Date.now() - apiCallStart;
+    console.log(`   - API call completed in ${apiCallDuration}ms`);
+    console.log(`   - Response status: ${response.status} ${response.statusText}`);
+
     if (!response.ok) {
+      console.error(`❌ [${requestId}] Anthropic API returned error status`);
       const error = await response.json();
-      console.error(`[ERROR ${requestId}] Anthropic API Error:`, {
-        status: response.status,
-        type: error.error?.type,
-        message: error.error?.message,
-      });
+      console.error(`   - Error type: ${error.error?.type}`);
+      console.error(`   - Error message: ${error.error?.message}`);
 
       return sendError(
         res,
@@ -882,20 +824,45 @@ Return ONLY the JSON object, nothing else.`
       );
     }
 
+    // ============================================
+    // MILESTONE (e): PARSE MODEL RESPONSE
+    // ============================================
+    console.log(`📦 [${requestId}] (e) PARSING MODEL RESPONSE...`);
+
     const data = await response.json();
+    console.log(`   - Response tokens: ${data.usage?.input_tokens || 0} in, ${data.usage?.output_tokens || 0} out`);
+    console.log(`   - Stop reason: ${data.stop_reason}`);
+
     const content = data.content?.[0]?.text;
 
     if (!content) {
+      console.error(`❌ [${requestId}] Empty content in response`);
       return sendError(res, 'No response from Claude', 500, 'EMPTY_RESPONSE');
     }
+
+    console.log(`   - Content length: ${content.length} chars`);
+    console.log(`   - Content preview: ${content.substring(0, 100)}...`);
 
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      console.error(`❌ [${requestId}] No JSON found in model output`);
+      console.error(`   - Full content: ${content.substring(0, 500)}`);
       return sendError(res, 'Could not parse extraction result from model output', 500, 'PARSE_ERROR');
     }
 
-    const rawData = JSON.parse(jsonMatch[0]);
+    console.log(`   - Found JSON block: ${jsonMatch[0].length} chars`);
+
+    let rawData;
+    try {
+      rawData = JSON.parse(jsonMatch[0]);
+      console.log(`   - Parsed successfully`);
+      console.log(`   - Line items: ${rawData.lineItems?.length || 0}`);
+    } catch (parseError) {
+      console.error(`❌ [${requestId}] JSON parse failed:`, parseError.message);
+      console.error(`   - Invalid JSON: ${jsonMatch[0].substring(0, 200)}`);
+      return sendError(res, `Invalid JSON from model: ${parseError.message}`, 500, 'PARSE_ERROR');
+    }
 
     // Apply sanitizer to enforce clean product names
     const sanitizedData = sanitizeExtractedData(rawData);
@@ -943,12 +910,29 @@ Return ONLY the JSON object, nothing else.`
       console.log('[MERGE] After merge - supplierPhone:', sanitizedData.supplierPhone);
     }
 
-    console.log(`✅ [EXTRACTION ${requestId}] Completed successfully`);
+    // ============================================
+    // MILESTONE (f): RETURNING RESPONSE
+    // ============================================
+    console.log(`✅ [${requestId}] (f) RETURNING RESPONSE`);
+    console.log(`   - Supplier name: ${sanitizedData.supplierName?.value || 'not found'}`);
+    console.log(`   - Supplier email: ${sanitizedData.supplierEmail?.value || 'not found'}`);
+    console.log(`   - Line items: ${sanitizedData.lineItems?.length || 0}`);
+    console.log(`✅ [${requestId}] EXTRACTION COMPLETED SUCCESSFULLY`);
 
     // Return the extracted data with standardized success response
     return sendSuccess(res, sanitizedData);
 
   } catch (error) {
+    // ============================================
+    // FATAL ERROR HANDLER
+    // ============================================
+    console.error(`❌ [${requestId}] FATAL ERROR - Extraction failed`);
+    console.error(`   - Error name: ${error.name}`);
+    console.error(`   - Error message: ${error.message}`);
+    console.error(`   - Error cause: ${error.cause || 'N/A'}`);
+    console.error(`   - Stack trace:`);
+    console.error(error.stack);
+
     // Catch ANY unhandled errors and return proper JSON
     return sendError(res, error, 500, 'EXTRACTION_FAILED');
   }
