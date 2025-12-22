@@ -781,6 +781,10 @@ app.post('/api/extract-quote', async (req, res) => {
     console.log(`📋 [${requestId}] File type: ${isPdf ? 'PDF' : 'IMAGE'}, size: ${imageSize} bytes (${imageSizeMB} MB)`);
     console.log(`🤖 [${requestId}] Model: ${MODEL}`);
 
+    // Track which extraction route was used
+    let extractionRoute = 'unknown';
+    let ocrTextLen = 0;
+
     // ============================================
     // STEP: pdf-text (optional - for logging/debugging)
     // ============================================
@@ -794,7 +798,6 @@ app.post('/api/extract-quote', async (req, res) => {
       // Try to extract text for debugging/logging (optional, won't crash if fails)
       try {
         // Dynamic import to avoid cold-start crash
-        // Only import if we're in local development or pdf-parse is available
         const pdfBuffer = Buffer.from(image, 'base64');
 
         // Try to use pdf-parse if available (dynamic import won't crash if missing)
@@ -826,9 +829,11 @@ app.post('/api/extract-quote', async (req, res) => {
           console.log(`   - Body preview: ${fullText.substring(0, 200).replace(/\n/g, ' ')}`);
 
           // Validate extracted text
-          if (fullText.trim().length < 50) {
-            console.warn(`⚠️  [${requestId}] WARNING: Extracted text is very short (${fullText.length} chars)`);
-            console.warn(`   This may indicate OCR/parsing issues. Will proceed with native PDF support.`);
+          if (fullText.trim().length < 200) {
+            console.warn(`⚠️  [${requestId}] WARNING: Extracted text is short (${fullText.length} chars)`);
+            console.warn(`   This may indicate image-based PDF. Will use vision fallback if needed.`);
+          } else {
+            extractionRoute = 'text';
           }
 
           // Try regex-based supplier extraction from header/footer
@@ -841,51 +846,44 @@ app.post('/api/extract-quote', async (req, res) => {
           }
 
         } catch (pdfParseError) {
-          // pdf-parse not available or failed - not critical, Anthropic handles PDFs natively
-          console.log(`📄 [${requestId}] pdf-parse not available (${pdfParseError.message}), using native PDF support`);
+          // pdf-parse not available or failed - not critical, will use vision
+          console.log(`📄 [${requestId}] pdf-parse not available (${pdfParseError.message}), will use vision route`);
+          extractionRoute = 'vision';
         }
 
       } catch (error) {
         // Text extraction failed - not critical
         console.warn(`⚠️  [${requestId}] PDF text extraction failed: ${error.message}`);
-        console.log(`   Will proceed with Anthropic's native PDF support`);
+        console.log(`   Will use vision route`);
+        extractionRoute = 'vision';
       }
     }
 
-    // ============================================
-    // STEP: build-llm-request
-    // ============================================
-    step = 'build-llm-request';
-    console.log(`📋 [${requestId}] Step: ${step}`);
+    // Helper function to call LLM with document
+    async function callLLMWithDocument(contentType, logPrefix) {
+      console.log(`📋 [${requestId}] ${logPrefix}: Calling LLM with ${contentType} type`);
 
-    const contentItem = isPdf ? {
-      type: 'document',
-      source: {
-        type: 'base64',
-        media_type: mediaType,
-        data: image,
-      },
-    } : {
-      type: 'image',
-      source: {
-        type: 'base64',
-        media_type: mediaType,
-        data: image,
-      },
-    };
+      const contentItem = {
+        type: contentType,
+        source: {
+          type: 'base64',
+          media_type: mediaType,
+          data: image,
+        },
+      };
 
-    const requestPayload = {
-      model: MODEL,
-      max_tokens: 4000,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            contentItem,
-            {
-              type: 'text',
-              text: `${EXTRACTION_SYSTEM_PROMPT}
+      const requestPayload = {
+        model: MODEL,
+        max_tokens: 4000,
+        temperature: 0,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              contentItem,
+              {
+                type: 'text',
+                text: `${EXTRACTION_SYSTEM_PROMPT}
 
 You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
 
@@ -907,7 +905,7 @@ RULES FOR SUPPLIER INFO:
 STEP-BY-STEP INSTRUCTIONS (DO NOT SKIP):
 
 STEP 1: IDENTIFY THE TABLE
-- Look at the image
+- Look at the ${contentType === 'image' ? 'image' : 'document'}
 - Find the table with product/quote information
 
 STEP 2: IDENTIFY COLUMN HEADERS
@@ -931,22 +929,6 @@ b) Extract the number from that column
 c) That number is the unitPrice
 d) DO NOT use numbers from other columns
 
-EXAMPLE (THIS IS YOUR ACTUAL QUOTE):
-Row 1 headers: [Item No] [Unit Price] [Meas/CBM]
-Row 2 data:    [LS-323]  [USD0.0389/PC] [0.077]
-
-CORRECT EXTRACTION FOR ROW 2:
-- unitPrice = 0.0389 (from column 2 "Unit Price")
-- cbm = 0.077 (from column 3 "Meas/CBM")
-
-WRONG EXTRACTION (DO NOT DO THIS):
-- unitPrice = 0.077 ← WRONG! This is from the CBM column, not the price column!
-
-VERIFICATION STEP:
-After extracting unitPrice, ask yourself:
-"Did I get this number from a column that says Price/Unit Price/USD/PC?"
-If NO → You extracted from the wrong column! Set unitPrice = null instead.
-
 CRITICAL RULES:
 1. Column header determines what data is in that column
 2. If header says "CBM" or "Meas", that column is NOT unitPrice
@@ -956,77 +938,74 @@ CRITICAL RULES:
 PRIORITY: Extract ALL line items. Extract ALL logistics fields for landed cost.
 
 Return ONLY the JSON object, nothing else.`
-            }
-          ]
-        }
-      ],
-    };
+              }
+            ]
+          }
+        ],
+      };
 
-    const requestPayloadSize = JSON.stringify(requestPayload).length;
-    console.log(`   - Payload size: ${(requestPayloadSize / 1024).toFixed(2)} KB`);
+      // Call API with timeout
+      const response = await withTimeout(
+        fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+          },
+          body: JSON.stringify(requestPayload),
+        }),
+        60000, // 60 second timeout
+        'Anthropic API call'
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`);
+      }
+
+      const data = await response.json();
+      const content = data.content?.[0]?.text;
+
+      if (!content) {
+        throw new Error('No response from Claude');
+      }
+
+      return { content, usage: data.usage };
+    }
 
     // ============================================
-    // STEP: llm-call
+    // STEP: llm-call (with fallback)
     // ============================================
     step = 'llm-call';
     console.log(`📋 [${requestId}] Step: ${step}`);
-    console.log(`🌐 [${requestId}] Calling Anthropic API...`);
-    const apiCallStart = Date.now();
 
-    // Wrap API call with 60 second timeout
-    const response = await withTimeout(
-      fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-        },
-        body: JSON.stringify(requestPayload),
-      }),
-      60000, // 60 second timeout
-      'Anthropic API call'
-    );
+    let content;
+    let attemptedVisionFallback = false;
 
-    const apiCallDuration = Date.now() - apiCallStart;
-    console.log(`   - API call completed in ${apiCallDuration}ms`);
-    console.log(`   - Response status: ${response.status} ${response.statusText}`);
+    try {
+      // First attempt: Try document type for PDFs, image for images
+      const initialType = isPdf ? 'document' : 'image';
+      extractionRoute = isPdf ? 'native-pdf' : 'image';
 
-    if (!response.ok) {
-      console.error(`❌ [${requestId}] Anthropic API returned error status`);
-      const error = await response.json();
-      console.error(`   - Error type: ${error.error?.type}`);
-      console.error(`   - Error message: ${error.error?.message}`);
+      const result = await callLLMWithDocument(initialType, 'Primary route');
+      content = result.content;
+
+      console.log(`   - Content length: ${content.length} chars`);
+      console.log(`   - Content preview: ${content.substring(0, 100)}...`);
+
+    } catch (error) {
+      console.error(`❌ [${requestId}] Primary route failed: ${error.message}`);
 
       return sendError(
         res,
-        `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`,
-        response.status,
+        error.message,
+        500,
         'ANTHROPIC_API_ERROR',
         requestId,
         step
       );
     }
-
-    // ============================================
-    // STEP: parse-llm-response
-    // ============================================
-    step = 'parse-llm-response';
-    console.log(`📋 [${requestId}] Step: ${step}`);
-
-    const data = await response.json();
-    console.log(`   - Response tokens: ${data.usage?.input_tokens || 0} in, ${data.usage?.output_tokens || 0} out`);
-    console.log(`   - Stop reason: ${data.stop_reason}`);
-
-    const content = data.content?.[0]?.text;
-
-    if (!content) {
-      console.error(`❌ [${requestId}] Empty content in response`);
-      return sendError(res, 'No response from Claude', 500, 'EMPTY_RESPONSE', requestId, step);
-    }
-
-    console.log(`   - Content length: ${content.length} chars`);
-    console.log(`   - Content preview: ${content.substring(0, 100)}...`);
 
     // ============================================
     // STEP: post-parse
@@ -1059,7 +1038,7 @@ Return ONLY the JSON object, nothing else.`
     const sanitizedData = sanitizeExtractedData(rawData);
 
     // ============================================
-    // STEP: validate-results
+    // STEP: validate-results (with vision fallback)
     // ============================================
     step = 'validate-results';
     console.log(`📋 [${requestId}] Step: ${step}`);
@@ -1067,15 +1046,77 @@ Return ONLY the JSON object, nothing else.`
     const itemCount = sanitizedData.lineItems?.length || 0;
     console.log(`   - Validated line items: ${itemCount}`);
 
-    // Fail fast if we got 0 items (likely extraction failure)
-    if (itemCount === 0) {
+    // If we got 0 items and this is a PDF that we tried as "document", try vision fallback
+    if (itemCount === 0 && isPdf && !attemptedVisionFallback && extractionRoute === 'native-pdf') {
+      console.warn(`⚠️  [${requestId}] Got 0 items from native PDF route, trying vision fallback...`);
+
+      try {
+        step = 'llm-call-vision-fallback';
+        attemptedVisionFallback = true;
+        extractionRoute = 'vision-fallback';
+
+        // Try again with 'image' type instead of 'document'
+        const visionResult = await callLLMWithDocument('image', 'Vision fallback');
+        content = visionResult.content;
+
+        console.log(`   - Vision fallback content length: ${content.length} chars`);
+
+        // Re-parse
+        step = 'post-parse-vision';
+        const visionJsonMatch = content.match(/\{[\s\S]*\}/);
+        if (!visionJsonMatch) {
+          console.error(`❌ [${requestId}] Vision fallback: No JSON found`);
+        } else {
+          try {
+            rawData = JSON.parse(visionJsonMatch[0]);
+            const visionSanitized = sanitizeExtractedData(rawData);
+            const visionItemCount = visionSanitized.lineItems?.length || 0;
+
+            console.log(`   - Vision fallback extracted ${visionItemCount} items`);
+
+            if (visionItemCount > 0) {
+              // Vision worked! Use this data
+              Object.assign(sanitizedData, visionSanitized);
+              console.log(`✅ [${requestId}] Vision fallback succeeded with ${visionItemCount} items`);
+            } else {
+              console.warn(`⚠️  [${requestId}] Vision fallback also returned 0 items`);
+            }
+          } catch (parseError) {
+            console.error(`❌ [${requestId}] Vision fallback JSON parse failed:`, parseError.message);
+          }
+        }
+      } catch (visionError) {
+        console.error(`❌ [${requestId}] Vision fallback failed:`, visionError.message);
+        // Continue with original (empty) results
+      }
+
+      // Re-validate after fallback
+      step = 'validate-results';
+      const finalItemCount = sanitizedData.lineItems?.length || 0;
+
+      if (finalItemCount === 0) {
+        console.error(`❌ [${requestId}] All extraction routes returned 0 items`);
+        console.error(`   - Attempted routes: native-pdf, vision-fallback`);
+        console.error(`   - Raw data preview: ${JSON.stringify(sanitizedData).substring(0, 300)}`);
+
+        return sendError(
+          res,
+          'Extraction returned 0 items after trying both native PDF and vision routes. The PDF may be image-based (requiring OCR), corrupted, or the table format is not recognized. Please try a different file or contact support.',
+          500,
+          'EMPTY_EXTRACTION',
+          requestId,
+          step
+        );
+      }
+    } else if (itemCount === 0) {
+      // Not a PDF or already tried fallback
       console.error(`❌ [${requestId}] Extraction returned 0 items`);
+      console.error(`   - Route used: ${extractionRoute}`);
       console.error(`   - Raw data preview: ${JSON.stringify(sanitizedData).substring(0, 300)}`);
-      console.error(`   - Model output preview: ${content.substring(0, 500)}`);
 
       return sendError(
         res,
-        'Extraction returned 0 items. The PDF may be image-based (requiring OCR) or the table format is not recognized. Please try a different file or contact support.',
+        'Extraction returned 0 items. The document may be image-based (requiring OCR) or the format is not recognized. Please try a different file or contact support.',
         500,
         'EMPTY_EXTRACTION',
         requestId,
@@ -1115,12 +1156,16 @@ Return ONLY the JSON object, nothing else.`
       ...(process.env.NODE_ENV !== 'production' && {
         _debug: {
           requestId,
+          routeUsed: extractionRoute,
+          attemptedVisionFallback,
           pdfTextExtracted: !!pdfTextData,
           bodyTextLen: pdfTextData?.bodyText?.length || 0,
           headerTextLen: pdfTextData?.headerText?.length || 0,
           footerTextLen: pdfTextData?.footerText?.length || 0,
-          headerPreview: pdfTextData?.headerText?.substring(0, 200).replace(/\n/g, ' ') || 'N/A',
-          bodyPreview: pdfTextData?.bodyText?.substring(0, 200).replace(/\n/g, ' ') || 'N/A',
+          ocrTextLen,
+          headerPreview: pdfTextData?.headerText?.substring(0, 150).replace(/\n/g, ' ') || 'N/A',
+          bodyPreview: pdfTextData?.bodyText?.substring(0, 150).replace(/\n/g, ' ') || 'N/A',
+          pageCount: pdfTextData?.pageCount || (isPdf ? 'unknown' : 'N/A'),
           regexFoundEmail: !!regexSupplierInfo?.supplierEmail?.value,
           regexFoundPhone: !!regexSupplierInfo?.supplierPhone?.value,
           regexFoundName: !!regexSupplierInfo?.supplierName?.value,
