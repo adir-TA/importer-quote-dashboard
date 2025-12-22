@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "test": "node tests/supplier-extraction.test.js && node tests/api-error-handling.test.js",
     "test:supplier": "node tests/supplier-extraction.test.js",
-    "test:api": "node tests/api-error-handling.test.js"
+    "test:api": "node tests/api-error-handling.test.js",
+    "test:extraction": "node test-extraction-local.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
