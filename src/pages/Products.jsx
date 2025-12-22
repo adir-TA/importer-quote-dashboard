@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2 } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
+import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch } from '../utils/helpers';
 
 function Products() {
@@ -17,6 +18,7 @@ function Products() {
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({ name: '', category: '', description: '' });
   const [quoteCounts, setQuoteCounts] = useState({});
+  const [isUploadQuoteModalOpen, setIsUploadQuoteModalOpen] = useState(false);
 
   // Category dropdown states (for modal)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -240,7 +242,10 @@ function Products() {
     <div className="page">
       <div className="header">
         <h2>Buying Intents</h2>
-        <div className="header-actions">
+        <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+          <button className="btn btn-secondary" onClick={() => setIsUploadQuoteModalOpen(true)}>
+            <Upload size={16} /> Upload Quote
+          </button>
           <button className="btn btn-primary" onClick={() => handleOpenModal()}>
             <Plus size={16} /> New Buying Intent
           </button>
@@ -893,6 +898,26 @@ function Products() {
           </div>
         </div>
       )}
+
+      {/* Upload Quote Modal */}
+      <MultiItemQuoteUploadModal
+        isOpen={isUploadQuoteModalOpen}
+        onClose={() => setIsUploadQuoteModalOpen(false)}
+        onSuccess={() => {
+          setIsUploadQuoteModalOpen(false);
+          // Reload quote counts after successful upload
+          const loadQuoteCounts = async () => {
+            const counts = {};
+            for (const product of products) {
+              const oldQuotes = computed.getProductQuotes(product.id);
+              const newLineItems = await computed.getLineItemsForBuyingIntent(product.id);
+              counts[product.id] = oldQuotes.length + newLineItems.length;
+            }
+            setQuoteCounts(counts);
+          };
+          loadQuoteCounts();
+        }}
+      />
     </div>
   );
 }

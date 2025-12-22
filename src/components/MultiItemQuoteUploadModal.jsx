@@ -608,7 +608,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   // Calculate match statistics for all line items
   const matchStats = React.useMemo(() => {
-    if (!editableLineItems || editableLineItems.length === 0) {
+    if (!editableLineItems || editableLineItems.length === 0 || !products) {
       return { total: 0, highConfidence: 0, hasMatches: 0, allHighConfidence: false };
     }
 
@@ -616,12 +616,16 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     let hasMatches = 0;
 
     editableLineItems.forEach(item => {
-      const bestMatch = findBestMatch(item, products);
-      if (bestMatch) {
-        hasMatches++;
-        if (bestMatch.matchResult.confidence >= 85) {
-          highConfidence++;
+      try {
+        const bestMatch = findBestMatch(item, products);
+        if (bestMatch) {
+          hasMatches++;
+          if (bestMatch.matchResult.confidence >= 85) {
+            highConfidence++;
+          }
         }
+      } catch (error) {
+        console.error('[Modal] Error calculating match for item:', item, error);
       }
     });
 
@@ -635,12 +639,18 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   // Accept all high-confidence suggestions
   const handleAcceptAllSuggestions = () => {
+    if (!editableLineItems || !products) return;
+
     editableLineItems.forEach((item, index) => {
       // Only auto-accept if no buying intent already selected
       if (!item.linkedBuyingIntentId) {
-        const bestMatch = findBestMatch(item, products);
-        if (bestMatch && bestMatch.matchResult.confidence >= 85) {
-          handleBuyingIntentChange(index, bestMatch.intent.id);
+        try {
+          const bestMatch = findBestMatch(item, products);
+          if (bestMatch && bestMatch.matchResult.confidence >= 85) {
+            handleBuyingIntentChange(index, bestMatch.intent.id);
+          }
+        } catch (error) {
+          console.error('[Modal] Error accepting suggestion for item:', item, error);
         }
       }
     });
