@@ -298,7 +298,9 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
 
 function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyingIntentId = null }) {
   const { state, actions } = useAppContext();
-  const { settings, products } = state;
+  const { settings, products: rawProducts } = state;
+  // Ensure products is always an array to prevent useMemo errors
+  const products = rawProducts || [];
   const { user } = useAuth();
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
