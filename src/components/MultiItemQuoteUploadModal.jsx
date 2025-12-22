@@ -778,13 +778,25 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   };
 
   // Count suggestions and selections
-  const suggestionStats = {
-    high: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'high').length,
-    medium: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'medium').length,
-    low: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'low').length,
-    totalSuggestions: editableLineItems.filter(i => i.suggestedBuyingIntentId).length,
-    totalSelected: editableLineItems.filter(i => i.linkedBuyingIntentId).length,
-  };
+  const suggestionStats = React.useMemo(() => {
+    if (!editableLineItems || !Array.isArray(editableLineItems)) {
+      return {
+        high: 0,
+        medium: 0,
+        low: 0,
+        totalSuggestions: 0,
+        totalSelected: 0,
+      };
+    }
+
+    return {
+      high: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'high').length,
+      medium: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'medium').length,
+      low: editableLineItems.filter(i => i.suggestedBuyingIntentId && i.matchConfidenceLevel === 'low').length,
+      totalSuggestions: editableLineItems.filter(i => i.suggestedBuyingIntentId).length,
+      totalSelected: editableLineItems.filter(i => i.linkedBuyingIntentId).length,
+    };
+  }, [editableLineItems]);
 
   // ============================================
   // RENDER
