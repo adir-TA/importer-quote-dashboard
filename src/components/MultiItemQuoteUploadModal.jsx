@@ -435,6 +435,12 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   if (!isOpen) return null;
 
+  // Safety check: ensure critical arrays are initialized before rendering
+  if (!Array.isArray(editableLineItems)) {
+    console.warn('[Modal] editableLineItems not initialized yet');
+    return null;
+  }
+
   // ============================================
   // HANDLERS
   // ============================================
