@@ -78,6 +78,8 @@
  * @property {ExtractedField<string>} supplierName
  * @property {ExtractedField<string>} supplierContact
  * @property {ExtractedField<string>} supplierEmail
+ * @property {ExtractedField<string>} supplierPhone
+ * @property {ExtractedField<string>} supplierAddress
  * @property {ExtractedField<string>} currency
  * @property {ExtractedField<string>} incoterm
  * @property {ExtractedField<string>} quoteDate
@@ -122,6 +124,8 @@
  * @property {string} [leadTime] - Lead time
  * @property {string} [supplierContact] - Contact name
  * @property {string} [supplierEmail] - Contact email
+ * @property {string} [supplierPhone] - Contact phone
+ * @property {string} [supplierAddress] - Supplier address
  * @property {string} [notes] - Additional notes
  */
 
@@ -222,6 +226,8 @@ export function createEmptyExtraction(fileName, fileType) {
     supplierName: notFound(),
     supplierContact: notFound(),
     supplierEmail: notFound(),
+    supplierPhone: notFound(),
+    supplierAddress: notFound(),
     currency: notFound(),
     incoterm: notFound(),
     validUntil: notFound(),

@@ -99,6 +99,14 @@ function convertToExtractionResult(rawData) {
       ? extracted(rawData.supplierEmail, 'Contact section')
       : notFound(),
 
+    supplierPhone: rawData.supplierPhone !== null
+      ? extracted(rawData.supplierPhone, 'Contact section')
+      : notFound(),
+
+    supplierAddress: rawData.supplierAddress !== null
+      ? extracted(rawData.supplierAddress, 'Header/footer')
+      : notFound(),
+
     currency: rawData.currency !== null
       ? extracted(rawData.currency, 'Price section')
       : notFound(),

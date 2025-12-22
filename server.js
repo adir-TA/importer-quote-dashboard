@@ -202,6 +202,21 @@ app.post('/api/extract-quote', async (req, res) => {
                 type: 'text',
                 text: `You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
 
+SUPPLIER INFO EXTRACTION (PRIORITY):
+Before extracting line items, find supplier/factory information in the document header/footer:
+- supplierName: Company name (look for "From:", letterhead, company seal)
+- supplierContact: Contact person name (if explicitly stated)
+- supplierEmail: Email address (look for "Email:", "E-mail:", "Mail:" in header/footer)
+- supplierPhone: Phone/WhatsApp number (look for "Tel:", "Phone:", "WhatsApp:", "Mob:")
+- supplierAddress: Full address (factory/office location)
+
+RULES FOR SUPPLIER INFO:
+- ONLY extract if explicitly present in header/footer/contact section
+- DO NOT infer or guess
+- If not found → set to null
+- Email must be actual email address (contains @)
+- Phone must include country code if shown (+86, etc.)
+
 STEP-BY-STEP INSTRUCTIONS (DO NOT SKIP):
 
 STEP 1: IDENTIFY THE TABLE
@@ -338,6 +353,8 @@ JSON STRUCTURE (return ONLY this, no markdown):
   "supplierName": "exact company name" or null,
   "supplierContact": "contact person" or null,
   "supplierEmail": "email" or null,
+  "supplierPhone": "phone/whatsapp number" or null,
+  "supplierAddress": "full address" or null,
   "currency": "USD" or "EUR" or "CNY" etc. or null,
   "incoterm": "FOB Shanghai" or "CIF LA" etc. or null,
   "quoteDate": "YYYY-MM-DD" or null,
@@ -460,6 +477,8 @@ Extract into this JSON format (return ONLY JSON, no markdown):
   "supplierName": "company name" or null,
   "supplierContact": "contact person" or null,
   "supplierEmail": "email" or null,
+  "supplierPhone": "phone/whatsapp number" or null,
+  "supplierAddress": "full address" or null,
   "currency": "USD" or "EUR" or "CNY" or "RMB" etc. or null,
   "incoterm": "FOB Shanghai" or "CIF LA" etc. or null,
   "quoteDate": "YYYY-MM-DD" or null,

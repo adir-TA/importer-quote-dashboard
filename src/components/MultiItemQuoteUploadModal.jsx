@@ -26,6 +26,21 @@ import API_BASE_URL from '../config/api';
 
 const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
+// Helper component for field confidence badges
+function FieldConfidenceBadge({ field, label }) {
+  if (!field) return <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>(Not found)</span>;
+
+  if (field.status === 'extracted') {
+    return <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>✓ Found</span>;
+  }
+
+  if (field.status === 'not_found') {
+    return <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>(Not found)</span>;
+  }
+
+  return null;
+}
+
 // Confidence Badge Component - Suggestions Only
 function ConfidenceBadge({ level, confidence }) {
   const badges = {
@@ -331,6 +346,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     step = 'idle',
     progress = '',
     error = null,
+    extraction = null,
     supplierFields = {},
     editableLineItems = [],
     uploadedFile = null,
@@ -1141,6 +1157,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       <div style={styles.field}>
                         <label style={styles.label}>
                           Supplier Name <span style={styles.required}>*</span>
+                          {' '}
+                          <FieldConfidenceBadge field={extraction?.supplierName} />
                         </label>
                         <input
                           type="text"
@@ -1155,7 +1173,10 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       </div>
 
                       <div style={styles.field}>
-                        <label style={styles.label}>Contact Person</label>
+                        <label style={styles.label}>
+                          Contact Person{' '}
+                          <FieldConfidenceBadge field={extraction?.supplierContact} />
+                        </label>
                         <input
                           type="text"
                           value={supplierFields.supplierContact}
@@ -1165,12 +1186,42 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       </div>
 
                       <div style={styles.field}>
-                        <label style={styles.label}>Email</label>
+                        <label style={styles.label}>
+                          Email{' '}
+                          <FieldConfidenceBadge field={extraction?.supplierEmail} />
+                        </label>
                         <input
                           type="email"
                           value={supplierFields.supplierEmail}
                           onChange={(e) => updateSupplierField('supplierEmail', e.target.value)}
                           style={styles.input}
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>
+                          Phone / WhatsApp{' '}
+                          <FieldConfidenceBadge field={extraction?.supplierPhone} />
+                        </label>
+                        <input
+                          type="text"
+                          value={supplierFields.supplierPhone}
+                          onChange={(e) => updateSupplierField('supplierPhone', e.target.value)}
+                          style={styles.input}
+                          placeholder="Optional"
+                        />
+                      </div>
+
+                      <div style={styles.field}>
+                        <label style={styles.label}>
+                          Address{' '}
+                          <FieldConfidenceBadge field={extraction?.supplierAddress} />
+                        </label>
+                        <textarea
+                          value={supplierFields.supplierAddress}
+                          onChange={(e) => updateSupplierField('supplierAddress', e.target.value)}
+                          style={{...styles.input, minHeight: '60px', resize: 'vertical'}}
+                          placeholder="Factory/office address (optional)"
                         />
                       </div>
 
