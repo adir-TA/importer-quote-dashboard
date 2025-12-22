@@ -6,7 +6,9 @@
     "dev": "vite",
     "server": "node server.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/supplier-extraction.test.js",
+    "test:supplier": "node tests/supplier-extraction.test.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
