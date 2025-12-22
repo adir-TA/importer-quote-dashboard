@@ -324,16 +324,6 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   });
   const [openBuyingIntentDropdown, setOpenBuyingIntentDropdown] = useState(null); // index of line item with open dropdown
   const [buyingIntentSearch, setBuyingIntentSearch] = useState('');
-  const [isReady, setIsReady] = useState(false);
-
-  // Wait for one render cycle before initializing hook
-  React.useEffect(() => {
-    if (isOpen) {
-      setIsReady(true);
-    } else {
-      setIsReady(false);
-    }
-  }, [isOpen]);
 
   const hookResult = useMultiItemQuoteExtraction(settings?.apiKey, products);
 
@@ -445,7 +435,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [openBuyingIntentDropdown]);
 
-  if (!isOpen || !isReady) return null;
+  // No early return needed - component only mounts when isOpen is true (conditional rendering in parent)
 
   // ============================================
   // HANDLERS
