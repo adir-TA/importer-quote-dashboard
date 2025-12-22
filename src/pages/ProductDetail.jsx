@@ -465,12 +465,14 @@ function ProductDetail() {
         </div>
       )}
 
-      {/* Multi-Item Quote Upload Modal */}
-      <MultiItemQuoteUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onSuccess={handleUploadSuccess}
-      />
+      {/* Multi-Item Quote Upload Modal - only render when open */}
+      {isUploadModalOpen && (
+        <MultiItemQuoteUploadModal
+          isOpen={isUploadModalOpen}
+          onClose={() => setIsUploadModalOpen(false)}
+          onSuccess={handleUploadSuccess}
+        />
+      )}
 
       {/* Upload Document Modal */}
       <UploadDocumentModal
