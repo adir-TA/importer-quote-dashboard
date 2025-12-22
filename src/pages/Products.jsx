@@ -899,25 +899,27 @@ function Products() {
         </div>
       )}
 
-      {/* Upload Quote Modal */}
-      <MultiItemQuoteUploadModal
-        isOpen={isUploadQuoteModalOpen}
-        onClose={() => setIsUploadQuoteModalOpen(false)}
-        onSuccess={() => {
-          setIsUploadQuoteModalOpen(false);
-          // Reload quote counts after successful upload
-          const loadQuoteCounts = async () => {
-            const counts = {};
-            for (const product of products) {
-              const oldQuotes = computed.getProductQuotes(product.id);
-              const newLineItems = await computed.getLineItemsForBuyingIntent(product.id);
-              counts[product.id] = oldQuotes.length + newLineItems.length;
-            }
-            setQuoteCounts(counts);
-          };
-          loadQuoteCounts();
-        }}
-      />
+      {/* Upload Quote Modal - only render when open */}
+      {isUploadQuoteModalOpen && (
+        <MultiItemQuoteUploadModal
+          isOpen={isUploadQuoteModalOpen}
+          onClose={() => setIsUploadQuoteModalOpen(false)}
+          onSuccess={() => {
+            setIsUploadQuoteModalOpen(false);
+            // Reload quote counts after successful upload
+            const loadQuoteCounts = async () => {
+              const counts = {};
+              for (const product of products) {
+                const oldQuotes = computed.getProductQuotes(product.id);
+                const newLineItems = await computed.getLineItemsForBuyingIntent(product.id);
+                counts[product.id] = oldQuotes.length + newLineItems.length;
+              }
+              setQuoteCounts(counts);
+            };
+            loadQuoteCounts();
+          }}
+        />
+      )}
     </div>
   );
 }
