@@ -606,6 +606,59 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
     }
   };
 
+  // Calculate match statistics for all line items
+  const matchStats = React.useMemo(() => {
+    if (!editableLineItems || editableLineItems.length === 0) {
+      return { total: 0, highConfidence: 0, hasMatches: 0, allHighConfidence: false };
+    }
+
+    let highConfidence = 0;
+    let hasMatches = 0;
+
+    editableLineItems.forEach(item => {
+      const bestMatch = findBestMatch(item, products);
+      if (bestMatch) {
+        hasMatches++;
+        if (bestMatch.matchResult.confidence >= 85) {
+          highConfidence++;
+        }
+      }
+    });
+
+    return {
+      total: editableLineItems.length,
+      highConfidence,
+      hasMatches,
+      allHighConfidence: highConfidence === editableLineItems.length && editableLineItems.length > 0,
+    };
+  }, [editableLineItems, products]);
+
+  // Accept all high-confidence suggestions
+  const handleAcceptAllSuggestions = () => {
+    editableLineItems.forEach((item, index) => {
+      // Only auto-accept if no buying intent already selected
+      if (!item.linkedBuyingIntentId) {
+        const bestMatch = findBestMatch(item, products);
+        if (bestMatch && bestMatch.matchResult.confidence >= 85) {
+          handleBuyingIntentChange(index, bestMatch.intent.id);
+        }
+      }
+    });
+  };
+
+  // Quick save handler - auto-creates drafts without review
+  const handleQuickSave = async () => {
+    setSaving(true);
+    try {
+      // Use the existing handleSave logic
+      await handleSave();
+    } catch (error) {
+      console.error('[Modal] Quick save failed:', error);
+      alert('Failed to save quote: ' + error.message);
+      setSaving(false);
+    }
+  };
+
   const handleClose = () => {
     reset();
     setExpandedMatchDetails({});
@@ -890,6 +943,103 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
           {/* REVIEW */}
           {step === 'review' && (
             <div style={styles.review}>
+              {/* Quick Save Banner - Show when all items have high confidence matches */}
+              {matchStats.allHighConfidence && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  border: '2px solid #10b981',
+                  borderRadius: '12px',
+                  padding: '20px',
+                  marginBottom: '20px',
+                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)',
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '16px',
+                    marginBottom: '12px',
+                  }}>
+                    <CheckCircle size={32} color="#10b981" />
+                    <div>
+                      <h3 style={{
+                        margin: 0,
+                        fontSize: '1.1rem',
+                        fontWeight: 600,
+                        color: '#065f46',
+                        marginBottom: '4px',
+                      }}>
+                        Ready to Save!
+                      </h3>
+                      <p style={{
+                        margin: 0,
+                        fontSize: '0.9rem',
+                        color: '#047857',
+                      }}>
+                        All {matchStats.total} items have strong matches. You can save immediately or review details first.
+                      </p>
+                    </div>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    marginTop: '16px',
+                  }}>
+                    <button
+                      onClick={handleQuickSave}
+                      disabled={saving}
+                      style={{
+                        padding: '12px 24px',
+                        background: '#10b981',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontSize: '0.95rem',
+                        transition: 'all 0.2s',
+                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
+                        opacity: saving ? 0.6 : 1,
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!saving) {
+                          e.target.style.background = '#059669';
+                          e.target.style.transform = 'translateY(-1px)';
+                          e.target.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.background = '#10b981';
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
+                      }}
+                    >
+                      {saving ? (
+                        <>
+                          <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle size={18} />
+                          Save Quote Now
+                        </>
+                      )}
+                    </button>
+                    <div style={{
+                      fontSize: '0.8rem',
+                      color: '#6b7280',
+                      alignSelf: 'center',
+                      fontStyle: 'italic',
+                    }}>
+                      or scroll down to review details
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* File Preview Section */}
               {filePreviewUrl && uploadedFile && (
                 <div style={styles.card}>
@@ -1058,6 +1208,66 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                 </div>
                 {!sectionsCollapsed.lineItems && (
                   <div style={styles.cardBody}>
+                    {/* Accept All Suggestions Banner */}
+                    {matchStats.allHighConfidence && (
+                      <div style={{
+                        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                        border: '2px solid #3b82f6',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        marginBottom: '16px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '12px',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                          <CheckCircle size={24} color="#3b82f6" />
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#1e40af', marginBottom: '2px' }}>
+                              ✓ Found matches for all {matchStats.total} items
+                            </div>
+                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                              All items have high-confidence matches (85%+). Accept all suggestions to save time.
+                            </div>
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAcceptAllSuggestions();
+                          }}
+                          style={{
+                            padding: '12px 24px',
+                            background: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s',
+                            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.background = '#2563eb';
+                            e.target.style.transform = 'translateY(-1px)';
+                            e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.4)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.background = '#3b82f6';
+                            e.target.style.transform = 'translateY(0)';
+                            e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.3)';
+                          }}
+                        >
+                          <Check size={18} />
+                          Accept All Suggestions
+                        </button>
+                      </div>
+                    )}
                     {editableLineItems.length === 0 ? (
                       <div style={styles.noItems}>
                         <AlertCircle size={32} color="#94a3b8" />
