@@ -914,60 +914,6 @@ app.post('/api/extract-quote', async (req, res) => {
       }
     }
 
-    // Helper function to convert PDF to PNG for vision route
-    async function convertPdfToImage(pdfBase64) {
-      try {
-        const pdfBuffer = Buffer.from(pdfBase64, 'base64');
-        console.log(`🖼️  [${requestId}] Converting PDF to PNG (${pdfBuffer.length} bytes)...`);
-
-        // Try using pdfjs-dist to render PDF to PNG
-        try {
-          const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
-          const { createCanvas } = await import('canvas');
-
-          const pdf = await getDocument({ data: pdfBuffer }).promise;
-          const page = await pdf.getPage(1); // Get first page
-
-          const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for better quality
-          const canvas = createCanvas(viewport.width, viewport.height);
-          const context = canvas.getContext('2d');
-
-          await page.render({
-            canvasContext: context,
-            viewport: viewport,
-          }).promise;
-
-          const pngBuffer = canvas.toBuffer('image/png');
-          const pngBase64 = pngBuffer.toString('base64');
-
-          console.log(`✅ [${requestId}] PDF rendered to PNG`);
-          console.log(`   - Dimensions: ${viewport.width}x${viewport.height}`);
-          console.log(`   - PNG size: ${pngBuffer.length} bytes`);
-
-          return {
-            success: true,
-            base64: pngBase64,
-            mediaType: 'image/png',
-            width: Math.floor(viewport.width),
-            height: Math.floor(viewport.height),
-            bytes: pngBuffer.length,
-          };
-        } catch (renderError) {
-          console.warn(`⚠️  [${requestId}] PDF rendering failed: ${renderError.message}`);
-          console.warn(`   This likely means 'canvas' or 'pdfjs-dist' is not available`);
-          return {
-            success: false,
-            error: renderError.message,
-          };
-        }
-      } catch (error) {
-        console.error(`❌ [${requestId}] PDF to image conversion error:`, error);
-        return {
-          success: false,
-          error: error.message,
-        };
-      }
-    }
 
     // Helper function to call LLM with document/image
     async function callLLMWithDocument(contentType, logPrefix, customImage = null, customMediaType = null) {
@@ -1163,41 +1109,25 @@ Return ONLY the JSON object, nothing else.`
       console.warn(`⚠️  [${requestId}] Got 0 items from native PDF route, trying vision fallback...`);
 
       try {
-        step = 'render-pdf-to-image';
+        step = 'llm-call-vision-fallback';
         attemptedVisionFallback = true;
+        extractionRoute = 'vision-fallback';
 
-        // Convert PDF to PNG
-        const renderResult = await convertPdfToImage(image);
-
-        if (!renderResult.success) {
-          console.error(`❌ [${requestId}] PDF rendering failed: ${renderResult.error}`);
-          console.error(`   Cannot proceed with vision fallback without rendered image`);
-          throw new Error(`PDF rendering failed: ${renderResult.error}`);
-        }
+        // Try sending the same PDF but with type="image" instead of type="document"
+        // Claude's API can handle PDFs as images without needing server-side rendering
+        console.log(`📋 [${requestId}] Sending PDF as type="image" (serverless-safe, no rendering)`);
 
         renderMetadata = {
-          bytes: renderResult.bytes,
-          width: renderResult.width,
-          height: renderResult.height,
-          mime: renderResult.mediaType,
+          bytes: imageSize,
+          approach: 'pdf-as-image',
+          mime: mediaType,
         };
-
-        console.log(`✅ [${requestId}] PDF rendered successfully`);
-        console.log(`   - Image: ${renderResult.width}x${renderResult.height}, ${renderResult.bytes} bytes`);
-
-        if (renderResult.bytes === 0 || renderResult.width === 0 || renderResult.height === 0) {
-          throw new Error('Rendered image has zero bytes or dimensions');
-        }
-
-        // Now call LLM with rendered PNG
-        step = 'llm-call-vision-fallback';
-        extractionRoute = 'vision-fallback';
 
         const visionResult = await callLLMWithDocument(
           'image',
-          'Vision fallback',
-          renderResult.base64,
-          renderResult.mediaType
+          'Vision fallback (PDF as image)',
+          image, // Same PDF base64
+          mediaType // Same media type (application/pdf)
         );
         content = visionResult.content;
         modelOutputChars = content.length;
@@ -1240,10 +1170,7 @@ Return ONLY the JSON object, nothing else.`
       if (finalItemCount === 0) {
         console.error(`❌ [${requestId}] All extraction routes returned 0 items`);
         console.error(`   - Attempted routes: native-pdf, vision-fallback`);
-        console.error(`   - Render successful: ${!!renderMetadata}`);
-        if (renderMetadata) {
-          console.error(`   - Rendered image: ${renderMetadata.width}x${renderMetadata.height}, ${renderMetadata.bytes} bytes`);
-        }
+        console.error(`   - Vision fallback approach: ${renderMetadata?.approach || 'unknown'}`);
         console.error(`   - Model output length: ${modelOutputChars} chars`);
         console.error(`   - Model output preview: ${content.substring(0, 400)}`);
 
@@ -1310,11 +1237,10 @@ Return ONLY the JSON object, nothing else.`
           attemptedVisionFallback,
           pageCount: pdfTextData?.pageCount || (isPdf ? 'unknown' : 'N/A'),
 
-          // Render metadata (if PDF was rendered to image)
-          render: renderMetadata ? {
+          // Vision fallback metadata (if attempted)
+          visionFallback: renderMetadata ? {
             bytes: renderMetadata.bytes,
-            width: renderMetadata.width,
-            height: renderMetadata.height,
+            approach: renderMetadata.approach, // 'pdf-as-image' (serverless-safe)
             mime: renderMetadata.mime,
           } : null,
 
