@@ -474,6 +474,61 @@ function withTimeout(promise, timeoutMs, operationName) {
   ]);
 }
 
+// ============================================
+// ROBUST JSON EXTRACTION FROM MODEL OUTPUT
+// ============================================
+/**
+ * Extract JSON from model output, handling code fences, trailing commas, etc.
+ * @param {string} text - Model output text
+ * @returns {Object|null} - Parsed JSON object or null if extraction failed
+ */
+function extractJsonFromText(text) {
+  if (!text) return null;
+
+  // Step 1: Remove code fences (```json ... ``` or ``` ... ```)
+  let cleaned = text.replace(/```(?:json)?\s*/g, '').replace(/```\s*/g, '');
+
+  // Step 2: Find first '{' and last '}'
+  const firstBrace = cleaned.indexOf('{');
+  const lastBrace = cleaned.lastIndexOf('}');
+
+  if (firstBrace === -1 || lastBrace === -1 || firstBrace >= lastBrace) {
+    return null;
+  }
+
+  let jsonStr = cleaned.substring(firstBrace, lastBrace + 1);
+
+  // Step 3: Try parsing as-is
+  try {
+    return JSON.parse(jsonStr);
+  } catch (e1) {
+    // Step 4: Try fixing common issues
+
+    // Fix trailing commas before ] or }
+    let fixed = jsonStr
+      .replace(/,\s*}/g, '}')
+      .replace(/,\s*]/g, ']');
+
+    try {
+      return JSON.parse(fixed);
+    } catch (e2) {
+      // Step 5: Try removing all newlines and extra whitespace
+      fixed = jsonStr
+        .replace(/,\s*}/g, '}')
+        .replace(/,\s*]/g, ']')
+        .replace(/\n/g, ' ')
+        .replace(/\s+/g, ' ');
+
+      try {
+        return JSON.parse(fixed);
+      } catch (e3) {
+        // Give up
+        return null;
+      }
+    }
+  }
+}
+
 // Configure multer for memory storage
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -859,16 +914,71 @@ app.post('/api/extract-quote', async (req, res) => {
       }
     }
 
-    // Helper function to call LLM with document
-    async function callLLMWithDocument(contentType, logPrefix) {
+    // Helper function to convert PDF to PNG for vision route
+    async function convertPdfToImage(pdfBase64) {
+      try {
+        const pdfBuffer = Buffer.from(pdfBase64, 'base64');
+        console.log(`🖼️  [${requestId}] Converting PDF to PNG (${pdfBuffer.length} bytes)...`);
+
+        // Try using pdfjs-dist to render PDF to PNG
+        try {
+          const { getDocument } = await import('pdfjs-dist/legacy/build/pdf.mjs');
+          const { createCanvas } = await import('canvas');
+
+          const pdf = await getDocument({ data: pdfBuffer }).promise;
+          const page = await pdf.getPage(1); // Get first page
+
+          const viewport = page.getViewport({ scale: 2.0 }); // 2x scale for better quality
+          const canvas = createCanvas(viewport.width, viewport.height);
+          const context = canvas.getContext('2d');
+
+          await page.render({
+            canvasContext: context,
+            viewport: viewport,
+          }).promise;
+
+          const pngBuffer = canvas.toBuffer('image/png');
+          const pngBase64 = pngBuffer.toString('base64');
+
+          console.log(`✅ [${requestId}] PDF rendered to PNG`);
+          console.log(`   - Dimensions: ${viewport.width}x${viewport.height}`);
+          console.log(`   - PNG size: ${pngBuffer.length} bytes`);
+
+          return {
+            success: true,
+            base64: pngBase64,
+            mediaType: 'image/png',
+            width: Math.floor(viewport.width),
+            height: Math.floor(viewport.height),
+            bytes: pngBuffer.length,
+          };
+        } catch (renderError) {
+          console.warn(`⚠️  [${requestId}] PDF rendering failed: ${renderError.message}`);
+          console.warn(`   This likely means 'canvas' or 'pdfjs-dist' is not available`);
+          return {
+            success: false,
+            error: renderError.message,
+          };
+        }
+      } catch (error) {
+        console.error(`❌ [${requestId}] PDF to image conversion error:`, error);
+        return {
+          success: false,
+          error: error.message,
+        };
+      }
+    }
+
+    // Helper function to call LLM with document/image
+    async function callLLMWithDocument(contentType, logPrefix, customImage = null, customMediaType = null) {
       console.log(`📋 [${requestId}] ${logPrefix}: Calling LLM with ${contentType} type`);
 
       const contentItem = {
         type: contentType,
         source: {
           type: 'base64',
-          media_type: mediaType,
-          data: image,
+          media_type: customMediaType || mediaType,
+          data: customImage || image,
         },
       };
 
@@ -1013,26 +1123,24 @@ Return ONLY the JSON object, nothing else.`
     step = 'post-parse';
     console.log(`📋 [${requestId}] Step: ${step}`);
 
-    // Parse JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      console.error(`❌ [${requestId}] No JSON found in model output`);
-      console.error(`   - Full content: ${content.substring(0, 500)}`);
-      return sendError(res, 'Could not parse extraction result from model output', 500, 'PARSE_ERROR', requestId, step);
+    // Use robust JSON extraction
+    const rawData = extractJsonFromText(content);
+
+    if (!rawData) {
+      console.error(`❌ [${requestId}] Failed to extract JSON from model output`);
+      console.error(`   - Model output preview: ${content.substring(0, 500)}`);
+      return sendError(
+        res,
+        'Could not extract valid JSON from model output. The model may have returned malformed data.',
+        500,
+        'PARSE_MODEL_OUTPUT',
+        requestId,
+        step
+      );
     }
 
-    console.log(`   - Found JSON block: ${jsonMatch[0].length} chars`);
-
-    let rawData;
-    try {
-      rawData = JSON.parse(jsonMatch[0]);
-      console.log(`   - Parsed successfully`);
-      console.log(`   - Line items: ${rawData.lineItems?.length || 0}`);
-    } catch (parseError) {
-      console.error(`❌ [${requestId}] JSON parse failed:`, parseError.message);
-      console.error(`   - Invalid JSON: ${jsonMatch[0].substring(0, 200)}`);
-      return sendError(res, `Invalid JSON from model: ${parseError.message}`, 500, 'PARSE_ERROR', requestId, step);
-    }
+    console.log(`   - Parsed successfully`);
+    console.log(`   - Line items: ${rawData.lineItems?.length || 0}`);
 
     // Apply sanitizer to enforce clean product names
     const sanitizedData = sanitizeExtractedData(rawData);
@@ -1046,47 +1154,82 @@ Return ONLY the JSON object, nothing else.`
     const itemCount = sanitizedData.lineItems?.length || 0;
     console.log(`   - Validated line items: ${itemCount}`);
 
+    // Track render metadata for debug
+    let renderMetadata = null;
+    let modelOutputChars = content.length;
+
     // If we got 0 items and this is a PDF that we tried as "document", try vision fallback
     if (itemCount === 0 && isPdf && !attemptedVisionFallback && extractionRoute === 'native-pdf') {
       console.warn(`⚠️  [${requestId}] Got 0 items from native PDF route, trying vision fallback...`);
 
       try {
-        step = 'llm-call-vision-fallback';
+        step = 'render-pdf-to-image';
         attemptedVisionFallback = true;
+
+        // Convert PDF to PNG
+        const renderResult = await convertPdfToImage(image);
+
+        if (!renderResult.success) {
+          console.error(`❌ [${requestId}] PDF rendering failed: ${renderResult.error}`);
+          console.error(`   Cannot proceed with vision fallback without rendered image`);
+          throw new Error(`PDF rendering failed: ${renderResult.error}`);
+        }
+
+        renderMetadata = {
+          bytes: renderResult.bytes,
+          width: renderResult.width,
+          height: renderResult.height,
+          mime: renderResult.mediaType,
+        };
+
+        console.log(`✅ [${requestId}] PDF rendered successfully`);
+        console.log(`   - Image: ${renderResult.width}x${renderResult.height}, ${renderResult.bytes} bytes`);
+
+        if (renderResult.bytes === 0 || renderResult.width === 0 || renderResult.height === 0) {
+          throw new Error('Rendered image has zero bytes or dimensions');
+        }
+
+        // Now call LLM with rendered PNG
+        step = 'llm-call-vision-fallback';
         extractionRoute = 'vision-fallback';
 
-        // Try again with 'image' type instead of 'document'
-        const visionResult = await callLLMWithDocument('image', 'Vision fallback');
+        const visionResult = await callLLMWithDocument(
+          'image',
+          'Vision fallback',
+          renderResult.base64,
+          renderResult.mediaType
+        );
         content = visionResult.content;
+        modelOutputChars = content.length;
 
-        console.log(`   - Vision fallback content length: ${content.length} chars`);
+        console.log(`   - Vision fallback output length: ${content.length} chars`);
+        console.log(`   - Vision output preview: ${content.substring(0, 200)}`);
 
-        // Re-parse
+        // Re-parse using robust extraction
         step = 'post-parse-vision';
-        const visionJsonMatch = content.match(/\{[\s\S]*\}/);
-        if (!visionJsonMatch) {
-          console.error(`❌ [${requestId}] Vision fallback: No JSON found`);
+        const visionData = extractJsonFromText(content);
+
+        if (!visionData) {
+          console.error(`❌ [${requestId}] Vision fallback: Failed to extract JSON`);
+          console.error(`   - Model output: ${content.substring(0, 400)}`);
         } else {
-          try {
-            rawData = JSON.parse(visionJsonMatch[0]);
-            const visionSanitized = sanitizeExtractedData(rawData);
-            const visionItemCount = visionSanitized.lineItems?.length || 0;
+          const visionSanitized = sanitizeExtractedData(visionData);
+          const visionItemCount = visionSanitized.lineItems?.length || 0;
 
-            console.log(`   - Vision fallback extracted ${visionItemCount} items`);
+          console.log(`   - Vision fallback extracted ${visionItemCount} items`);
 
-            if (visionItemCount > 0) {
-              // Vision worked! Use this data
-              Object.assign(sanitizedData, visionSanitized);
-              console.log(`✅ [${requestId}] Vision fallback succeeded with ${visionItemCount} items`);
-            } else {
-              console.warn(`⚠️  [${requestId}] Vision fallback also returned 0 items`);
-            }
-          } catch (parseError) {
-            console.error(`❌ [${requestId}] Vision fallback JSON parse failed:`, parseError.message);
+          if (visionItemCount > 0) {
+            // Vision worked! Use this data
+            Object.assign(sanitizedData, visionSanitized);
+            console.log(`✅ [${requestId}] Vision fallback succeeded with ${visionItemCount} items`);
+          } else {
+            console.warn(`⚠️  [${requestId}] Vision fallback also returned 0 items`);
+            console.warn(`   - Model output preview: ${content.substring(0, 400)}`);
           }
         }
       } catch (visionError) {
         console.error(`❌ [${requestId}] Vision fallback failed:`, visionError.message);
+        console.error(`   - Stack:`, visionError.stack);
         // Continue with original (empty) results
       }
 
@@ -1097,13 +1240,18 @@ Return ONLY the JSON object, nothing else.`
       if (finalItemCount === 0) {
         console.error(`❌ [${requestId}] All extraction routes returned 0 items`);
         console.error(`   - Attempted routes: native-pdf, vision-fallback`);
-        console.error(`   - Raw data preview: ${JSON.stringify(sanitizedData).substring(0, 300)}`);
+        console.error(`   - Render successful: ${!!renderMetadata}`);
+        if (renderMetadata) {
+          console.error(`   - Rendered image: ${renderMetadata.width}x${renderMetadata.height}, ${renderMetadata.bytes} bytes`);
+        }
+        console.error(`   - Model output length: ${modelOutputChars} chars`);
+        console.error(`   - Model output preview: ${content.substring(0, 400)}`);
 
         return sendError(
           res,
-          'Extraction returned 0 items after trying both native PDF and vision routes. The PDF may be image-based (requiring OCR), corrupted, or the table format is not recognized. Please try a different file or contact support.',
+          `No data extracted from document after trying native PDF and vision routes. Model returned ${modelOutputChars} chars but extracted 0 items. The table format may not be recognized.`,
           500,
-          'EMPTY_EXTRACTION',
+          'MODEL_RETURNED_NO_ITEMS',
           requestId,
           step
         );
@@ -1112,13 +1260,15 @@ Return ONLY the JSON object, nothing else.`
       // Not a PDF or already tried fallback
       console.error(`❌ [${requestId}] Extraction returned 0 items`);
       console.error(`   - Route used: ${extractionRoute}`);
+      console.error(`   - Model output length: ${modelOutputChars} chars`);
+      console.error(`   - Model output preview: ${content.substring(0, 400)}`);
       console.error(`   - Raw data preview: ${JSON.stringify(sanitizedData).substring(0, 300)}`);
 
       return sendError(
         res,
-        'Extraction returned 0 items. The document may be image-based (requiring OCR) or the format is not recognized. Please try a different file or contact support.',
+        `No data extracted. Model returned ${modelOutputChars} chars but extracted 0 items. The document format may not be recognized.`,
         500,
-        'EMPTY_EXTRACTION',
+        'MODEL_RETURNED_NO_ITEMS',
         requestId,
         step
       );
@@ -1158,14 +1308,43 @@ Return ONLY the JSON object, nothing else.`
           requestId,
           routeUsed: extractionRoute,
           attemptedVisionFallback,
+          pageCount: pdfTextData?.pageCount || (isPdf ? 'unknown' : 'N/A'),
+
+          // Render metadata (if PDF was rendered to image)
+          render: renderMetadata ? {
+            bytes: renderMetadata.bytes,
+            width: renderMetadata.width,
+            height: renderMetadata.height,
+            mime: renderMetadata.mime,
+          } : null,
+
+          // Model info
+          model: {
+            provider: 'Anthropic',
+            modelName: MODEL,
+            outputChars: modelOutputChars,
+          },
+
+          // Text extraction info
           pdfTextExtracted: !!pdfTextData,
           bodyTextLen: pdfTextData?.bodyText?.length || 0,
           headerTextLen: pdfTextData?.headerText?.length || 0,
           footerTextLen: pdfTextData?.footerText?.length || 0,
           ocrTextLen,
-          headerPreview: pdfTextData?.headerText?.substring(0, 150).replace(/\n/g, ' ') || 'N/A',
-          bodyPreview: pdfTextData?.bodyText?.substring(0, 150).replace(/\n/g, ' ') || 'N/A',
-          pageCount: pdfTextData?.pageCount || (isPdf ? 'unknown' : 'N/A'),
+
+          // Previews (redact emails in header)
+          previews: {
+            headerTextPreview: pdfTextData?.headerText
+              ?.substring(0, 150)
+              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL]')
+              .replace(/\n/g, ' ') || 'N/A',
+            modelOutputPreview: content
+              .substring(0, 400)
+              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL]')
+              .replace(/\n/g, ' '),
+          },
+
+          // Regex extraction results
           regexFoundEmail: !!regexSupplierInfo?.supplierEmail?.value,
           regexFoundPhone: !!regexSupplierInfo?.supplierPhone?.value,
           regexFoundName: !!regexSupplierInfo?.supplierName?.value,

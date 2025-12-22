@@ -102,6 +102,8 @@ export function formatApiError(error) {
     'ANTHROPIC_API_ERROR': 'AI service error',
     'EMPTY_RESPONSE': 'No response from AI',
     'EMPTY_EXTRACTION': 'No data extracted from document',
+    'MODEL_RETURNED_NO_ITEMS': 'Model processed document but found no items',
+    'PARSE_MODEL_OUTPUT': 'Could not parse model response',
     'PARSE_ERROR': 'Could not parse extracted data',
     'EXTRACTION_FAILED': 'Extraction failed',
     'TIMEOUT': 'Request timed out',
