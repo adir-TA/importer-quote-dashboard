@@ -28,8 +28,66 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
 // ============================================
 
 /**
+ * Safely serialize object to JSON, removing non-serializable values
+ * Handles: circular refs, BigInt, Buffer, Error, undefined, functions, symbols
+ */
+function safeSerialize(obj) {
+  const seen = new WeakSet();
+
+  return JSON.stringify(obj, (key, value) => {
+    // Handle primitives
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    // Convert BigInt to string
+    if (typeof value === 'bigint') {
+      return value.toString();
+    }
+
+    // Skip functions and symbols
+    if (typeof value === 'function' || typeof value === 'symbol') {
+      return undefined;
+    }
+
+    // Handle non-object types
+    if (typeof value !== 'object') {
+      return value;
+    }
+
+    // Handle circular references
+    if (seen.has(value)) {
+      return '[Circular]';
+    }
+    seen.add(value);
+
+    // Convert Buffer to base64 string
+    if (Buffer.isBuffer(value)) {
+      return `[Buffer ${value.length} bytes]`;
+    }
+
+    // Convert Error to plain object
+    if (value instanceof Error) {
+      return {
+        name: value.name,
+        message: value.message,
+        stack: value.stack,
+      };
+    }
+
+    // Convert Date to ISO string
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    // Return the value as-is for arrays and plain objects
+    return value;
+  });
+}
+
+/**
  * Send JSON response with crash-proof serialization
- * NEVER throws, always sets correct headers, handles circular refs
+ * NEVER throws, always sets correct headers
  */
 function sendJson(res, statusCode, obj) {
   try {
@@ -39,23 +97,15 @@ function sendJson(res, statusCode, obj) {
       res.status(statusCode);
     }
 
-    // Safely stringify with circular reference protection
-    const json = JSON.stringify(obj, (key, value) => {
-      if (typeof value === 'object' && value !== null) {
-        // Handle circular references
-        if (seen.has(value)) {
-          return '[Circular]';
-        }
-        seen.add(value);
-      }
-      return value;
-    });
-    const seen = new WeakSet();
-
+    // Safely serialize
+    const json = safeSerialize(obj);
     res.send(json);
   } catch (error) {
     // Last resort: send minimal error object
     console.error('[sendJson] Failed to serialize response:', error);
+    console.error('[sendJson] Object type:', typeof obj);
+    console.error('[sendJson] Object keys:', obj ? Object.keys(obj) : 'null');
+
     try {
       res.status(500).send('{"ok":false,"error":{"message":"Serialization error","code":"SERIALIZATION_ERROR"}}');
     } catch (finalError) {
