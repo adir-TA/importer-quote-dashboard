@@ -90,18 +90,20 @@ export async function fetchJson(url, options = {}) {
 export function formatApiError(error) {
   if (!error) return 'An unknown error occurred';
 
-  const { message, code, requestId } = error;
+  const { message, code, requestId, step } = error;
 
   // Provide helpful context based on error code
   const codeMessages = {
     'MISSING_IMAGE': 'Please select a file to upload',
     'MISSING_API_KEY': 'Please add your Anthropic API key in Settings',
     'MISSING_BODY': 'Request error - please try again',
+    'MISSING_ENV': 'Server configuration error',
     'PAYLOAD_TOO_LARGE': 'File is too large',
     'ANTHROPIC_API_ERROR': 'AI service error',
     'EMPTY_RESPONSE': 'No response from AI',
     'PARSE_ERROR': 'Could not parse extracted data',
     'EXTRACTION_FAILED': 'Extraction failed',
+    'TIMEOUT': 'Request timed out',
     'INVALID_JSON': 'Invalid server response',
     'INVALID_RESPONSE': 'Invalid server response',
     'NETWORK_ERROR': 'Network connection failed',
@@ -112,9 +114,14 @@ export function formatApiError(error) {
   // Build concise user-friendly message
   let fullMessage = `${contextMessage}`;
 
+  // Add step information if available (helps with debugging)
+  if (step && step !== 'unknown' && step !== 'start') {
+    fullMessage += ` at step: ${step}`;
+  }
+
   // Only add details if they provide value
   if (message && message !== contextMessage) {
-    fullMessage += `: ${message}`;
+    fullMessage += `\n${message}`;
   }
 
   // Add request ID for support (if from server)

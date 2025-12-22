@@ -8,12 +8,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import { createClient } from '@supabase/supabase-js';
-import { createRequire } from 'module';
 import crypto from 'crypto';
-
-// pdf-parse is CommonJS, need to use require
-const require = createRequire(import.meta.url);
-const pdfParse = require('pdf-parse');
 
 dotenv.config();
 
@@ -27,6 +22,48 @@ if (!supabaseUrl || !supabaseServiceKey) {
 }
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// ============================================
+// UTILITY: CRASH-PROOF JSON RESPONSE HELPER
+// ============================================
+
+/**
+ * Send JSON response with crash-proof serialization
+ * NEVER throws, always sets correct headers, handles circular refs
+ */
+function sendJson(res, statusCode, obj) {
+  try {
+    // Set headers first
+    if (!res.headersSent) {
+      res.setHeader('Content-Type', 'application/json');
+      res.status(statusCode);
+    }
+
+    // Safely stringify with circular reference protection
+    const json = JSON.stringify(obj, (key, value) => {
+      if (typeof value === 'object' && value !== null) {
+        // Handle circular references
+        if (seen.has(value)) {
+          return '[Circular]';
+        }
+        seen.add(value);
+      }
+      return value;
+    });
+    const seen = new WeakSet();
+
+    res.send(json);
+  } catch (error) {
+    // Last resort: send minimal error object
+    console.error('[sendJson] Failed to serialize response:', error);
+    try {
+      res.status(500).send('{"ok":false,"error":{"message":"Serialization error","code":"SERIALIZATION_ERROR"}}');
+    } catch (finalError) {
+      // Absolute last resort
+      res.end();
+    }
+  }
+}
 
 // ============================================
 // UTILITY: STANDARDIZED API RESPONSES
@@ -43,7 +80,7 @@ function generateRequestId() {
  * Send a standardized success response
  */
 function sendSuccess(res, data, statusCode = 200) {
-  return res.status(statusCode).json({
+  return sendJson(res, statusCode, {
     ok: true,
     data,
   });
@@ -55,24 +92,32 @@ function sendSuccess(res, data, statusCode = 200) {
  * @param {Error|string} error - Error object or message
  * @param {number} statusCode - HTTP status code
  * @param {string} code - Error code for categorization
+ * @param {string} requestId - Request ID for tracking
+ * @param {string} step - Current processing step when error occurred
  */
-function sendError(res, error, statusCode = 500, code = 'INTERNAL_ERROR') {
-  const requestId = generateRequestId();
+function sendError(res, error, statusCode = 500, code = 'INTERNAL_ERROR', requestId = null, step = 'unknown') {
+  if (!requestId) {
+    requestId = generateRequestId();
+  }
+
   const message = typeof error === 'string' ? error : error.message;
 
-  // Log full error server-side with requestId
-  console.error(`[ERROR ${requestId}] ${code}:`, error);
+  // Log full error server-side with requestId and step
+  console.error(`[ERROR ${requestId}] Step: ${step}, Code: ${code}`);
+  console.error(`[ERROR ${requestId}] Message: ${message}`);
   if (error.stack) {
     console.error(`[ERROR ${requestId}] Stack:`, error.stack);
   }
 
   // Send safe error to client (no stack traces)
-  return res.status(statusCode).json({
+  return sendJson(res, statusCode, {
     ok: false,
+    requestId,
     error: {
+      name: typeof error === 'object' ? error.name : 'Error',
       message,
       code,
-      requestId,
+      step,
     },
   });
 }
@@ -218,235 +263,22 @@ function sanitizeExtractedData(data) {
 }
 
 // ============================================
-// SUPPLIER INFO EXTRACTION WITH REGEX
+// TIMEOUT WRAPPER FOR ASYNC OPERATIONS
 // ============================================
 /**
- * Extracts supplier information from text using regex patterns
- * Priority: headerText > footerText > bodyText
- * @param {Object} options - Extraction options
- * @param {string} options.headerText - Text from top 20% of page
- * @param {string} options.footerText - Text from bottom 20% of page
- * @param {string} options.bodyText - Full page text
- * @returns {Object} Extracted supplier info with confidence and source
+ * Wrap a promise with a timeout
+ * @param {Promise} promise - Promise to wrap
+ * @param {number} timeoutMs - Timeout in milliseconds
+ * @param {string} operationName - Name of operation for error message
+ * @returns {Promise} - Promise that rejects on timeout
  */
-function extractSupplierInfo({ headerText = '', footerText = '', bodyText = '' }) {
-  console.log('[SUPPLIER EXTRACTION] Starting...');
-  console.log('[SUPPLIER EXTRACTION] Header length:', headerText.length);
-  console.log('[SUPPLIER EXTRACTION] Footer length:', footerText.length);
-  console.log('[SUPPLIER EXTRACTION] Body length:', bodyText.length);
-
-  const result = {
-    supplierName: { value: null, confidence: 'not_found', source: null },
-    supplierEmail: { value: null, confidence: 'not_found', source: null },
-    supplierPhone: { value: null, confidence: 'not_found', source: null },
-    supplierAddress: { value: null, confidence: 'not_found', source: null },
-  };
-
-  // Combine texts with priority
-  const allText = `${headerText}\n\n${footerText}\n\n${bodyText}`;
-
-  // ============================================
-  // EMAIL EXTRACTION
-  // ============================================
-  const emailRegex = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
-  const emailMatches = [];
-
-  // Try header first
-  let match = headerText.match(emailRegex);
-  if (match && match.length > 0) {
-    emailMatches.push({ email: match[0], source: 'header' });
-  }
-
-  // Try footer if not found in header
-  if (emailMatches.length === 0) {
-    match = footerText.match(emailRegex);
-    if (match && match.length > 0) {
-      emailMatches.push({ email: match[0], source: 'footer' });
-    }
-  }
-
-  // Try body if still not found
-  if (emailMatches.length === 0) {
-    match = bodyText.match(emailRegex);
-    if (match && match.length > 0) {
-      emailMatches.push({ email: match[0], source: 'body' });
-    }
-  }
-
-  if (emailMatches.length > 0) {
-    result.supplierEmail = {
-      value: emailMatches[0].email,
-      confidence: 'high',
-      source: emailMatches[0].source,
-    };
-    console.log('[SUPPLIER EXTRACTION] Email found:', result.supplierEmail);
-  }
-
-  // ============================================
-  // PHONE EXTRACTION
-  // ============================================
-  // Patterns: +86-xxx-xxxx, (0086)xxx-xxxx, Tel: xxx, etc.
-  const phoneRegex = /(?:Tel|TEL|Phone|PHONE|Mob|Mobile|WhatsApp|WeChat)[:\s]*([+\d\s()-]{8,})|(?:\+86|0086)[- ]?[\d\s()-]{8,}|(?:\(\d{3,4}\))[- ]?[\d\s-]{6,}/gi;
-
-  const phoneMatches = [];
-
-  // Try header first
-  match = headerText.match(phoneRegex);
-  if (match && match.length > 0) {
-    phoneMatches.push({ phone: match[0].trim(), source: 'header' });
-  }
-
-  // Try footer if not found
-  if (phoneMatches.length === 0) {
-    match = footerText.match(phoneRegex);
-    if (match && match.length > 0) {
-      phoneMatches.push({ phone: match[0].trim(), source: 'footer' });
-    }
-  }
-
-  if (phoneMatches.length > 0) {
-    result.supplierPhone = {
-      value: phoneMatches[0].phone,
-      confidence: 'high',
-      source: phoneMatches[0].source,
-    };
-    console.log('[SUPPLIER EXTRACTION] Phone found:', result.supplierPhone);
-  }
-
-  // ============================================
-  // SUPPLIER NAME EXTRACTION
-  // ============================================
-  // Look for company names with patterns like "CO., LTD", "TRADING", "IMPORT", "EXPORT"
-  const lines = (headerText + '\n' + footerText).split('\n').filter(l => l.trim().length > 0);
-
-  const companyPatterns = [
-    /CO\.,?\s*LTD\.?/i,
-    /COMPANY\s*LIMITED/i,
-    /TRADING\s*CO/i,
-    /IMPORT.*EXPORT|EXPORT.*IMPORT/i,
-    /CORPORATION/i,
-    /INDUSTRIAL/i,
-    /FACTORY/i,
-    /LTD\.?$/i,
-    /INC\.?$/i,
-  ];
-
-  let bestMatch = null;
-  let bestScore = 0;
-  let bestSource = null;
-
-  // Score each line
-  lines.forEach(line => {
-    let score = 0;
-    const cleanLine = line.trim();
-
-    // Skip very short lines
-    if (cleanLine.length < 5) return;
-
-    // Check if line matches company patterns
-    companyPatterns.forEach(pattern => {
-      if (pattern.test(cleanLine)) {
-        score += 10;
-      }
-    });
-
-    // Prefer lines near email
-    if (result.supplierEmail.value && cleanLine.toLowerCase().includes(result.supplierEmail.value.toLowerCase())) {
-      score += 5;
-    }
-
-    // Prefer all caps company names (common in headers)
-    if (cleanLine === cleanLine.toUpperCase() && cleanLine.length > 10) {
-      score += 3;
-    }
-
-    // Check if in header or footer
-    const source = headerText.includes(line) ? 'header' : 'footer';
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestMatch = cleanLine;
-      bestSource = source;
-    }
-  });
-
-  if (bestMatch && bestScore > 0) {
-    result.supplierName = {
-      value: bestMatch,
-      confidence: bestScore >= 10 ? 'high' : 'medium',
-      source: bestSource,
-    };
-    console.log('[SUPPLIER EXTRACTION] Company name found:', result.supplierName);
-  }
-
-  // ============================================
-  // ADDRESS EXTRACTION (basic heuristic)
-  // ============================================
-  // Look for lines containing address keywords near company name
-  const addressKeywords = ['address', 'addr', 'room', 'floor', 'building', 'street', 'road', 'city', 'province', 'district'];
-
-  lines.forEach(line => {
-    const lowerLine = line.toLowerCase();
-    if (addressKeywords.some(keyword => lowerLine.includes(keyword))) {
-      if (!result.supplierAddress.value || result.supplierAddress.confidence !== 'high') {
-        const source = headerText.includes(line) ? 'header' : footerText.includes(line) ? 'footer' : 'body';
-        result.supplierAddress = {
-          value: line.trim(),
-          confidence: 'medium',
-          source,
-        };
-      }
-    }
-  });
-
-  console.log('[SUPPLIER EXTRACTION] Final results:', JSON.stringify(result, null, 2));
-  return result;
-}
-
-// ============================================
-// PDF HEADER/FOOTER EXTRACTION
-// ============================================
-/**
- * Extracts text from PDF with separate header and footer regions
- * @param {Buffer} pdfBuffer - PDF file buffer
- * @returns {Promise<Object>} Object with headerText, footerText, and bodyText
- */
-async function extractHeaderFooterFromPdf(pdfBuffer) {
-  try {
-    const data = await pdfParse(pdfBuffer);
-    const fullText = data.text;
-    const lines = fullText.split('\n');
-
-    // Simple heuristic: top 20% = header, bottom 20% = footer
-    const headerLineCount = Math.ceil(lines.length * 0.2);
-    const footerLineCount = Math.ceil(lines.length * 0.2);
-
-    const headerLines = lines.slice(0, headerLineCount);
-    const footerLines = lines.slice(-footerLineCount);
-
-    const headerText = headerLines.join('\n');
-    const footerText = footerLines.join('\n');
-
-    console.log('[PDF EXTRACTION] Total lines:', lines.length);
-    console.log('[PDF EXTRACTION] Header lines:', headerLineCount);
-    console.log('[PDF EXTRACTION] Footer lines:', footerLineCount);
-    console.log('[PDF EXTRACTION] Header text preview:', headerText.substring(0, 200));
-
-    return {
-      headerText,
-      footerText,
-      bodyText: fullText,
-      pageCount: data.numpages,
-    };
-  } catch (error) {
-    console.error('[PDF EXTRACTION] Error:', error);
-    return {
-      headerText: '',
-      footerText: '',
-      bodyText: '',
-      pageCount: 0,
-    };
-  }
+function withTimeout(promise, timeoutMs, operationName) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`${operationName} timed out after ${timeoutMs}ms`)), timeoutMs)
+    ),
+  ]);
 }
 
 // Configure multer for memory storage
@@ -475,6 +307,104 @@ app.use(express.json({ limit: '50mb' })); // Allow large image uploads
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', service: 'quote-extraction-api' });
+});
+
+// ============================================
+// DEBUG ROUTES
+// ============================================
+
+// Health check for extract-quote endpoint
+app.get('/api/health/extract-quote', (req, res) => {
+  const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+  const region = process.env.VERCEL_REGION || 'local';
+
+  sendJson(res, 200, {
+    ok: true,
+    hasEnv: hasAnthropicKey,
+    runtime: 'node',
+    region,
+    timestamp: new Date().toISOString(),
+    nodeVersion: process.version,
+  });
+});
+
+// Debug route to test extraction pipeline without file upload
+app.post('/api/debug/extract-quote', async (req, res) => {
+  const requestId = generateRequestId();
+  let step = 'start';
+
+  try {
+    console.log(`🔍 [DEBUG ${requestId}] Starting debug extraction test`);
+
+    step = 'validate-env';
+    // Check for API key
+    const apiKey = req.body?.apiKey || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return sendError(res, 'ANTHROPIC_API_KEY not found in env or request', 500, 'MISSING_ENV', requestId, step);
+    }
+
+    step = 'build-test-payload';
+    // Create a simple test payload (text-based, no file)
+    const MODEL = 'claude-sonnet-4-5-20250929';
+    const testPayload = {
+      model: MODEL,
+      max_tokens: 1000,
+      temperature: 0,
+      messages: [
+        {
+          role: 'user',
+          content: 'Extract quote data from this text: Product: Widget, Price: $5.00, MOQ: 100. Return JSON with lineItems array.'
+        }
+      ],
+    };
+
+    step = 'call-llm';
+    console.log(`🌐 [DEBUG ${requestId}] Calling Anthropic API...`);
+
+    const response = await withTimeout(
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(testPayload),
+      }),
+      30000, // 30 second timeout
+      'Anthropic API call'
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      return sendError(
+        res,
+        `API returned ${response.status}: ${error.error?.message || 'Unknown error'}`,
+        response.status,
+        'ANTHROPIC_API_ERROR',
+        requestId,
+        step
+      );
+    }
+
+    step = 'parse-response';
+    const data = await response.json();
+
+    step = 'done';
+    console.log(`✅ [DEBUG ${requestId}] Test completed successfully`);
+
+    return sendJson(res, 200, {
+      ok: true,
+      requestId,
+      message: 'LLM call successful',
+      modelResponse: data.content?.[0]?.text?.substring(0, 200) || 'No content',
+      usage: data.usage,
+    });
+
+  } catch (error) {
+    console.error(`❌ [DEBUG ${requestId}] Error at step ${step}:`, error);
+    return sendError(res, error.message, 500, 'DEBUG_TEST_FAILED', requestId, step);
+  }
 });
 
 // ============================================
@@ -571,57 +501,85 @@ app.post('/api/documents/signed-url', async (req, res) => {
   }
 });
 
-// Extract quote from image
+// ============================================
+// EXTRACT QUOTE FROM IMAGE/PDF
+// ============================================
 app.post('/api/extract-quote', async (req, res) => {
   const requestId = generateRequestId();
+  let step = 'start';
 
-  // ============================================
-  // GUARDRAIL: Set response headers
-  // ============================================
-  res.setHeader('Content-Type', 'application/json');
-
-  console.log(`🚀 [${requestId}] START`);
-
+  // TOP-LEVEL TRY-CATCH: Catches ALL errors including sync errors
   try {
+    console.log(`🚀 [${requestId}] START`);
+
     // ============================================
-    // GUARDRAIL: Validate request body exists
+    // STEP: validate-env
     // ============================================
+    step = 'validate-env';
+    console.log(`📋 [${requestId}] Step: ${step}`);
+
+    // Validate environment variables
+    const missingEnvVars = [];
+    if (!process.env.VITE_SUPABASE_URL) missingEnvVars.push('VITE_SUPABASE_URL');
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) missingEnvVars.push('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (missingEnvVars.length > 0) {
+      console.error(`❌ [${requestId}] Missing env vars: ${missingEnvVars.join(', ')}`);
+      return sendError(
+        res,
+        `Missing environment variables: ${missingEnvVars.join(', ')}`,
+        500,
+        'MISSING_ENV',
+        requestId,
+        step
+      );
+    }
+
+    // ============================================
+    // STEP: read-body
+    // ============================================
+    step = 'read-body';
+    console.log(`📋 [${requestId}] Step: ${step}`);
+
     if (!req.body) {
       console.error(`❌ [${requestId}] No request body`);
-      return sendError(res, 'Request body is required', 400, 'MISSING_BODY');
+      return sendError(res, 'Request body is required', 400, 'MISSING_BODY', requestId, step);
     }
 
     const { image, mediaType, apiKey } = req.body;
 
-    // ============================================
-    // MILESTONE: RECEIVED FILE
-    // ============================================
-    const contentLength = req.headers['content-length'] || 'unknown';
-    console.log(`📥 [${requestId}] RECEIVED FILE`);
-    console.log(`   - Content-Length: ${contentLength} bytes`);
-    console.log(`   - Media type: ${mediaType || 'unknown'}`);
-
-    // Validate inputs
+    // Validate required fields
     if (!image) {
       console.error(`❌ [${requestId}] Missing image data`);
-      return sendError(res, 'Image data required', 400, 'MISSING_IMAGE');
+      return sendError(res, 'Image data required', 400, 'MISSING_IMAGE', requestId, step);
     }
 
     if (!apiKey) {
       console.error(`❌ [${requestId}] Missing API key`);
-      return sendError(res, 'Anthropic API key required', 400, 'MISSING_API_KEY');
+      return sendError(res, 'Anthropic API key required', 400, 'MISSING_API_KEY', requestId, step);
     }
 
     // ============================================
-    // GUARDRAIL: Check payload size (Vercel limit: 4.5MB)
+    // STEP: decode-file
     // ============================================
+    step = 'decode-file';
+    console.log(`📋 [${requestId}] Step: ${step}`);
+
+    // Check payload size (Vercel body limit: 4.5MB, we enforce 8MB as reasonable max)
     const imageSize = Buffer.byteLength(image, 'base64');
     const imageSizeMB = (imageSize / 1024 / 1024).toFixed(2);
     console.log(`📏 [${requestId}] File size: ${imageSizeMB} MB`);
 
-    if (imageSize > 4 * 1024 * 1024) { // 4MB limit for safety
+    if (imageSize > 8 * 1024 * 1024) { // 8MB hard limit
       console.error(`❌ [${requestId}] File too large: ${imageSizeMB} MB`);
-      return sendError(res, `File too large (${imageSizeMB} MB). Maximum is 4 MB.`, 413, 'PAYLOAD_TOO_LARGE');
+      return sendError(
+        res,
+        `File too large (${imageSizeMB} MB). Maximum is 8 MB.`,
+        413,
+        'PAYLOAD_TOO_LARGE',
+        requestId,
+        step
+      );
     }
 
     const MODEL = 'claude-sonnet-4-5-20250929';
@@ -631,16 +589,22 @@ app.post('/api/extract-quote', async (req, res) => {
     console.log(`🤖 [${requestId}] Model: ${MODEL}`);
 
     // ============================================
-    // SKIP PDF TEXT EXTRACTION (Vercel incompatible)
+    // STEP: pdf-parse (SKIPPED - Vercel incompatible)
     // ============================================
-    // pdf-parse uses native bindings that don't work on Vercel
-    // Let Anthropic handle PDFs natively instead
-    const pdfTextData = null;
-    const regexSupplierInfo = null;
+    // pdf-parse uses canvas/native bindings that fail on Vercel
+    // Anthropic supports PDFs natively, so we don't need server-side parsing
+    step = 'pdf-parse';
+    console.log(`📋 [${requestId}] Step: ${step} (SKIPPED - using native PDF support)`);
 
     if (isPdf) {
-      console.log(`📄 [${requestId}] PDF detected - using native PDF support (skipping pdf-parse)`);
+      console.log(`📄 [${requestId}] PDF detected - Anthropic will handle it natively`);
     }
+
+    // ============================================
+    // STEP: build-llm-request
+    // ============================================
+    step = 'build-llm-request';
+    console.log(`📋 [${requestId}] Step: ${step}`);
 
     const contentItem = isPdf ? {
       type: 'document',
@@ -658,32 +622,6 @@ app.post('/api/extract-quote', async (req, res) => {
       },
     };
 
-    // ============================================
-    // MILESTONE (c): BUILD MODEL REQUEST PAYLOAD
-    // ============================================
-    console.log(`🔧 [${requestId}] (c) BUILDING MODEL REQUEST...`);
-
-    // Build prompt with header/footer context
-    let supplierExtractionGuidance = '';
-    if (pdfTextData && (pdfTextData.headerText || pdfTextData.footerText)) {
-      supplierExtractionGuidance = `
-CRITICAL - HEADER/FOOTER TEXT PROVIDED:
-The following text was extracted from the document header and footer:
-
-===== HEADER TEXT =====
-${pdfTextData.headerText}
-=======================
-
-===== FOOTER TEXT =====
-${pdfTextData.footerText}
-=======================
-
-MANDATORY: You MUST extract supplier information (name, email, phone, address) from the above header/footer text.
-DO NOT return "not found" if the information exists in the header/footer above.
-`;
-      console.log(`   - Injecting header/footer text (${pdfTextData.headerText.length + pdfTextData.footerText.length} chars)`);
-    }
-
     const requestPayload = {
       model: MODEL,
       max_tokens: 4000,
@@ -698,7 +636,6 @@ DO NOT return "not found" if the information exists in the header/footer above.
               text: `${EXTRACTION_SYSTEM_PROMPT}
 
 You extract supplier quote data from ${isPdf ? 'PDF documents' : 'images'}. Follow these steps EXACTLY.
-${supplierExtractionGuidance}
 
 SUPPLIER INFO EXTRACTION (PRIORITY):
 Before extracting line items, find supplier/factory information in the document header/footer:
@@ -714,7 +651,6 @@ RULES FOR SUPPLIER INFO:
 - If not found → set to null
 - Email must be actual email address (contains @)
 - Phone must include country code if shown (+86, etc.)
-- If header/footer text is provided above, YOU MUST use it for extraction
 
 STEP-BY-STEP INSTRUCTIONS (DO NOT SKIP):
 
@@ -776,23 +712,29 @@ Return ONLY the JSON object, nothing else.`
 
     const requestPayloadSize = JSON.stringify(requestPayload).length;
     console.log(`   - Payload size: ${(requestPayloadSize / 1024).toFixed(2)} KB`);
-    console.log(`   - Message content items: ${requestPayload.messages[0].content.length}`);
 
     // ============================================
-    // MILESTONE (d): CALL LLM API
+    // STEP: llm-call
     // ============================================
-    console.log(`🌐 [${requestId}] (d) CALLING ANTHROPIC API...`);
+    step = 'llm-call';
+    console.log(`📋 [${requestId}] Step: ${step}`);
+    console.log(`🌐 [${requestId}] Calling Anthropic API...`);
     const apiCallStart = Date.now();
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify(requestPayload),
-    });
+    // Wrap API call with 60 second timeout
+    const response = await withTimeout(
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify(requestPayload),
+      }),
+      60000, // 60 second timeout
+      'Anthropic API call'
+    );
 
     const apiCallDuration = Date.now() - apiCallStart;
     console.log(`   - API call completed in ${apiCallDuration}ms`);
@@ -808,14 +750,17 @@ Return ONLY the JSON object, nothing else.`
         res,
         `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`,
         response.status,
-        'ANTHROPIC_API_ERROR'
+        'ANTHROPIC_API_ERROR',
+        requestId,
+        step
       );
     }
 
     // ============================================
-    // MILESTONE (e): PARSE MODEL RESPONSE
+    // STEP: parse-llm-response
     // ============================================
-    console.log(`📦 [${requestId}] (e) PARSING MODEL RESPONSE...`);
+    step = 'parse-llm-response';
+    console.log(`📋 [${requestId}] Step: ${step}`);
 
     const data = await response.json();
     console.log(`   - Response tokens: ${data.usage?.input_tokens || 0} in, ${data.usage?.output_tokens || 0} out`);
@@ -825,18 +770,24 @@ Return ONLY the JSON object, nothing else.`
 
     if (!content) {
       console.error(`❌ [${requestId}] Empty content in response`);
-      return sendError(res, 'No response from Claude', 500, 'EMPTY_RESPONSE');
+      return sendError(res, 'No response from Claude', 500, 'EMPTY_RESPONSE', requestId, step);
     }
 
     console.log(`   - Content length: ${content.length} chars`);
     console.log(`   - Content preview: ${content.substring(0, 100)}...`);
+
+    // ============================================
+    // STEP: post-parse
+    // ============================================
+    step = 'post-parse';
+    console.log(`📋 [${requestId}] Step: ${step}`);
 
     // Parse JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       console.error(`❌ [${requestId}] No JSON found in model output`);
       console.error(`   - Full content: ${content.substring(0, 500)}`);
-      return sendError(res, 'Could not parse extraction result from model output', 500, 'PARSE_ERROR');
+      return sendError(res, 'Could not parse extraction result from model output', 500, 'PARSE_ERROR', requestId, step);
     }
 
     console.log(`   - Found JSON block: ${jsonMatch[0].length} chars`);
@@ -849,16 +800,17 @@ Return ONLY the JSON object, nothing else.`
     } catch (parseError) {
       console.error(`❌ [${requestId}] JSON parse failed:`, parseError.message);
       console.error(`   - Invalid JSON: ${jsonMatch[0].substring(0, 200)}`);
-      return sendError(res, `Invalid JSON from model: ${parseError.message}`, 500, 'PARSE_ERROR');
+      return sendError(res, `Invalid JSON from model: ${parseError.message}`, 500, 'PARSE_ERROR', requestId, step);
     }
 
     // Apply sanitizer to enforce clean product names
     const sanitizedData = sanitizeExtractedData(rawData);
 
     // ============================================
-    // MILESTONE: RETURNING OK
+    // STEP: done
     // ============================================
-    console.log(`✅ [${requestId}] RETURNING OK`);
+    step = 'done';
+    console.log(`✅ [${requestId}] Step: ${step}`);
     console.log(`   - Supplier name: ${sanitizedData.supplierName?.value || 'not found'}`);
     console.log(`   - Supplier email: ${sanitizedData.supplierEmail?.value || 'not found'}`);
     console.log(`   - Line items: ${sanitizedData.lineItems?.length || 0}`);
@@ -868,16 +820,26 @@ Return ONLY the JSON object, nothing else.`
 
   } catch (error) {
     // ============================================
-    // FATAL ERROR HANDLER - ALWAYS RETURN JSON
+    // TOP-LEVEL CATCH: Handles ALL errors
     // ============================================
-    console.error(`❌ [${requestId}] FATAL ERROR`);
+    console.error(`❌ [${requestId}] FATAL ERROR at step: ${step}`);
     console.error(`   - Name: ${error.name}`);
     console.error(`   - Message: ${error.message}`);
-    console.error(`   - Stack:`);
-    console.error(error.stack);
+    if (error.stack) {
+      console.error(`   - Stack:`);
+      console.error(error.stack);
+    }
+
+    // Check for specific error types
+    let errorCode = 'EXTRACTION_FAILED';
+    if (error.message && error.message.includes('timed out')) {
+      errorCode = 'TIMEOUT';
+    } else if (error.message && error.message.includes('fetch')) {
+      errorCode = 'NETWORK_ERROR';
+    }
 
     // ALWAYS return JSON, never throw
-    return sendError(res, error, 500, 'EXTRACTION_FAILED');
+    return sendError(res, error, 500, errorCode, requestId, step);
   }
 });
 
