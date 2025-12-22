@@ -66,6 +66,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
 
   // Validation: which line items have invalid data?
   const invalidLineItems = useMemo(() => {
+    if (!editableLineItems || !Array.isArray(editableLineItems)) return [];
     return editableLineItems.map((item, index) => {
       const errors = [];
       if (!item.productName?.trim()) errors.push('productName');
