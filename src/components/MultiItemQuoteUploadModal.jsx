@@ -344,12 +344,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   // Get unique categories from products
   const categories = React.useMemo(() => {
+    if (!products || !Array.isArray(products)) return [];
     const cats = new Set(products.map(p => p.category).filter(Boolean));
     return Array.from(cats).sort();
   }, [products]);
 
   // Filter categories by search
   const filteredCategories = React.useMemo(() => {
+    if (!categories || categories.length === 0) return [];
     if (!categorySearch.trim()) return categories;
     return categories.filter(cat =>
       cat.toLowerCase().includes(categorySearch.toLowerCase())
@@ -358,12 +360,14 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   // Filter products by selected categories
   const filteredProducts = React.useMemo(() => {
+    if (!products || !Array.isArray(products)) return [];
     if (selectedCategories.length === 0) return products;
     return products.filter(p => selectedCategories.includes(p.category));
   }, [products, selectedCategories]);
 
   // Filter buying intents by search query
   const getFilteredBuyingIntents = (searchQuery) => {
+    if (!filteredProducts || !Array.isArray(filteredProducts)) return [];
     if (!searchQuery.trim()) return filteredProducts;
     const query = searchQuery.toLowerCase();
     return filteredProducts.filter(p =>
