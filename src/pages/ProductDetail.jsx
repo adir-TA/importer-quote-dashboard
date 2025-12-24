@@ -182,16 +182,131 @@ function ProductDetail() {
       </div>
 
       <div className="content">
-        {product.description && (
-          <div className="card" style={{ marginBottom: '24px' }}>
-            <div className="card-body">
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>
-                {product.description}
-              </p>
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          marginBottom: '28px',
+        }}>
+          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+              <FileText size={22} color="#6366F1" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Quotes</div>
+              <div className="stat-value">{quotes.length + lineItems.length}</div>
             </div>
           </div>
-        )}
+          {quotes.length + lineItems.length > 0 && (() => {
+            const allPrices = [
+              ...quotes.map(q => parseFloat(q.unitPrice)),
+              ...lineItems.map(i => parseFloat(i.unit_price))
+            ];
+            const bestPrice = Math.min(...allPrices);
+            return (
+              <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+                <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                  <DollarSign size={22} color="#10b981" />
+                </div>
+                <div className="stat-content">
+                  <div className="stat-label">Best Price</div>
+                  <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+                    {quotes[0]?.currency || 'USD'} {bestPrice.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
 
+        {/* Two-column layout: Product Info sidebar + Main content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Left Sidebar: Product Info */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'sticky',
+            top: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
+            }}>
+              Product Details
+            </h3>
+
+            {product.category && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Category
+                </div>
+                <div style={{
+                  padding: '8px 12px',
+                  background: 'var(--accent-light)',
+                  color: 'var(--accent)',
+                  borderRadius: 'var(--radius-md)',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  display: 'inline-block'
+                }}>
+                  {product.category}
+                </div>
+              </div>
+            )}
+
+            {product.description && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Description
+                </div>
+                <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem', lineHeight: '1.6' }}>
+                  {product.description}
+                </p>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div style={{
+              padding: '16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+              marginTop: '24px'
+            }}>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Quick Actions
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {(quotes.length + lineItems.length) >= 2 && (
+                  <button
+                    className="btn btn-secondary"
+                    onClick={handleCompare}
+                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem' }}
+                  >
+                    Compare Quotes
+                  </button>
+                )}
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setIsDocumentModalOpen(true)}
+                  style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem' }}
+                >
+                  <File size={14} />
+                  Upload Document
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Main Content - Tabs */}
+          <div>
         {/* Tabs: Quotes & Documents */}
         <div className="card">
           <div className="card-header" style={{ borderBottom: 'none', paddingBottom: 0 }}>
@@ -333,27 +448,10 @@ function ProductDetail() {
           )}
         </div>
 
-        {/* Quick Action */}
-        {(quotes.length + lineItems.length) >= 2 && (
-          <div
-            className="card"
-            style={{
-              marginTop: '24px',
-              background: 'var(--accent-light)',
-              border: '1px solid var(--accent)',
-            }}
-          >
-            <div className="card-body" style={{ textAlign: 'center', padding: '24px' }}>
-              <h3 style={{ marginBottom: '8px' }}>Ready to Compare?</h3>
-              <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-                You have {quotes.length + lineItems.length} quotes for this intent. See which supplier offers the best price.
-              </p>
-              <button className="btn btn-primary" onClick={handleCompare}>
-                Compare Quotes
-              </button>
-            </div>
           </div>
-        )}
+          {/* End main content */}
+        </div>
+        {/* End two-column layout */}
       </div>
 
       {/* Quote Modal */}

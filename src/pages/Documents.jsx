@@ -88,13 +88,100 @@ function Documents() {
       </div>
 
       <div className="content">
-        <div className="filter-bar">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search documents..." />
-          <select className="filter-select" value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}>
-            <option value="all">All Categories</option>
-            {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-          </select>
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          marginBottom: '28px',
+        }}>
+          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+              <FileText size={22} color="#6366F1" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Documents</div>
+              <div className="stat-value">{documents.length}</div>
+            </div>
+          </div>
+          <div className="stat-card" style={{ '--stat-color': '#8b5cf6', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+              <FolderPlus size={22} color="#8b5cf6" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Categories</div>
+              <div className="stat-value">{categories.length}</div>
+            </div>
+          </div>
         </div>
+
+        {/* Two-column layout: Filters sidebar + Main content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Left Sidebar: Filters */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'sticky',
+            top: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
+            }}>
+              Filter Documents
+            </h3>
+
+            {/* Category Filter */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Category
+              </label>
+              <select
+                className="form-input"
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="all">All Categories</option>
+                {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+              </select>
+            </div>
+
+            {/* Quick Stats */}
+            <div style={{
+              padding: '16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Quick Stats
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Total Documents</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{documents.length}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Filtered</span>
+                  <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{filteredDocs.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Main Content */}
+          <div>
+            {/* Search Bar */}
+            <div style={{ marginBottom: '24px' }}>
+              <SearchInput value={search} onChange={setSearch} placeholder="Search documents..." />
+            </div>
 
         {filteredDocs.length === 0 ? (
           <div className="empty-state">
@@ -109,6 +196,10 @@ function Documents() {
             ))}
           </div>
         )}
+          </div>
+          {/* End right content area */}
+        </div>
+        {/* End two-column layout */}
       </div>
 
       {isModalOpen && (
