@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { useAlert } from '../context/AlertContext';
+import { useModal } from '../context/ModalContext';
 import SearchInput from '../components/SearchInput';
 import Modal from '../components/Modal';
 import BusinessCardImageUpload from '../components/BusinessCardImageUpload';
@@ -13,7 +13,7 @@ import '../styles/business-cards.css';
 export default function BusinessCards() {
   const { user } = useAuth();
   const { businessCards, cardCategories, cardTags, addBusinessCard, updateBusinessCard, deleteBusinessCard, bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards, addCardCategory, updateCardCategory, deleteCardCategory, addCardTag } = useApp();
-  const { alert } = useAlert();
+  const { alert, confirm } = useModal();
 
   // View state
   const [viewMode, setViewMode] = useState('grid');
@@ -157,12 +157,11 @@ export default function BusinessCards() {
       );
 
       if (duplicates.length > 0) {
-        const confirmed = await alert({
+        const confirmed = await confirm({
           title: 'Possible Duplicate',
           message: `Similar contact exists: ${duplicates[0].display_name}. Continue anyway?`,
           type: 'warning',
-          confirmText: 'Continue',
-          showCancel: true
+          confirmText: 'Continue'
         });
         if (!confirmed) return;
       }
@@ -194,7 +193,7 @@ export default function BusinessCards() {
         await updateBusinessCard(selectedCard.id, formData);
 
         // Handle image changes
-        const existingImages = formData.images.filter(img => !img instanceof File);
+        const existingImages = formData.images.filter(img => !(img instanceof File));
         const newImages = formData.images.filter(img => img instanceof File);
 
         // Delete removed images
@@ -234,12 +233,11 @@ export default function BusinessCards() {
 
   // Delete card
   const handleDelete = async (cardId) => {
-    const confirmed = await alert({
+    const confirmed = await confirm({
       title: 'Confirm Delete',
       message: 'Are you sure you want to delete this card?',
       type: 'warning',
-      confirmText: 'Delete',
-      showCancel: true
+      confirmText: 'Delete'
     });
 
     if (confirmed) {
@@ -298,12 +296,11 @@ export default function BusinessCards() {
   };
 
   const handleBulkDelete = async () => {
-    const confirmed = await alert({
+    const confirmed = await confirm({
       title: 'Confirm Bulk Delete',
       message: `Delete ${selectedCards.length} card(s)?`,
       type: 'warning',
-      confirmText: 'Delete',
-      showCancel: true
+      confirmText: 'Delete'
     });
 
     if (confirmed) {
@@ -741,7 +738,7 @@ export default function BusinessCards() {
 
 // Category Manager Component
 function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
-  const { alert } = useAlert();
+  const { alert, confirm } = useModal();
   const [name, setName] = useState('');
   const [color, setColor] = useState('#3b82f6');
   const [editingId, setEditingId] = useState(null);
@@ -774,12 +771,11 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
   };
 
   const handleDelete = async (id) => {
-    const confirmed = await alert({
+    const confirmed = await confirm({
       title: 'Confirm Delete',
       message: 'Delete this category? Cards will not be deleted.',
       type: 'warning',
-      confirmText: 'Delete',
-      showCancel: true
+      confirmText: 'Delete'
     });
 
     if (confirmed) {
