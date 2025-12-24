@@ -100,17 +100,32 @@ export const deleteBusinessCard = async (cardId, userId) => {
 // ============================================================================
 
 export const fetchCardCategories = async (userId) => {
+  console.log('[fetchCardCategories] Fetching for userId:', userId);
+
   const { data, error } = await supabase
     .from('card_categories')
     .select('*')
     .eq('user_id', userId)
     .order('name');
 
-  if (error) throw error;
+  console.log('[fetchCardCategories] Response:', { data, error });
+
+  if (error) {
+    console.error('[fetchCardCategories] Error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
+    throw error;
+  }
+
   return data;
 };
 
 export const createCardCategory = async (name, color, userId) => {
+  console.log('[createCardCategory] Creating:', { name, color, userId });
+
   const { data, error } = await supabase
     .from('card_categories')
     .insert({
@@ -121,7 +136,18 @@ export const createCardCategory = async (name, color, userId) => {
     .select()
     .single();
 
-  if (error) throw error;
+  console.log('[createCardCategory] Response:', { data, error });
+
+  if (error) {
+    console.error('[createCardCategory] Error details:', {
+      message: error.message,
+      details: error.details,
+      hint: error.hint,
+      code: error.code
+    });
+    throw error;
+  }
+
   return data;
 };
 
