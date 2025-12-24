@@ -52,6 +52,15 @@ function Orders() {
     if (order) actions.updateOrder({ ...order, status: newStatus });
   };
 
+  // Stats calculation
+  const statusCounts = useMemo(() => {
+    const counts = { total: orders.length };
+    STATUSES.forEach(s => {
+      counts[s.key] = orders.filter(o => o.status === s.key).length;
+    });
+    return counts;
+  }, [orders]);
+
   return (
     <div className="page">
       <div className="header">
@@ -60,6 +69,32 @@ function Orders() {
       </div>
 
       <div className="content">
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '16px',
+          marginBottom: '28px',
+        }}>
+          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+              <Truck size={22} color="#6366F1" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Orders</div>
+              <div className="stat-value">{statusCounts.total}</div>
+            </div>
+          </div>
+          {STATUSES.slice(0, 4).map(s => (
+            <div key={s.key} className="stat-card" style={{ '--stat-color': s.color, '--stat-bg': `${s.color}20` }}>
+              <div className="stat-content">
+                <div className="stat-label">{s.label}</div>
+                <div className="stat-value">{statusCounts[s.key] || 0}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="filter-bar">
           <SearchInput value={search} onChange={setSearch} placeholder="Search orders..." />
           <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>

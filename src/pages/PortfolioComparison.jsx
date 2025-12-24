@@ -196,6 +196,42 @@ function PortfolioComparison() {
       </div>
 
       <div className="content">
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          marginBottom: '28px',
+        }}>
+          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+              <Package size={22} color="#6366F1" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Intents</div>
+              <div className="stat-value">{products.length}</div>
+            </div>
+          </div>
+          <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+              <CheckSquare size={22} color="#10b981" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Selected</div>
+              <div className="stat-value">{selectedIntents.length}</div>
+            </div>
+          </div>
+          <div className="stat-card" style={{ '--stat-color': '#f59e0b', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+              <Award size={22} color="#f59e0b" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Suppliers</div>
+              <div className="stat-value">{supplierMetrics.length}</div>
+            </div>
+          </div>
+        </div>
+
         {/* Category Filter */}
         <div className="card" style={{ marginBottom: '16px' }}>
           <div className="card-body">

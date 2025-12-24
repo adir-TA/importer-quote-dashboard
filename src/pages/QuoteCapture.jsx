@@ -421,6 +421,35 @@ function QuoteCapture() {
       </div>
 
       <div className="content">
+        {/* Stats Summary */}
+        {!file && !success && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px',
+            marginBottom: '28px',
+          }}>
+            <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+                <Package size={22} color="#6366F1" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Total Products</div>
+                <div className="stat-value">{products.length}</div>
+              </div>
+            </div>
+            <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                <FileText size={22} color="#10b981" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Ready to Upload</div>
+                <div className="stat-value">+1</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {success ? (
           <div className="capture-success">
             <div className="success-icon">

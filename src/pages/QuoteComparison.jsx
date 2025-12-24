@@ -862,79 +862,73 @@ function QuoteComparison() {
           </div>
         ) : (
           <>
-        {/* Recently Used Buying Intents */}
-        {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
-              Recently Used
-            </h3>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (
-                <button
-                  key={product.id}
-                  onClick={() => handleProductChange(product.id)}
-                  style={{
-                    padding: '12px 18px',
-                    background: 'white',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    transition: 'all 0.2s',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'white';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                >
-                  <Package size={18} style={{ color: '#64748b' }} />
-                  <span>{product.name}</span>
-                  <span style={{
-                    padding: '3px 10px',
-                    background: '#d1fae5',
-                    color: '#065f46',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                  }}>
-                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
-                  </span>
-                </button>
-              ))}
+        {/* Stats Summary */}
+        {selectedProductId && quotesWithLanded.length > 0 && bestQuote && (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px',
+            marginBottom: '28px',
+          }}>
+            <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+                <FileText size={22} color="#6366F1" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Total Quotes</div>
+                <div className="stat-value">{quotesWithLanded.length}</div>
+              </div>
             </div>
+            <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                <TrendingDown size={22} color="#10b981" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Best Price</div>
+                <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+                  {formatCurrency(bestQuote.unit_price)}
+                </div>
+              </div>
+            </div>
+            {otherQuotes.length > 0 && (
+              <div className="stat-card" style={{ '--stat-color': '#f59e0b', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
+                <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                  <Calculator size={22} color="#f59e0b" />
+                </div>
+                <div className="stat-content">
+                  <div className="stat-label">Potential Savings</div>
+                  <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+                    {formatCurrency(otherQuotes[0].unit_price - bestQuote.unit_price)}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Product Selector */}
-        <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div className="card-header" style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
-            <span className="card-title">
-              <Package size={18} />
-              {selectedProduct ? (
-                <>
-                  <span style={{ fontWeight: 700 }}>{selectedProduct.name}</span>
-                  <span style={{ fontWeight: 400, color: 'var(--text-muted)', fontSize: '0.85rem', marginLeft: '8px' }}>
-                    ({quoteCounts[selectedProductId] || 0} {quoteCounts[selectedProductId] === 1 ? 'quote' : 'quotes'})
-                  </span>
-                </>
-              ) : (
-                'Select Buying Intent to Compare'
-              )}
-            </span>
-          </div>
-          <div className="card-body">
+        {/* Two-column layout: Product selector sidebar + Main content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Left Sidebar: Product Selector */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'sticky',
+            top: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
+            }}>
+              Select Buying Intent
+            </h3>
+
             <ProductSelector
               products={products}
               quotes={[]}
@@ -942,16 +936,70 @@ function QuoteComparison() {
               onSelect={handleProductChange}
               quoteCounts={quoteCounts}
             />
+
             {!selectedProductId && (
-              <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '6px' }}>
-                <AlertCircle size={16} style={{ color: '#3b82f6' }} />
-                <span style={{ color: '#1e40af' }}>Select a buying intent above to compare supplier quotes and find the best price</span>
+              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                <AlertCircle size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
+                Select a buying intent to compare quotes
+              </div>
+            )}
+
+            {/* Recently Used */}
+            {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Recently Used
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (
+                    <button
+                      key={product.id}
+                      onClick={() => handleProductChange(product.id)}
+                      style={{
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--accent-light)';
+                        e.currentTarget.style.borderColor = 'var(--accent)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'var(--bg-secondary)';
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                      }}
+                    >
+                      <Package size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
+                      <span style={{
+                        padding: '2px 8px',
+                        background: 'var(--success-light)',
+                        color: 'var(--success)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        flexShrink: 0
+                      }}>
+                        {quoteCounts[product.id]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Main Content */}
+          {/* Right: Main Content */}
+          <div>
         {selectedProductId ? (
           <>
             {/* Invalid Quotes Warning */}
@@ -1295,9 +1343,22 @@ function QuoteComparison() {
                   </div>
                 )}
               </>
-            )}
+            )
+            }
           </>
         ) : (
+          <div className="empty-state">
+            <TrendingDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+            <h3>Select a Buying Intent</h3>
+            <p>Choose a buying intent from the sidebar to compare supplier quotes</p>
+          </div>
+        )}
+        </div>
+        {/* End two-column layout */}
+      </div>
+
+      {/* Theme Selector Modal - keeping outside main content */}
+      {false && (
           <div style={{
             padding: '80px 20px',
             textAlign: 'center',

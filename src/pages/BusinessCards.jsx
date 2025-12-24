@@ -365,125 +365,220 @@ export default function BusinessCards() {
       </div>
 
       <div className="content">
-        {/* Filters */}
-        <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: '250px' }}>
-            <SearchInput
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Search cards..."
-            />
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          marginBottom: '28px',
+        }}>
+          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+              <CreditCard size={22} color="#6366F1" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Cards</div>
+              <div className="stat-value">{businessCards.length}</div>
+            </div>
           </div>
-
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'white',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="all">All Status</option>
-            <option value="new">New</option>
-            <option value="contacted">Contacted</option>
-            <option value="accepted">Accepted</option>
-            <option value="rejected">Rejected</option>
-            <option value="inactive">Inactive</option>
-          </select>
-
-          <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'white',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="all">All Categories</option>
-            {cardCategories.map(cat => (
-              <option key={cat.id} value={cat.id}>{cat.name}</option>
-            ))}
-          </select>
-
-          <select
-            value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
-            style={{
-              padding: '10px 16px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'white',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-            }}
-          >
-            <option value="all">All Tags</option>
-            {cardTags.map(tag => (
-              <option key={tag.id} value={tag.id}>{tag.name}</option>
-            ))}
-          </select>
-
-          <button
-            className="btn btn-secondary"
-            onClick={() => setShowCategoryManager(true)}
-          >
-            <Settings size={16} />
-            Categories
-          </button>
-
-          <div className="business-cards-view-toggle">
-            <button
-              className={viewMode === 'grid' ? 'active' : ''}
-              onClick={() => setViewMode('grid')}
-            >
-              <Grid size={18} />
-            </button>
-            <button
-              className={viewMode === 'list' ? 'active' : ''}
-              onClick={() => setViewMode('list')}
-            >
-              <List size={18} />
-            </button>
+          <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+              <CheckSquare size={22} color="#10b981" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Filtered</div>
+              <div className="stat-value">{filteredCards.length}</div>
+            </div>
           </div>
         </div>
 
-      {/* Bulk actions bar */}
-      {selectedCards.length > 0 && (
-        <div className="business-cards-bulk-bar">
-          <span>{selectedCards.length} selected</span>
-          <div className="business-cards-bulk-actions">
-            <select onChange={(e) => e.target.value && handleBulkStatusChange(e.target.value)} defaultValue="">
-              <option value="">Change Status...</option>
-              <option value="new">New</option>
-              <option value="contacted">Contacted</option>
-              <option value="accepted">Accepted</option>
-              <option value="rejected">Rejected</option>
-              <option value="inactive">Inactive</option>
-            </select>
-            <select onChange={(e) => e.target.value && handleBulkCategoryChange(e.target.value)} defaultValue="">
-              <option value="">Change Category...</option>
-              {cardCategories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.name}</option>
-              ))}
-            </select>
-            <button className="btn btn-danger" onClick={handleBulkDelete}>
-              <Trash2 size={16} />
-              Delete
-            </button>
-            <button className="btn btn-secondary" onClick={deselectAll}>Deselect All</button>
-          </div>
-        </div>
-      )}
+        {/* Two-column layout: Filters sidebar + Main content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Left Sidebar: Filters */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'sticky',
+            top: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
+            }}>
+              Filters & View
+            </h3>
 
-        {/* Cards display */}
+            {/* View Mode */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                View Mode
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  onClick={() => setViewMode('grid')}
+                  style={{
+                    padding: '12px',
+                    background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Grid size={18} />
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  style={{
+                    padding: '12px',
+                    background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <List size={18} />
+                  List
+                </button>
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="form-input"
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="all">All Status</option>
+                <option value="new">New</option>
+                <option value="contacted">Contacted</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            {/* Category Filter */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Category
+              </label>
+              <select
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+                className="form-input"
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="all">All Categories</option>
+                {cardCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Tag Filter */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Tags
+              </label>
+              <select
+                value={tagFilter}
+                onChange={(e) => setTagFilter(e.target.value)}
+                className="form-input"
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="all">All Tags</option>
+                {cardTags.map(tag => (
+                  <option key={tag.id} value={tag.id}>{tag.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Manage Categories */}
+            <button
+              className="btn btn-secondary"
+              onClick={() => setShowCategoryManager(true)}
+              style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem' }}
+            >
+              <Settings size={14} />
+              Manage Categories
+            </button>
+
+            {/* Bulk Actions */}
+            {selectedCards.length > 0 && (
+              <div style={{
+                marginTop: '24px',
+                padding: '16px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--error)',
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {selectedCards.length} Selected
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <select onChange={(e) => e.target.value && handleBulkStatusChange(e.target.value)} defaultValue="" className="form-input" style={{ fontSize: '0.875rem' }}>
+                    <option value="">Change Status...</option>
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                  <select onChange={(e) => e.target.value && handleBulkCategoryChange(e.target.value)} defaultValue="" className="form-input" style={{ fontSize: '0.875rem' }}>
+                    <option value="">Change Category...</option>
+                    {cardCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <button className="btn btn-secondary" onClick={handleBulkDelete} style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem', background: 'var(--error)', color: 'white' }}>
+                    <Trash2 size={14} />
+                    Delete
+                  </button>
+                  <button className="btn btn-ghost" onClick={deselectAll} style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem' }}>Deselect All</button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: Main Content */}
+          <div>
+            {/* Search Bar */}
+            <div style={{ marginBottom: '24px' }}>
+              <SearchInput
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Search cards..."
+              />
+            </div>
+
+            {/* Cards display */}
         {filteredCards.length === 0 ? (
           <div className="empty-state">
             <CreditCard size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -595,6 +690,8 @@ export default function BusinessCards() {
           ))}
         </div>
         )}
+          </div>
+        </div>
       </div>
 
       {/* Add/Edit Modal */}

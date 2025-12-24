@@ -124,6 +124,25 @@ function AIHelpers() {
       </div>
 
       <div className="content">
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gap: '16px',
+          marginBottom: '28px',
+        }}>
+          {TABS.map((tab, idx) => (
+            <div key={tab.id} className="stat-card" style={{ '--stat-color': activeTab === tab.id ? '#6366F1' : '#64748b', '--stat-bg': activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
+              <div className="stat-icon-wrapper" style={{ background: activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
+                <tab.icon size={20} color={activeTab === tab.id ? '#6366F1' : '#64748b'} />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label" style={{ fontSize: '0.75rem' }}>{tab.label}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '8px', marginBottom: '24px', flexWrap: 'wrap' }}>
           {TABS.map(tab => (

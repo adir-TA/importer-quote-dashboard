@@ -92,7 +92,24 @@ function Settings() {
         <h2>Settings</h2>
       </div>
 
-      <div className="content" style={{ maxWidth: '800px' }}>
+      <div className="content" style={{ maxWidth: '900px' }}>
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(5, 1fr)',
+          gap: '16px',
+          marginBottom: '28px',
+        }}>
+          {stats.map(stat => (
+            <div key={stat.label} className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+              <div className="stat-content">
+                <div className="stat-label">{stat.label}</div>
+                <div className="stat-value">{stat.count}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* API Configuration */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-header">
@@ -130,23 +147,6 @@ function Settings() {
             <button className="btn btn-primary" onClick={handleSaveSettings}>
               {saved ? <><Check size={16} /> Saved!</> : 'Save Settings'}
             </button>
-          </div>
-        </div>
-
-        {/* Data Statistics */}
-        <div className="card" style={{ marginBottom: '24px' }}>
-          <div className="card-header">
-            <span className="card-title"><Database size={18} style={{ marginRight: '8px' }} /> Data Statistics</span>
-          </div>
-          <div className="card-body">
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px' }}>
-              {stats.map(stat => (
-                <div key={stat.label} style={{ textAlign: 'center', padding: '16px', background: 'var(--bg-tertiary)', borderRadius: '12px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--accent)' }}>{stat.count}</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
 
