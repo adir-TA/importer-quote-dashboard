@@ -781,10 +781,10 @@ function Products() {
                         display: 'flex',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        background: 'var(--bg-light)',
+                        background: 'var(--bg-primary)',
                       }}
                     >
-                      <span style={{ color: formData.category ? 'var(--text)' : 'var(--text-muted)' }}>
+                      <span style={{ color: formData.category ? 'var(--text-primary)' : 'var(--text-muted)' }}>
                         {formData.category || 'Select or create category...'}
                       </span>
                       <ChevronDown size={16} />
@@ -798,10 +798,10 @@ function Products() {
                       top: 'calc(100% + 4px)',
                       left: 0,
                       right: 0,
-                      background: 'white',
+                      background: 'var(--bg-primary)',
                       border: '1px solid var(--border)',
-                      borderRadius: '8px',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.25)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
                       maxHeight: '280px',
                       overflowY: 'auto',
                       zIndex: 9999,
@@ -812,7 +812,8 @@ function Products() {
                         alignItems: 'center',
                         gap: '8px',
                         padding: '12px',
-                        borderBottom: '1px solid var(--border)'
+                        borderBottom: '1px solid var(--border)',
+                        background: 'var(--bg-secondary)',
                       }}>
                         <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                         <input
@@ -838,14 +839,14 @@ function Products() {
                               padding: '10px 16px',
                               textAlign: 'left',
                               border: 'none',
-                              background: formData.category === cat ? 'var(--accent-bg)' : 'transparent',
-                              color: formData.category === cat ? 'var(--accent)' : 'var(--text)',
+                              background: formData.category === cat ? 'var(--accent-light)' : 'transparent',
+                              color: formData.category === cat ? 'var(--accent)' : 'var(--text-primary)',
                               cursor: 'pointer',
                               fontSize: '0.875rem',
-                              borderBottom: '1px solid var(--bg-light)',
-                              transition: 'background 0.15s',
+                              borderBottom: '1px solid var(--border-light)',
+                              transition: 'background var(--transition)',
                             }}
-                            onMouseEnter={e => { if (formData.category !== cat) e.target.style.background = 'var(--bg-light)'; }}
+                            onMouseEnter={e => { if (formData.category !== cat) e.target.style.background = 'var(--bg-hover)'; }}
                             onMouseLeave={e => { if (formData.category !== cat) e.target.style.background = 'transparent'; }}
                           >
                             {cat}
@@ -874,12 +875,12 @@ function Products() {
                           padding: '12px 16px',
                           textAlign: 'left',
                           border: 'none',
-                          background: 'var(--accent-bg)',
+                          background: 'var(--accent-light)',
                           color: 'var(--accent)',
                           cursor: 'pointer',
                           fontSize: '0.875rem',
                           fontWeight: 600,
-                          borderTop: '2px solid var(--border)',
+                          borderTop: '1px solid var(--border)',
                         }}
                       >
                         + Create New Category

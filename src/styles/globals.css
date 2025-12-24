@@ -258,10 +258,13 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-sec
   transition: all var(--transition);
   font-family: inherit;
 }
+.form-input:hover, .form-select:hover {
+  border-color: var(--accent);
+}
 .form-input:focus, .form-select:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 .form-input::placeholder { color: var(--text-muted); }
 textarea.form-input { resize: none; min-height: 100px; }
@@ -298,6 +301,16 @@ textarea.form-input { resize: none; min-height: 100px; }
   font-size: 0.875rem;
   cursor: pointer;
   font-weight: 500;
+  transition: all var(--transition);
+  font-family: inherit;
+}
+.filter-select:hover {
+  border-color: var(--accent);
+}
+.filter-select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-light);
 }
 
 /* Upload */
@@ -1615,12 +1628,18 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 
 .product-option .option-count {
-  font-size: 0.8rem;
-  color: var(--text-secondary);
+  padding: 3px 10px;
+  background: var(--success-light);
+  color: var(--success);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+  flex-shrink: 0;
 }
 
 .product-option .option-count.muted {
-  color: var(--text-muted);
+  background: var(--error-light);
+  color: var(--error);
 }
 
 .product-option .option-check {
