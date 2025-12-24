@@ -10,7 +10,7 @@ export const fetchBusinessCards = async (userId) => {
     .select(`
       *,
       category:card_categories(id, name, color),
-      images:business_card_images(id, storage_path, file_name, sort_order),
+      images:business_card_images(id, storage_path, sort_order),
       tag_map:business_card_tag_map(
         tag:business_card_tags(id, name)
       )
@@ -273,7 +273,6 @@ export const uploadCardImage = async (cardId, file, sortOrder, userId) => {
       card_id: cardId,
       user_id: userId,
       storage_path: storagePath,
-      file_name: file.name,
       sort_order: sortOrder,
     })
     .select()
@@ -432,7 +431,7 @@ export const searchCards = async (searchTerm, userId) => {
     .select(`
       *,
       category:card_categories(id, name, color),
-      images:business_card_images(id, storage_path, file_name, sort_order),
+      images:business_card_images(id, storage_path, sort_order),
       tag_map:business_card_tag_map(
         tag:business_card_tags(id, name)
       )
