@@ -845,6 +845,7 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
   return (
     <Modal isOpen={true} onClose={onClose} title="Manage Categories">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {/* Add new category form */}
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
             type="text"
@@ -875,40 +876,70 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
           )}
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {categories.map(cat => (
-            <div
-              key={cat.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '8px',
-                border: '1px solid var(--border)',
-                borderRadius: '4px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Categories list */}
+        <div>
+          <div style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: 'var(--text-secondary)',
+            marginBottom: '8px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px'
+          }}>
+            Categories ({categories.length})
+          </div>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            maxHeight: '300px',
+            overflowY: 'auto'
+          }}>
+            {categories.length === 0 ? (
+              <div style={{
+                padding: '24px',
+                textAlign: 'center',
+                color: 'var(--text-muted)',
+                fontSize: '0.875rem'
+              }}>
+                No categories yet. Create one above!
+              </div>
+            ) : (
+              categories.map(cat => (
                 <div
+                  key={cat.id}
                   style={{
-                    width: '20px',
-                    height: '20px',
-                    borderRadius: '4px',
-                    backgroundColor: cat.color
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px',
+                    border: '1px solid var(--border)',
+                    borderRadius: '4px'
                   }}
-                />
-                <span>{cat.name}</span>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn btn-secondary" onClick={() => handleEdit(cat)}>
-                  Edit
-                </button>
-                <button className="btn btn-danger" onClick={() => handleDelete(cat.id)}>
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '4px',
+                        backgroundColor: cat.color
+                      }}
+                    />
+                    <span>{cat.name}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-secondary" onClick={() => handleEdit(cat)}>
+                      Edit
+                    </button>
+                    <button className="btn btn-danger" onClick={() => handleDelete(cat.id)}>
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </Modal>

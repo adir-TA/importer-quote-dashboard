@@ -720,18 +720,24 @@ export function AppProvider({ children }) {
 
   const addCardCategory = async (name, color) => {
     const newCategory = await businessCardsService.createCardCategory(name, color, user.id);
-    setCardCategories(prev => [...prev, newCategory]);
+    // Refresh from database to ensure consistency
+    const categories = await businessCardsService.fetchCardCategories(user.id);
+    setCardCategories(categories);
     return newCategory;
   };
 
   const updateCardCategory = async (categoryId, name, color) => {
-    const updated = await businessCardsService.updateCardCategory(categoryId, name, color, user.id);
-    setCardCategories(prev => prev.map(c => c.id === categoryId ? updated : c));
+    await businessCardsService.updateCardCategory(categoryId, name, color, user.id);
+    // Refresh from database to ensure consistency
+    const categories = await businessCardsService.fetchCardCategories(user.id);
+    setCardCategories(categories);
   };
 
   const deleteCardCategory = async (categoryId) => {
     await businessCardsService.deleteCardCategory(categoryId, user.id);
-    setCardCategories(prev => prev.filter(c => c.id !== categoryId));
+    // Refresh from database to ensure consistency
+    const categories = await businessCardsService.fetchCardCategories(user.id);
+    setCardCategories(categories);
   };
 
   const addCardTag = async (name) => {
