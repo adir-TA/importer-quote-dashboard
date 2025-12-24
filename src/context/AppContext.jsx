@@ -105,12 +105,31 @@ export function AppProvider({ children }) {
       }
 
       // Fetch business cards data
-      const cards = await businessCardsService.fetchBusinessCards(user.id);
-      const categories = await businessCardsService.fetchCardCategories(user.id);
-      const tags = await businessCardsService.fetchCardTags(user.id);
-      setBusinessCards(cards);
-      setCardCategories(categories);
-      setCardTags(tags);
+      try {
+        const cards = await businessCardsService.fetchBusinessCards(user.id);
+        const categories = await businessCardsService.fetchCardCategories(user.id);
+        const tags = await businessCardsService.fetchCardTags(user.id);
+
+        console.log('Business Cards - Fetched categories:', categories);
+        console.log('Business Cards - Fetched tags:', tags);
+        console.log('Business Cards - Fetched cards:', cards);
+
+        setBusinessCards(cards || []);
+        setCardCategories(categories || []);
+        setCardTags(tags || []);
+      } catch (bcError) {
+        console.error('Error fetching Business Cards data:', bcError);
+        console.error('Error details:', {
+          message: bcError.message,
+          code: bcError.code,
+          details: bcError.details,
+          hint: bcError.hint
+        });
+        // Set to empty arrays so UI doesn't break
+        setBusinessCards([]);
+        setCardCategories([]);
+        setCardTags([]);
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
