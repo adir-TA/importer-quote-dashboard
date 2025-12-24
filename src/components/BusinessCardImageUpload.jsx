@@ -1,8 +1,9 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Upload, X } from 'lucide-react';
 
 export default function BusinessCardImageUpload({ images = [], onImagesChange, maxImages = 5 }) {
   const fileInputRef = useRef(null);
+  const containerRef = useRef(null);
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files || []);
@@ -36,8 +37,46 @@ export default function BusinessCardImageUpload({ images = [], onImagesChange, m
     handleFiles(files);
   };
 
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+
+    const files = imageItems.map(item => {
+      const blob = item.getAsFile();
+      if (!blob) return null;
+
+      // Create a proper File object with a name
+      const extension = blob.type.split('/')[1] || 'png';
+      const fileName = `pasted-image-${Date.now()}.${extension}`;
+      return new File([blob], fileName, { type: blob.type });
+    }).filter(Boolean);
+
+    if (files.length > 0) {
+      handleFiles(files);
+    }
+  };
+
+  useEffect(() => {
+    const handleDocumentPaste = (e) => {
+      // Only handle paste if the modal is open and user is focused on the upload section
+      if (containerRef.current && images.length < maxImages) {
+        handlePaste(e);
+      }
+    };
+
+    document.addEventListener('paste', handleDocumentPaste);
+    return () => {
+      document.removeEventListener('paste', handleDocumentPaste);
+    };
+  }, [images.length, maxImages]);
+
   return (
-    <div className="business-cards-image-upload">
+    <div className="business-cards-image-upload" ref={containerRef}>
       {images.length < maxImages && (
         <div
           className="business-cards-upload-area"
@@ -46,7 +85,7 @@ export default function BusinessCardImageUpload({ images = [], onImagesChange, m
           onDrop={handleDrop}
         >
           <Upload size={24} />
-          <p>Click or drag to upload</p>
+          <p>Click, drag, or paste to upload</p>
           <span className="business-cards-upload-hint">
             {maxImages - images.length} slot{maxImages - images.length !== 1 ? 's' : ''} remaining
           </span>
