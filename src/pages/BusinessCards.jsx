@@ -776,19 +776,40 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
   const handleSave = async () => {
     if (!name.trim()) return;
 
+    // Check for duplicate category name
+    const trimmedName = name.trim();
+    const duplicate = categories.find(
+      cat => cat.name.toLowerCase() === trimmedName.toLowerCase() && cat.id !== editingId
+    );
+
+    if (duplicate) {
+      await alert({
+        title: 'Duplicate Category',
+        message: `A category named "${trimmedName}" already exists. Please choose a different name.`,
+        type: 'error'
+      });
+      return;
+    }
+
     try {
       if (editingId) {
-        await onUpdate(editingId, name, color);
+        await onUpdate(editingId, trimmedName, color);
       } else {
-        await onAdd(name, color);
+        await onAdd(trimmedName, color);
       }
       setName('');
       setColor('#3b82f6');
       setEditingId(null);
     } catch (error) {
+      // Check for database unique constraint error
+      const isDuplicateError = error.message?.includes('duplicate key') ||
+                               error.message?.includes('unique constraint');
+
       await alert({
         title: 'Error',
-        message: error.message || 'Failed to save category',
+        message: isDuplicateError
+          ? `A category named "${trimmedName}" already exists. Please choose a different name.`
+          : error.message || 'Failed to save category',
         type: 'error'
       });
     }
