@@ -12,7 +12,7 @@ import '../styles/business-cards.css';
 
 export default function BusinessCards() {
   const { user } = useAuth();
-  const { businessCards, cardCategories, cardTags, addBusinessCard, updateBusinessCard, deleteBusinessCard, bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards, addCardCategory, updateCardCategory, deleteCardCategory, addCardTag } = useApp();
+  const { businessCards, cardCategories, cardTags, addBusinessCard, updateBusinessCard, deleteBusinessCard, bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards, addCardCategory, updateCardCategory, deleteCardCategory, refreshCardCategories, addCardTag } = useApp();
   const { alert, confirm } = useModal();
 
   // View state
@@ -760,6 +760,7 @@ export default function BusinessCards() {
           onAdd={addCardCategory}
           onUpdate={updateCardCategory}
           onDelete={deleteCardCategory}
+          onRefresh={refreshCardCategories}
         />
       )}
     </div>
@@ -767,11 +768,12 @@ export default function BusinessCards() {
 }
 
 // Category Manager Component
-function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
+function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRefresh }) {
   const { alert, confirm } = useModal();
   const [name, setName] = useState('');
   const [color, setColor] = useState('#3b82f6');
   const [editingId, setEditingId] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleSave = async () => {
     if (!name.trim()) return;
@@ -842,6 +844,26 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      const refreshedCategories = await onRefresh();
+      await alert({
+        title: 'Success',
+        message: `Refreshed! Found ${refreshedCategories?.length || 0} categories. Check browser console for details.`,
+        type: 'success'
+      });
+    } catch (error) {
+      await alert({
+        title: 'Refresh Error',
+        message: `Failed to refresh: ${error.message}. Check browser console for details.`,
+        type: 'error'
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
   return (
     <Modal isOpen={true} onClose={onClose} title="Manage Categories">
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -879,14 +901,28 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
         {/* Categories list */}
         <div>
           <div style={{
-            fontSize: '0.875rem',
-            fontWeight: 600,
-            color: 'var(--text-secondary)',
-            marginBottom: '8px',
-            textTransform: 'uppercase',
-            letterSpacing: '0.5px'
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '8px'
           }}>
-            Categories ({categories.length})
+            <div style={{
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: 'var(--text-secondary)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Categories ({categories.length})
+            </div>
+            <button
+              className="btn btn-secondary"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+            >
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </button>
           </div>
           <div style={{
             display: 'flex',

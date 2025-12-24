@@ -759,6 +759,25 @@ export function AppProvider({ children }) {
     setCardCategories(categories);
   };
 
+  const refreshCardCategories = async () => {
+    try {
+      console.log('Manual refresh - Fetching categories for user:', user.id);
+      const categories = await businessCardsService.fetchCardCategories(user.id);
+      console.log('Manual refresh - Fetched categories:', categories);
+      setCardCategories(categories || []);
+      return categories;
+    } catch (error) {
+      console.error('Manual refresh - Error:', error);
+      console.error('Manual refresh - Error details:', {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint
+      });
+      throw error;
+    }
+  };
+
   const addCardTag = async (name) => {
     const newTag = await businessCardsService.createCardTag(name, user.id);
     setCardTags(prev => [...prev, newTag]);
@@ -842,7 +861,7 @@ export function AppProvider({ children }) {
       // Business Cards actions
       addBusinessCard, updateBusinessCard, deleteBusinessCard,
       bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards,
-      addCardCategory, updateCardCategory, deleteCardCategory,
+      addCardCategory, updateCardCategory, deleteCardCategory, refreshCardCategories,
       addCardTag, deleteCardTag,
     },
     computed: {
