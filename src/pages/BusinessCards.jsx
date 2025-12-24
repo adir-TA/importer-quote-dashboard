@@ -376,9 +376,16 @@ export default function BusinessCards() {
           </div>
 
           <select
-            className="filter-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'white',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+            }}
           >
             <option value="all">All Status</option>
             <option value="new">New</option>
@@ -389,9 +396,16 @@ export default function BusinessCards() {
           </select>
 
           <select
-            className="filter-select"
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'white',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+            }}
           >
             <option value="all">All Categories</option>
             {cardCategories.map(cat => (
@@ -400,9 +414,16 @@ export default function BusinessCards() {
           </select>
 
           <select
-            className="filter-select"
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
+            style={{
+              padding: '10px 16px',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              background: 'white',
+              fontSize: '0.875rem',
+              cursor: 'pointer',
+            }}
           >
             <option value="all">All Tags</option>
             {cardTags.map(tag => (
