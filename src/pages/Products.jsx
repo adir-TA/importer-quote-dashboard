@@ -268,276 +268,274 @@ function Products() {
           </div>
         ) : (
           <>
-        {/* Recently Used Section */}
-        {products.length > 0 && products.slice(0, 3).length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
-              Recently Used
-            </h3>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {products.slice(0, 3).map(product => (
-                <button
-                  key={product.id}
-                  onClick={() => navigate(`/products/${product.id}`)}
-                  style={{
-                    padding: '10px 16px',
-                    background: 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#3b82f6';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'white';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
-                  }}
-                >
-                  <Package size={16} style={{ color: '#64748b' }} />
-                  {product.name}
-                  {quoteCounts[product.id] > 0 && (
-                    <span style={{
-                      padding: '2px 8px',
-                      background: '#d1fae5',
-                      color: '#065f46',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                    }}>
-                      {quoteCounts[product.id]}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Stats Summary */}
+        {/* Stats - Prominent at top */}
         {products.length > 0 && (
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: '16px',
-            marginBottom: '24px',
+            gap: '20px',
+            marginBottom: '28px',
           }}>
-            <div style={{
-              padding: '20px',
-              background: '#3b82f6',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 2px 8px rgba(59, 130, 246, 0.3)',
-            }}>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>Total Buying Intents</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.totalProducts}</div>
+            <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+                <Package size={22} color="#6366F1" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Total Intents</div>
+                <div className="stat-value">{stats.totalProducts}</div>
+              </div>
             </div>
-            <div style={{
-              padding: '20px',
-              background: '#10b981',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.3)',
-            }}>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>With Quotes</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.totalWithQuotes}</div>
+            <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+                <TrendingUp size={22} color="#10b981" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">With Quotes</div>
+                <div className="stat-value">{stats.totalWithQuotes}</div>
+              </div>
             </div>
-            <div style={{
-              padding: '20px',
-              background: '#f59e0b',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
-            }}>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>Without Quotes</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{stats.totalWithoutQuotes}</div>
+            <div className="stat-card" style={{ '--stat-color': '#f59e0b', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+                <TrendingDown size={22} color="#f59e0b" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Without Quotes</div>
+                <div className="stat-value">{stats.totalWithoutQuotes}</div>
+              </div>
             </div>
-            <div style={{
-              padding: '20px',
-              background: '#8b5cf6',
-              borderRadius: '12px',
-              color: 'white',
-              boxShadow: '0 2px 8px rgba(139, 92, 246, 0.3)',
-            }}>
-              <div style={{ fontSize: '0.875rem', opacity: 0.9, marginBottom: '8px' }}>Categories</div>
-              <div style={{ fontSize: '2rem', fontWeight: 700 }}>{Object.keys(stats.categoryBreakdown).length}</div>
+            <div className="stat-card" style={{ '--stat-color': '#8b5cf6', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+                <Grid size={22} color="#8b5cf6" />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">Categories</div>
+                <div className="stat-value">{Object.keys(stats.categoryBreakdown).length}</div>
+              </div>
             </div>
           </div>
         )}
 
-        {/* Controls Row - Search, Filters, Sort, View */}
-        <div style={{ marginBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-            {/* Search Bar */}
-            <div style={{ flex: 1, minWidth: '250px' }}>
-              <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
-            </div>
-
-            {/* Category filter pills - aligned with search */}
-            {categories.length > 0 && (
-              <>
-                <span style={{ fontSize: '0.875rem', fontWeight: 500, color: '#64748b' }}>
-                  Filters:
-                </span>
-                {categories.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => {
-                      setSelectedCategoryFilters(prev =>
-                        prev.includes(category)
-                          ? prev.filter(c => c !== category)
-                          : [...prev, category]
-                      );
-                    }}
-                    className="btn"
-                    style={{
-                      padding: '6px 14px',
-                      fontSize: '0.875rem',
-                      background: selectedCategoryFilters.includes(category) ? 'var(--accent)' : 'white',
-                      color: selectedCategoryFilters.includes(category) ? 'white' : 'var(--text)',
-                      border: selectedCategoryFilters.includes(category) ? 'none' : '1px solid #e5e7eb',
-                      borderRadius: '20px',
-                      cursor: 'pointer',
-                      fontWeight: 500,
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {category}
-                  </button>
-                ))}
-                {selectedCategoryFilters.length > 0 && (
-                  <button
-                    onClick={() => setSelectedCategoryFilters([])}
-                    className="btn"
-                    style={{
-                      padding: '6px 14px',
-                      fontSize: '0.875rem',
-                      background: '#fef2f2',
-                      color: '#ef4444',
-                      border: 'none',
-                      borderRadius: '20px',
-                      cursor: 'pointer',
-                      fontWeight: 500,
-                    }}
-                  >
-                    Clear
-                  </button>
-                )}
-              </>
-            )}
-
-            {/* Sort Dropdown */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              style={{
-                padding: '10px 16px',
-                borderRadius: '8px',
-                border: '1px solid var(--border)',
-                background: 'white',
-                fontSize: '0.875rem',
-                cursor: 'pointer',
-              }}
-            >
-              <option value="name">Sort by Name</option>
-              <option value="quotes">Sort by Quotes</option>
-              <option value="recent">Sort by Recent</option>
-            </select>
-
-            {/* View Toggle */}
-            <div style={{
-              display: 'flex',
-              border: '1px solid var(--border)',
-              borderRadius: '8px',
-              overflow: 'hidden',
+        {/* Two-column layout: Filters sidebar + Main content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Left Sidebar: Filters & Options */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'sticky',
+            top: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
             }}>
-              <button
-                onClick={() => setViewMode('grid')}
-                style={{
-                  padding: '10px 16px',
-                  background: viewMode === 'grid' ? 'var(--accent)' : 'white',
-                  color: viewMode === 'grid' ? 'white' : 'var(--text)',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                }}
-              >
-                <Grid size={16} />
-                Grid
-              </button>
-              <button
-                onClick={() => setViewMode('list')}
-                style={{
-                  padding: '10px 16px',
-                  background: viewMode === 'list' ? 'var(--accent)' : 'white',
-                  color: viewMode === 'list' ? 'white' : 'var(--text)',
-                  border: 'none',
-                  borderLeft: '1px solid var(--border)',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                }}
-              >
-                <List size={16} />
-                List
-              </button>
-            </div>
+              Filters & View
+            </h3>
 
-            {/* Bulk Delete Controls */}
-            {products.length > 0 && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginLeft: 'auto' }}>
-                {selectedProducts.size > 0 && (
-                  <span style={{
-                    fontSize: '0.875rem',
-                    color: '#64748b',
-                    fontWeight: 500,
-                  }}>
-                    {selectedProducts.size} selected
-                  </span>
-                )}
+            {/* View Mode */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                View Mode
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
-                  className="btn"
-                  onClick={handleBulkDelete}
-                  disabled={selectedProducts.size === 0}
+                  onClick={() => setViewMode('grid')}
                   style={{
-                    padding: '10px 16px',
-                    fontSize: '0.875rem',
-                    background: selectedProducts.size > 0 ? '#ef4444' : '#f3f4f6',
-                    color: selectedProducts.size > 0 ? 'white' : '#9ca3af',
+                    padding: '12px',
+                    background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)',
                     border: 'none',
-                    borderRadius: '8px',
-                    cursor: selectedProducts.size === 0 ? 'not-allowed' : 'pointer',
-                    fontWeight: 500,
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
                     display: 'flex',
+                    flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    transition: 'all 0.2s',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
                   }}
-                  title={selectedProducts.size === 0 ? 'Select items to delete' : `Delete ${selectedProducts.size} item(s)`}
+                >
+                  <Grid size={18} />
+                  Grid
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  style={{
+                    padding: '12px',
+                    background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <List size={18} />
+                  List
+                </button>
+              </div>
+            </div>
+
+            {/* Sort By */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Sort By
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="form-input"
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="name">Name (A-Z)</option>
+                <option value="quotes">Quotes (High-Low)</option>
+                <option value="recent">Recently Added</option>
+              </select>
+            </div>
+
+            {/* Category Filters */}
+            {categories.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Categories
+                  </label>
+                  {selectedCategoryFilters.length > 0 && (
+                    <button
+                      onClick={() => setSelectedCategoryFilters([])}
+                      style={{
+                        fontSize: '0.7rem',
+                        color: 'var(--error)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {categories.map(category => (
+                    <label
+                      key={category}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        background: selectedCategoryFilters.includes(category) ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                        border: selectedCategoryFilters.includes(category) ? '1px solid var(--accent)' : '1px solid transparent',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCategoryFilters.includes(category)}
+                        onChange={() => {
+                          setSelectedCategoryFilters(prev =>
+                            prev.includes(category)
+                              ? prev.filter(c => c !== category)
+                              : [...prev, category]
+                          );
+                        }}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      <span style={{ flex: 1, color: 'var(--text-primary)' }}>{category}</span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        padding: '2px 8px',
+                        background: 'white',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-muted)',
+                        fontWeight: 600,
+                      }}>
+                        {stats.categoryBreakdown[category] || 0}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bulk Actions */}
+            {selectedProducts.size > 0 && (
+              <div style={{
+                padding: '16px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--error)',
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {selectedProducts.size} Selected
+                </div>
+                <button
+                  onClick={handleBulkDelete}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: 'var(--error)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                  }}
                 >
                   <Trash2 size={16} />
-                  Delete {selectedProducts.size > 0 && `(${selectedProducts.size})`}
+                  Delete Selected
+                </button>
+                <button
+                  onClick={deselectAll}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    background: 'transparent',
+                    color: 'var(--error)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    marginTop: '8px',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Deselect All
                 </button>
               </div>
             )}
           </div>
-        </div>
 
-        {/* Products Display */}
+          {/* Right: Main Content */}
+          <div>
+            {/* Search Bar */}
+            <div style={{ marginBottom: '24px' }}>
+              <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
+            </div>
+
+            {/* Products Display */}
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Package size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -713,6 +711,10 @@ function Products() {
             ))}
           </div>
         )}
+          </div>
+          {/* End right content area */}
+        </div>
+        {/* End two-column layout */}
         </>
         )}
       </div>

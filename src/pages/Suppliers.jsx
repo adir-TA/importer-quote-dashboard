@@ -67,13 +67,102 @@ function Suppliers() {
       </div>
 
       <div className="content">
-        <div className="filter-bar">
-          <SearchInput value={search} onChange={setSearch} placeholder="Search suppliers..." />
-          <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="all">All Status</option>
-            {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-          </select>
+        {/* Stats Summary */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px',
+          marginBottom: '28px',
+        }}>
+          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+              <Users size={22} color="#6366F1" />
+            </div>
+            <div className="stat-content">
+              <div className="stat-label">Total Suppliers</div>
+              <div className="stat-value">{suppliers.length}</div>
+            </div>
+          </div>
+          {STATUS_OPTIONS.map(status => (
+            <div key={status.value} className="stat-card" style={{ '--stat-color': status.color, '--stat-bg': `${status.color}20` }}>
+              <div className="stat-icon-wrapper" style={{ background: `${status.color}20` }}>
+                <Check size={22} color={status.color} />
+              </div>
+              <div className="stat-content">
+                <div className="stat-label">{status.label}</div>
+                <div className="stat-value">{suppliers.filter(s => s.status === status.value).length}</div>
+              </div>
+            </div>
+          ))}
         </div>
+
+        {/* Two-column layout: Filters sidebar + Main content */}
+        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+          {/* Left Sidebar: Filters */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)',
+            position: 'sticky',
+            top: '24px'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
+            }}>
+              Filter Suppliers
+            </h3>
+
+            {/* Status Filter */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Status
+              </label>
+              <select
+                className="form-input"
+                value={statusFilter}
+                onChange={e => setStatusFilter(e.target.value)}
+                style={{ fontSize: '0.875rem' }}
+              >
+                <option value="all">All Suppliers</option>
+                {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+            </div>
+
+            {/* Quick Stats */}
+            <div style={{
+              padding: '16px',
+              background: 'var(--bg-secondary)',
+              borderRadius: 'var(--radius-md)',
+            }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                Quick Stats
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Total Suppliers</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{suppliers.length}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Filtered</span>
+                  <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{filteredSuppliers.length}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Main Content */}
+          <div>
+            {/* Search Bar */}
+            <div style={{ marginBottom: '24px' }}>
+              <SearchInput value={search} onChange={setSearch} placeholder="Search suppliers..." />
+            </div>
 
         {filteredSuppliers.length === 0 ? (
           <div className="empty-state">
@@ -102,6 +191,10 @@ function Suppliers() {
             ))}
           </div>
         )}
+          </div>
+          {/* End right content area */}
+        </div>
+        {/* End two-column layout */}
       </div>
 
       {isModalOpen && (
