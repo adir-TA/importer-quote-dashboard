@@ -218,51 +218,8 @@ function Dashboard() {
       </div>
 
       <div className="content">
-        {/* Hero CTA */}
-        <div className="hero-card">
-          <div className="hero-content">
-            <div className="hero-icon">📦</div>
-            <div className="hero-text">
-              <h3>Start Finding the Best Quote</h3>
-              <p>Define what you want to buy, collect supplier quotes, and compare prices</p>
-            </div>
-          </div>
-          <button className="btn btn-primary btn-lg" onClick={() => navigate('/products')}>
-            <Plus size={18} />
-            Add Buying Intent
-          </button>
-        </div>
-
-        {/* Workflow Steps */}
-        <div className="workflow-steps">
-          <div className="workflow-step" onClick={() => navigate('/products')}>
-            <div className="step-number">1</div>
-            <div className="step-content">
-              <h4>Buying Intents</h4>
-              <p>Define what you want to buy</p>
-            </div>
-            <ArrowRight size={16} className="step-arrow" />
-          </div>
-          <div className="workflow-step" onClick={() => navigate('/products')}>
-            <div className="step-number">2</div>
-            <div className="step-content">
-              <h4>Quotes</h4>
-              <p>Upload supplier quotes for each intent</p>
-            </div>
-            <ArrowRight size={16} className="step-arrow" />
-          </div>
-          <div className="workflow-step active" onClick={() => navigate('/comparison')}>
-            <div className="step-number">3</div>
-            <div className="step-content">
-              <h4>Compare</h4>
-              <p>Find the best price</p>
-            </div>
-            <CheckCircle size={16} className="step-check" />
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
+        {/* Stats - Prominent at top */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '28px' }}>
           {stats.map(stat => (
             <div key={stat.label} className="stat-card" style={{ '--stat-color': stat.color, '--stat-bg': stat.bgColor }}>
               <div className="stat-icon-wrapper" style={{ background: stat.bgColor }}>
@@ -276,67 +233,105 @@ function Dashboard() {
           ))}
         </div>
 
-        {/* Recently Used Buying Intents */}
-        {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
-          <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
-              Recently Used
+        {/* Two-column layout: Workflow on left, Best Price on right */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '28px' }}>
+          {/* Left: Workflow Steps */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
+            <h3 style={{
+              fontSize: '0.875rem',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: 'var(--text-muted)',
+              marginBottom: '20px'
+            }}>
+              Your Workflow
             </h3>
-            <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-              {products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).map(product => (
-                <button
-                  key={product.id}
-                  onClick={() => setSelectedProductId(product.id)}
-                  style={{
-                    padding: '12px 18px',
-                    background: selectedProductId === product.id ? '#eff6ff' : 'white',
-                    border: selectedProductId === product.id ? '2px solid #3b82f6' : '2px solid #e5e7eb',
-                    borderRadius: '10px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    transition: 'all 0.2s',
-                    fontSize: '0.875rem',
-                    fontWeight: 500,
-                  }}
-                  onMouseEnter={(e) => {
-                    if (selectedProductId !== product.id) {
-                      e.currentTarget.style.background = '#f9fafb';
-                      e.currentTarget.style.borderColor = '#3b82f6';
-                      e.currentTarget.style.transform = 'translateY(-2px)';
-                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (selectedProductId !== product.id) {
-                      e.currentTarget.style.background = 'white';
-                      e.currentTarget.style.borderColor = '#e5e7eb';
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.boxShadow = 'none';
-                    }
-                  }}
-                >
-                  <Package size={18} style={{ color: '#64748b' }} />
-                  <span>{product.name}</span>
-                  <span style={{
-                    padding: '3px 10px',
-                    background: '#d1fae5',
-                    color: '#065f46',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                  }}>
-                    {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
-                  </span>
-                </button>
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div
+                className="workflow-step"
+                onClick={() => navigate('/products')}
+                style={{ cursor: 'pointer', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s' }}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>1</div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>Buying Intents</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Define what you want to buy</p>
+                </div>
+              </div>
+              <div
+                className="workflow-step"
+                onClick={() => navigate('/products')}
+                style={{ cursor: 'pointer', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s' }}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>2</div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>Quotes</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Upload supplier quotes</p>
+                </div>
+              </div>
+              <div
+                className="workflow-step active"
+                onClick={() => navigate('/comparison')}
+                style={{ cursor: 'pointer', padding: '16px', background: 'var(--accent-light)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', border: '1px solid var(--accent)' }}
+              >
+                <div style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'var(--accent)',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  flexShrink: 0
+                }}>3</div>
+                <div style={{ flex: 1 }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>Compare</h4>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Find the best price</p>
+                </div>
+                <CheckCircle size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Product-Scoped Best Price */}
-        <div className="best-quote-card">
+          {/* Right: Best Price Finder */}
+          <div style={{
+            background: 'white',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            boxShadow: 'var(--shadow-sm)'
+          }}>
           <div className="best-quote-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '16px', marginBottom: '16px' }}>
             <TrendingDown size={20} color="var(--success)" />
             <span>Best Price</span>
@@ -421,7 +416,10 @@ function Dashboard() {
               <p style={{ margin: 0 }}>Select a buying intent above to see best price</p>
             </div>
           )}
+          </div>
+          {/* End right panel */}
         </div>
+        {/* End two-column layout */}
 
         {/* Quick Actions */}
         <div className="quick-actions-grid">
