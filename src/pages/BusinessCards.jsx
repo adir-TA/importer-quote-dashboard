@@ -7,7 +7,7 @@ import Modal from '../components/Modal';
 import BusinessCardImageUpload from '../components/BusinessCardImageUpload';
 import TagInput from '../components/TagInput';
 import * as businessCardsService from '../utils/businessCardsService';
-import { Plus, Grid, List, Filter, Settings, Mail, Phone, MessageCircle, Globe, Trash2, Edit2, Building2, User, CheckSquare, Square } from 'lucide-react';
+import { Plus, Grid, List, Filter, Settings, Mail, Phone, MessageCircle, Globe, Trash2, Edit2, Building2, User, CheckSquare, Square, CreditCard } from 'lucide-react';
 import '../styles/business-cards.css';
 
 export default function BusinessCards() {
@@ -355,84 +355,84 @@ export default function BusinessCards() {
   };
 
   return (
-    <div className="page-container">
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">Business Cards</h1>
-          <p className="page-subtitle">Manage supplier contacts from China</p>
-        </div>
-        <button className="btn-primary" onClick={handleAdd}>
-          <Plus size={20} />
+    <div className="page">
+      <div className="header">
+        <h2>Business Cards</h2>
+        <button className="btn btn-primary" onClick={handleAdd}>
+          <Plus size={16} />
           Add Card
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="filter-bar">
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Search cards..."
-        />
+      <div className="content">
+        {/* Filters */}
+        <div className="filter-bar" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: '250px' }}>
+            <SearchInput
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search cards..."
+            />
+          </div>
 
-        <select
-          className="filter-select"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          <option value="new">New</option>
-          <option value="contacted">Contacted</option>
-          <option value="accepted">Accepted</option>
-          <option value="rejected">Rejected</option>
-          <option value="inactive">Inactive</option>
-        </select>
-
-        <select
-          className="filter-select"
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-        >
-          <option value="all">All Categories</option>
-          {cardCategories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
-        </select>
-
-        <select
-          className="filter-select"
-          value={tagFilter}
-          onChange={(e) => setTagFilter(e.target.value)}
-        >
-          <option value="all">All Tags</option>
-          {cardTags.map(tag => (
-            <option key={tag.id} value={tag.id}>{tag.name}</option>
-          ))}
-        </select>
-
-        <button
-          className="btn-secondary"
-          onClick={() => setShowCategoryManager(true)}
-        >
-          <Settings size={18} />
-          Categories
-        </button>
-
-        <div className="business-cards-view-toggle">
-          <button
-            className={viewMode === 'grid' ? 'active' : ''}
-            onClick={() => setViewMode('grid')}
+          <select
+            className="filter-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <Grid size={18} />
-          </button>
-          <button
-            className={viewMode === 'list' ? 'active' : ''}
-            onClick={() => setViewMode('list')}
+            <option value="all">All Status</option>
+            <option value="new">New</option>
+            <option value="contacted">Contacted</option>
+            <option value="accepted">Accepted</option>
+            <option value="rejected">Rejected</option>
+            <option value="inactive">Inactive</option>
+          </select>
+
+          <select
+            className="filter-select"
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
           >
-            <List size={18} />
+            <option value="all">All Categories</option>
+            {cardCategories.map(cat => (
+              <option key={cat.id} value={cat.id}>{cat.name}</option>
+            ))}
+          </select>
+
+          <select
+            className="filter-select"
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+          >
+            <option value="all">All Tags</option>
+            {cardTags.map(tag => (
+              <option key={tag.id} value={tag.id}>{tag.name}</option>
+            ))}
+          </select>
+
+          <button
+            className="btn btn-secondary"
+            onClick={() => setShowCategoryManager(true)}
+          >
+            <Settings size={16} />
+            Categories
           </button>
+
+          <div className="business-cards-view-toggle">
+            <button
+              className={viewMode === 'grid' ? 'active' : ''}
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid size={18} />
+            </button>
+            <button
+              className={viewMode === 'list' ? 'active' : ''}
+              onClick={() => setViewMode('list')}
+            >
+              <List size={18} />
+            </button>
+          </div>
         </div>
-      </div>
 
       {/* Bulk actions bar */}
       {selectedCards.length > 0 && (
@@ -453,21 +453,29 @@ export default function BusinessCards() {
                 <option key={cat.id} value={cat.id}>{cat.name}</option>
               ))}
             </select>
-            <button className="btn-danger" onClick={handleBulkDelete}>
+            <button className="btn btn-danger" onClick={handleBulkDelete}>
               <Trash2 size={16} />
               Delete
             </button>
-            <button className="btn-secondary" onClick={deselectAll}>Deselect All</button>
+            <button className="btn btn-secondary" onClick={deselectAll}>Deselect All</button>
           </div>
         </div>
       )}
 
-      {/* Cards display */}
-      {filteredCards.length === 0 ? (
-        <div className="empty-state">
-          <p>No cards found</p>
-        </div>
-      ) : (
+        {/* Cards display */}
+        {filteredCards.length === 0 ? (
+          <div className="empty-state">
+            <CreditCard size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+            <h3>{searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || tagFilter !== 'all' ? 'No cards match your filters' : 'No business cards yet'}</h3>
+            <p>{searchTerm || statusFilter !== 'all' || categoryFilter !== 'all' || tagFilter !== 'all' ? 'Try adjusting your filters or search term' : 'Add supplier business cards to keep track of your contacts from China'}</p>
+            {!searchTerm && statusFilter === 'all' && categoryFilter === 'all' && tagFilter === 'all' && (
+              <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={handleAdd}>
+                <Plus size={16} />
+                Add Card
+              </button>
+            )}
+          </div>
+        ) : (
         <div className={viewMode === 'grid' ? 'business-cards-grid' : 'business-cards-list'}>
           {filteredCards.map(card => (
             <div key={card.id} className="business-cards-card">
@@ -565,7 +573,8 @@ export default function BusinessCards() {
             </div>
           ))}
         </div>
-      )}
+        )}
+      </div>
 
       {/* Add/Edit Modal */}
       {showModal && (
@@ -711,10 +720,10 @@ export default function BusinessCards() {
             </div>
 
             <div className="modal-footer">
-              <button className="btn-secondary" onClick={handleCloseModal}>
+              <button className="btn btn-secondary" onClick={handleCloseModal}>
                 Cancel
               </button>
-              <button className="btn-primary" onClick={handleSave}>
+              <button className="btn btn-primary" onClick={handleSave}>
                 {modalMode === 'add' ? 'Add Card' : 'Save Changes'}
               </button>
             </div>
@@ -807,12 +816,12 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
             value={color}
             onChange={(e) => setColor(e.target.value)}
           />
-          <button className="btn-primary" onClick={handleSave}>
+          <button className="btn btn-primary" onClick={handleSave}>
             {editingId ? 'Update' : 'Add'}
           </button>
           {editingId && (
             <button
-              className="btn-secondary"
+              className="btn btn-secondary"
               onClick={() => {
                 setEditingId(null);
                 setName('');
@@ -849,10 +858,10 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
                 <span>{cat.name}</span>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <button className="btn-secondary" onClick={() => handleEdit(cat)}>
+                <button className="btn btn-secondary" onClick={() => handleEdit(cat)}>
                   Edit
                 </button>
-                <button className="btn-danger" onClick={() => handleDelete(cat.id)}>
+                <button className="btn btn-danger" onClick={() => handleDelete(cat.id)}>
                   Delete
                 </button>
               </div>
