@@ -8,6 +8,7 @@ import {
   Calculator,
   Settings,
   LogOut,
+  CreditCard,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/sidebar.css';
@@ -31,6 +32,7 @@ function Sidebar() {
       { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
       { path: '/products', icon: Package, label: 'Buying Intents' },
       { path: '/comparison', icon: GitCompare, label: 'Compare Quotes' },
+      { path: '/business-cards', icon: CreditCard, label: 'Business Cards' },
     ]},
     { section: 'System', items: [
       { path: '/settings', icon: Settings, label: 'Settings' },

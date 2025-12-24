@@ -1,0 +1,869 @@
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { useAlert } from '../context/AlertContext';
+import SearchInput from '../components/SearchInput';
+import Modal from '../components/Modal';
+import BusinessCardImageUpload from '../components/BusinessCardImageUpload';
+import TagInput from '../components/TagInput';
+import * as businessCardsService from '../utils/businessCardsService';
+import { Plus, Grid, List, Filter, Settings, Mail, Phone, MessageCircle, Globe, Trash2, Edit2, Building2, User, CheckSquare, Square } from 'lucide-react';
+import '../styles/business-cards.css';
+
+export default function BusinessCards() {
+  const { user } = useAuth();
+  const { businessCards, cardCategories, cardTags, addBusinessCard, updateBusinessCard, deleteBusinessCard, bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards, addCardCategory, updateCardCategory, deleteCardCategory, addCardTag } = useApp();
+  const { alert } = useAlert();
+
+  // View state
+  const [viewMode, setViewMode] = useState('grid');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [categoryFilter, setCategoryFilter] = useState('all');
+  const [tagFilter, setTagFilter] = useState('all');
+
+  // Modal state
+  const [showModal, setShowModal] = useState(false);
+  const [modalMode, setModalMode] = useState('add');
+  const [selectedCard, setSelectedCard] = useState(null);
+  const [showCategoryManager, setShowCategoryManager] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    display_name: '',
+    company_name: '',
+    contact_person: '',
+    phone: '',
+    wechat: '',
+    email: '',
+    website: '',
+    notes: '',
+    status: 'new',
+    category_id: null,
+    tags: [],
+    images: []
+  });
+
+  // Bulk selection
+  const [selectedCards, setSelectedCards] = useState([]);
+
+  // Last used category for quick defaults
+  const [lastUsedCategoryId, setLastUsedCategoryId] = useState(null);
+
+  // Filtered cards
+  const filteredCards = useMemo(() => {
+    return businessCards.filter(card => {
+      const matchesSearch = !searchTerm ||
+        card.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.company_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.contact_person?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.phone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.wechat?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      const matchesStatus = statusFilter === 'all' || card.status === statusFilter;
+      const matchesCategory = categoryFilter === 'all' || card.category_id === categoryFilter;
+      const matchesTag = tagFilter === 'all' || card.tags?.some(t => t.id === tagFilter);
+
+      return matchesSearch && matchesStatus && matchesCategory && matchesTag;
+    });
+  }, [businessCards, searchTerm, statusFilter, categoryFilter, tagFilter]);
+
+  // Open add modal
+  const handleAdd = () => {
+    setModalMode('add');
+    setSelectedCard(null);
+    setFormData({
+      display_name: '',
+      company_name: '',
+      contact_person: '',
+      phone: '',
+      wechat: '',
+      email: '',
+      website: '',
+      notes: '',
+      status: 'new',
+      category_id: lastUsedCategoryId,
+      tags: [],
+      images: []
+    });
+    setShowModal(true);
+  };
+
+  // Open edit modal
+  const handleEdit = (card) => {
+    setModalMode('edit');
+    setSelectedCard(card);
+    setFormData({
+      display_name: card.display_name || '',
+      company_name: card.company_name || '',
+      contact_person: card.contact_person || '',
+      phone: card.phone || '',
+      wechat: card.wechat || '',
+      email: card.email || '',
+      website: card.website || '',
+      notes: card.notes || '',
+      status: card.status || 'new',
+      category_id: card.category_id,
+      tags: card.tags || [],
+      images: card.images?.map(img => ({
+        id: img.id,
+        url: businessCardsService.getCardImageUrl(img.storage_path),
+        storage_path: img.storage_path
+      })) || []
+    });
+    setShowModal(true);
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedCard(null);
+    setFormData({
+      display_name: '',
+      company_name: '',
+      contact_person: '',
+      phone: '',
+      wechat: '',
+      email: '',
+      website: '',
+      notes: '',
+      status: 'new',
+      category_id: null,
+      tags: [],
+      images: []
+    });
+  };
+
+  // Save card
+  const handleSave = async () => {
+    if (!formData.display_name.trim()) {
+      await alert({
+        title: 'Validation Error',
+        message: 'Display name is required',
+        type: 'error'
+      });
+      return;
+    }
+
+    try {
+      // Check for duplicates
+      const duplicates = await businessCardsService.checkDuplicateCard(
+        formData.email,
+        formData.wechat,
+        formData.phone,
+        user.id,
+        selectedCard?.id
+      );
+
+      if (duplicates.length > 0) {
+        const confirmed = await alert({
+          title: 'Possible Duplicate',
+          message: `Similar contact exists: ${duplicates[0].display_name}. Continue anyway?`,
+          type: 'warning',
+          confirmText: 'Continue',
+          showCancel: true
+        });
+        if (!confirmed) return;
+      }
+
+      if (modalMode === 'add') {
+        const newCard = await addBusinessCard(formData);
+
+        // Upload images
+        const newImages = formData.images.filter(img => img instanceof File);
+        for (let i = 0; i < newImages.length; i++) {
+          await businessCardsService.uploadCardImage(newCard.id, newImages[i], i, user.id);
+        }
+
+        // Set tags
+        if (formData.tags.length > 0) {
+          await businessCardsService.setCardTags(newCard.id, formData.tags.map(t => t.id), user.id);
+        }
+
+        if (formData.category_id) {
+          setLastUsedCategoryId(formData.category_id);
+        }
+
+        await alert({
+          title: 'Success',
+          message: 'Card added successfully',
+          type: 'success'
+        });
+      } else {
+        await updateBusinessCard(selectedCard.id, formData);
+
+        // Handle image changes
+        const existingImages = formData.images.filter(img => !img instanceof File);
+        const newImages = formData.images.filter(img => img instanceof File);
+
+        // Delete removed images
+        const existingImageIds = existingImages.map(img => img.id);
+        const originalImages = selectedCard.images || [];
+        for (const img of originalImages) {
+          if (!existingImageIds.includes(img.id)) {
+            await businessCardsService.deleteCardImage(img.id, user.id);
+          }
+        }
+
+        // Upload new images
+        for (let i = 0; i < newImages.length; i++) {
+          await businessCardsService.uploadCardImage(selectedCard.id, newImages[i], existingImages.length + i, user.id);
+        }
+
+        // Update tags
+        await businessCardsService.setCardTags(selectedCard.id, formData.tags.map(t => t.id), user.id);
+
+        await alert({
+          title: 'Success',
+          message: 'Card updated successfully',
+          type: 'success'
+        });
+      }
+
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error saving card:', error);
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to save card',
+        type: 'error'
+      });
+    }
+  };
+
+  // Delete card
+  const handleDelete = async (cardId) => {
+    const confirmed = await alert({
+      title: 'Confirm Delete',
+      message: 'Are you sure you want to delete this card?',
+      type: 'warning',
+      confirmText: 'Delete',
+      showCancel: true
+    });
+
+    if (confirmed) {
+      try {
+        await deleteBusinessCard(cardId);
+        await alert({
+          title: 'Success',
+          message: 'Card deleted successfully',
+          type: 'success'
+        });
+      } catch (error) {
+        await alert({
+          title: 'Error',
+          message: error.message || 'Failed to delete card',
+          type: 'error'
+        });
+      }
+    }
+  };
+
+  // Bulk actions
+  const handleBulkStatusChange = async (status) => {
+    try {
+      await bulkUpdateCardStatus(selectedCards, status);
+      setSelectedCards([]);
+      await alert({
+        title: 'Success',
+        message: `${selectedCards.length} card(s) updated`,
+        type: 'success'
+      });
+    } catch (error) {
+      await alert({
+        title: 'Error',
+        message: error.message || 'Bulk update failed',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleBulkCategoryChange = async (categoryId) => {
+    try {
+      await bulkUpdateCardCategory(selectedCards, categoryId);
+      setSelectedCards([]);
+      await alert({
+        title: 'Success',
+        message: `${selectedCards.length} card(s) updated`,
+        type: 'success'
+      });
+    } catch (error) {
+      await alert({
+        title: 'Error',
+        message: error.message || 'Bulk update failed',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const confirmed = await alert({
+      title: 'Confirm Bulk Delete',
+      message: `Delete ${selectedCards.length} card(s)?`,
+      type: 'warning',
+      confirmText: 'Delete',
+      showCancel: true
+    });
+
+    if (confirmed) {
+      try {
+        await bulkDeleteCards(selectedCards);
+        setSelectedCards([]);
+        await alert({
+          title: 'Success',
+          message: 'Cards deleted successfully',
+          type: 'success'
+        });
+      } catch (error) {
+        await alert({
+          title: 'Error',
+          message: error.message || 'Bulk delete failed',
+          type: 'error'
+        });
+      }
+    }
+  };
+
+  // Create tag handler
+  const handleCreateTag = async (tagName) => {
+    try {
+      return await addCardTag(tagName);
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      return null;
+    }
+  };
+
+  // Toggle card selection
+  const toggleCardSelection = (cardId) => {
+    setSelectedCards(prev =>
+      prev.includes(cardId)
+        ? prev.filter(id => id !== cardId)
+        : [...prev, cardId]
+    );
+  };
+
+  const selectAll = () => {
+    setSelectedCards(filteredCards.map(c => c.id));
+  };
+
+  const deselectAll = () => {
+    setSelectedCards([]);
+  };
+
+  const getStatusBadgeClass = (status) => {
+    const baseClass = 'business-cards-status-badge';
+    return `${baseClass} ${baseClass}--${status}`;
+  };
+
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Business Cards</h1>
+          <p className="page-subtitle">Manage supplier contacts from China</p>
+        </div>
+        <button className="btn-primary" onClick={handleAdd}>
+          <Plus size={20} />
+          Add Card
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="filter-bar">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search cards..."
+        />
+
+        <select
+          className="filter-select"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="new">New</option>
+          <option value="contacted">Contacted</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+          <option value="inactive">Inactive</option>
+        </select>
+
+        <select
+          className="filter-select"
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+        >
+          <option value="all">All Categories</option>
+          {cardCategories.map(cat => (
+            <option key={cat.id} value={cat.id}>{cat.name}</option>
+          ))}
+        </select>
+
+        <select
+          className="filter-select"
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
+        >
+          <option value="all">All Tags</option>
+          {cardTags.map(tag => (
+            <option key={tag.id} value={tag.id}>{tag.name}</option>
+          ))}
+        </select>
+
+        <button
+          className="btn-secondary"
+          onClick={() => setShowCategoryManager(true)}
+        >
+          <Settings size={18} />
+          Categories
+        </button>
+
+        <div className="business-cards-view-toggle">
+          <button
+            className={viewMode === 'grid' ? 'active' : ''}
+            onClick={() => setViewMode('grid')}
+          >
+            <Grid size={18} />
+          </button>
+          <button
+            className={viewMode === 'list' ? 'active' : ''}
+            onClick={() => setViewMode('list')}
+          >
+            <List size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Bulk actions bar */}
+      {selectedCards.length > 0 && (
+        <div className="business-cards-bulk-bar">
+          <span>{selectedCards.length} selected</span>
+          <div className="business-cards-bulk-actions">
+            <select onChange={(e) => e.target.value && handleBulkStatusChange(e.target.value)} defaultValue="">
+              <option value="">Change Status...</option>
+              <option value="new">New</option>
+              <option value="contacted">Contacted</option>
+              <option value="accepted">Accepted</option>
+              <option value="rejected">Rejected</option>
+              <option value="inactive">Inactive</option>
+            </select>
+            <select onChange={(e) => e.target.value && handleBulkCategoryChange(e.target.value)} defaultValue="">
+              <option value="">Change Category...</option>
+              {cardCategories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+            <button className="btn-danger" onClick={handleBulkDelete}>
+              <Trash2 size={16} />
+              Delete
+            </button>
+            <button className="btn-secondary" onClick={deselectAll}>Deselect All</button>
+          </div>
+        </div>
+      )}
+
+      {/* Cards display */}
+      {filteredCards.length === 0 ? (
+        <div className="empty-state">
+          <p>No cards found</p>
+        </div>
+      ) : (
+        <div className={viewMode === 'grid' ? 'business-cards-grid' : 'business-cards-list'}>
+          {filteredCards.map(card => (
+            <div key={card.id} className="business-cards-card">
+              <div className="business-cards-card-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <button
+                    className="business-cards-checkbox"
+                    onClick={() => toggleCardSelection(card.id)}
+                  >
+                    {selectedCards.includes(card.id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                  </button>
+                  <h3>{card.display_name}</h3>
+                </div>
+                <div className="business-cards-card-actions">
+                  <button onClick={() => handleEdit(card)}>
+                    <Edit2 size={16} />
+                  </button>
+                  <button onClick={() => handleDelete(card.id)}>
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {card.images && card.images.length > 0 && (
+                <div className="business-cards-card-image">
+                  <img
+                    src={businessCardsService.getCardImageUrl(card.images[0].storage_path)}
+                    alt={card.display_name}
+                  />
+                </div>
+              )}
+
+              <div className="business-cards-card-body">
+                {card.company_name && (
+                  <div className="business-cards-card-field">
+                    <Building2 size={14} />
+                    <span>{card.company_name}</span>
+                  </div>
+                )}
+                {card.contact_person && (
+                  <div className="business-cards-card-field">
+                    <User size={14} />
+                    <span>{card.contact_person}</span>
+                  </div>
+                )}
+                {card.email && (
+                  <div className="business-cards-card-field">
+                    <Mail size={14} />
+                    <span>{card.email}</span>
+                  </div>
+                )}
+                {card.phone && (
+                  <div className="business-cards-card-field">
+                    <Phone size={14} />
+                    <span>{card.phone}</span>
+                  </div>
+                )}
+                {card.wechat && (
+                  <div className="business-cards-card-field">
+                    <MessageCircle size={14} />
+                    <span>{card.wechat}</span>
+                  </div>
+                )}
+                {card.website && (
+                  <div className="business-cards-card-field">
+                    <Globe size={14} />
+                    <span>{card.website}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="business-cards-card-footer">
+                <span className={getStatusBadgeClass(card.status)}>
+                  {card.status}
+                </span>
+                {card.category && (
+                  <span
+                    className="business-cards-category-badge"
+                    style={{ backgroundColor: card.category.color + '20', color: card.category.color }}
+                  >
+                    {card.category.name}
+                  </span>
+                )}
+              </div>
+
+              {card.tags && card.tags.length > 0 && (
+                <div className="business-cards-card-tags">
+                  {card.tags.map(tag => (
+                    <span key={tag.id} className="business-cards-tag-small">
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Modal */}
+      {showModal && (
+        <Modal
+          isOpen={showModal}
+          onClose={handleCloseModal}
+          title={modalMode === 'add' ? 'Add Business Card' : 'Edit Business Card'}
+          size="large"
+        >
+          <div className="business-cards-modal-content">
+            <div className="business-cards-modal-section">
+              <h3>Card Images (max 5)</h3>
+              <BusinessCardImageUpload
+                images={formData.images}
+                onImagesChange={(images) => setFormData({ ...formData, images })}
+                maxImages={5}
+              />
+            </div>
+
+            <div className="business-cards-modal-section">
+              <h3>Basic Information</h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Display Name *</label>
+                  <input
+                    type="text"
+                    value={formData.display_name}
+                    onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
+                    placeholder="How to display this contact"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Company Name</label>
+                  <input
+                    type="text"
+                    value={formData.company_name}
+                    onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                    placeholder="Company name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Contact Person</label>
+                  <input
+                    type="text"
+                    value={formData.contact_person}
+                    onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                    placeholder="Person name"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+                  >
+                    <option value="new">New</option>
+                    <option value="contacted">Contacted</option>
+                    <option value="accepted">Accepted</option>
+                    <option value="rejected">Rejected</option>
+                    <option value="inactive">Inactive</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="business-cards-modal-section">
+              <h3>Contact Details</h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Phone</label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+86 ..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>WeChat ID</label>
+                  <input
+                    type="text"
+                    value={formData.wechat}
+                    onChange={(e) => setFormData({ ...formData, wechat: e.target.value })}
+                    placeholder="WeChat ID"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Email</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@example.com"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Website</label>
+                  <input
+                    type="url"
+                    value={formData.website}
+                    onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="business-cards-modal-section">
+              <h3>Organization</h3>
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>Category</label>
+                  <select
+                    value={formData.category_id || ''}
+                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
+                  >
+                    <option value="">No category</option>
+                    {cardCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Tags</label>
+                  <TagInput
+                    selectedTags={formData.tags}
+                    availableTags={cardTags}
+                    onTagsChange={(tags) => setFormData({ ...formData, tags })}
+                    onCreateTag={handleCreateTag}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="business-cards-modal-section">
+              <h3>Notes</h3>
+              <textarea
+                value={formData.notes}
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                placeholder="Additional notes..."
+                rows={4}
+              />
+            </div>
+
+            <div className="modal-footer">
+              <button className="btn-secondary" onClick={handleCloseModal}>
+                Cancel
+              </button>
+              <button className="btn-primary" onClick={handleSave}>
+                {modalMode === 'add' ? 'Add Card' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Category Manager Modal */}
+      {showCategoryManager && (
+        <CategoryManager
+          categories={cardCategories}
+          onClose={() => setShowCategoryManager(false)}
+          onAdd={addCardCategory}
+          onUpdate={updateCardCategory}
+          onDelete={deleteCardCategory}
+        />
+      )}
+    </div>
+  );
+}
+
+// Category Manager Component
+function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete }) {
+  const { alert } = useAlert();
+  const [name, setName] = useState('');
+  const [color, setColor] = useState('#3b82f6');
+  const [editingId, setEditingId] = useState(null);
+
+  const handleSave = async () => {
+    if (!name.trim()) return;
+
+    try {
+      if (editingId) {
+        await onUpdate(editingId, name, color);
+      } else {
+        await onAdd(name, color);
+      }
+      setName('');
+      setColor('#3b82f6');
+      setEditingId(null);
+    } catch (error) {
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to save category',
+        type: 'error'
+      });
+    }
+  };
+
+  const handleEdit = (category) => {
+    setEditingId(category.id);
+    setName(category.name);
+    setColor(category.color);
+  };
+
+  const handleDelete = async (id) => {
+    const confirmed = await alert({
+      title: 'Confirm Delete',
+      message: 'Delete this category? Cards will not be deleted.',
+      type: 'warning',
+      confirmText: 'Delete',
+      showCancel: true
+    });
+
+    if (confirmed) {
+      try {
+        await onDelete(id);
+      } catch (error) {
+        await alert({
+          title: 'Error',
+          message: error.message || 'Failed to delete category',
+          type: 'error'
+        });
+      }
+    }
+  };
+
+  return (
+    <Modal isOpen={true} onClose={onClose} title="Manage Categories">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Category name"
+            style={{ flex: 1 }}
+          />
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+          />
+          <button className="btn-primary" onClick={handleSave}>
+            {editingId ? 'Update' : 'Add'}
+          </button>
+          {editingId && (
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setEditingId(null);
+                setName('');
+                setColor('#3b82f6');
+              }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {categories.map(cat => (
+            <div
+              key={cat.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '8px',
+                border: '1px solid var(--border)',
+                borderRadius: '4px'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '4px',
+                    backgroundColor: cat.color
+                  }}
+                />
+                <span>{cat.name}</span>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button className="btn-secondary" onClick={() => handleEdit(cat)}>
+                  Edit
+                </button>
+                <button className="btn-danger" onClick={() => handleDelete(cat.id)}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+}

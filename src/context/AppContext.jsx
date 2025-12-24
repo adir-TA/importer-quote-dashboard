@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import * as businessCardsService from '../utils/businessCardsService';
 
 const AppContext = createContext(null);
 
@@ -31,6 +32,11 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
+  // Business Cards state
+  const [businessCards, setBusinessCards] = useState([]);
+  const [cardCategories, setCardCategories] = useState([]);
+  const [cardTags, setCardTags] = useState([]);
+
   useEffect(() => {
     if (user) {
       fetchAllData();
@@ -44,6 +50,9 @@ export function AppProvider({ children }) {
       setFees(DEFAULT_FEES);
       setSettings({ apiKey: '', currency: 'USD' });
       setSelectedQuotes([]);
+      setBusinessCards([]);
+      setCardCategories([]);
+      setCardTags([]);
       setLoading(false);
       setInitialized(false);
     }
@@ -94,6 +103,14 @@ export function AppProvider({ children }) {
           setFees(settingsRes.data.fees);
         }
       }
+
+      // Fetch business cards data
+      const cards = await businessCardsService.fetchBusinessCards(user.id);
+      const categories = await businessCardsService.fetchCardCategories(user.id);
+      const tags = await businessCardsService.fetchCardTags(user.id);
+      setBusinessCards(cards);
+      setCardCategories(categories);
+      setCardTags(tags);
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -664,6 +681,70 @@ export function AppProvider({ children }) {
     setSelectedQuotes(prev => prev.includes(quoteId) ? prev.filter(id => id !== quoteId) : [...prev, quoteId]);
   };
 
+  // Business Cards actions
+  const addBusinessCard = async (cardData) => {
+    const newCard = await businessCardsService.createBusinessCard(cardData, user.id);
+    const cards = await businessCardsService.fetchBusinessCards(user.id);
+    const fullCard = cards.find(c => c.id === newCard.id);
+    setBusinessCards(prev => [fullCard || newCard, ...prev]);
+    return fullCard || newCard;
+  };
+
+  const updateBusinessCard = async (cardId, updates) => {
+    await businessCardsService.updateBusinessCard(cardId, updates, user.id);
+    const cards = await businessCardsService.fetchBusinessCards(user.id);
+    setBusinessCards(cards);
+  };
+
+  const deleteBusinessCard = async (cardId) => {
+    await businessCardsService.deleteBusinessCard(cardId, user.id);
+    setBusinessCards(prev => prev.filter(c => c.id !== cardId));
+  };
+
+  const bulkUpdateCardStatus = async (cardIds, status) => {
+    await businessCardsService.bulkUpdateCardStatus(cardIds, status, user.id);
+    const cards = await businessCardsService.fetchBusinessCards(user.id);
+    setBusinessCards(cards);
+  };
+
+  const bulkUpdateCardCategory = async (cardIds, categoryId) => {
+    await businessCardsService.bulkUpdateCardCategory(cardIds, categoryId, user.id);
+    const cards = await businessCardsService.fetchBusinessCards(user.id);
+    setBusinessCards(cards);
+  };
+
+  const bulkDeleteCards = async (cardIds) => {
+    await businessCardsService.bulkDeleteCards(cardIds, user.id);
+    setBusinessCards(prev => prev.filter(c => !cardIds.includes(c.id)));
+  };
+
+  const addCardCategory = async (name, color) => {
+    const newCategory = await businessCardsService.createCardCategory(name, color, user.id);
+    setCardCategories(prev => [...prev, newCategory]);
+    return newCategory;
+  };
+
+  const updateCardCategory = async (categoryId, name, color) => {
+    const updated = await businessCardsService.updateCardCategory(categoryId, name, color, user.id);
+    setCardCategories(prev => prev.map(c => c.id === categoryId ? updated : c));
+  };
+
+  const deleteCardCategory = async (categoryId) => {
+    await businessCardsService.deleteCardCategory(categoryId, user.id);
+    setCardCategories(prev => prev.filter(c => c.id !== categoryId));
+  };
+
+  const addCardTag = async (name) => {
+    const newTag = await businessCardsService.createCardTag(name, user.id);
+    setCardTags(prev => [...prev, newTag]);
+    return newTag;
+  };
+
+  const deleteCardTag = async (tagId) => {
+    await businessCardsService.deleteCardTag(tagId, user.id);
+    setCardTags(prev => prev.filter(t => t.id !== tagId));
+  };
+
   // Computed values
   const getProductQuotes = useCallback((productId) => quotes.filter(q => q.product_id === productId), [quotes]);
   const getSupplierQuotes = useCallback((supplierId) => quotes.filter(q => q.supplier_id === supplierId), [quotes]);
@@ -721,7 +802,7 @@ export function AppProvider({ children }) {
   const getLineItemsForProduct = getLineItemsForBuyingIntent;
 
   const value = {
-    state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },
+    state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, businessCards, cardCategories, cardTags },
     actions: {
       addProduct, updateProduct, deleteProduct, finalizeBuyingIntent,
       addQuote, updateQuote, deleteQuote,
@@ -733,6 +814,11 @@ export function AppProvider({ children }) {
       updateSettings, toggleQuoteSelection, setSelectedQuotes,
       refreshData: fetchAllData,
       clearAllSeedData,
+      // Business Cards actions
+      addBusinessCard, updateBusinessCard, deleteBusinessCard,
+      bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards,
+      addCardCategory, updateCardCategory, deleteCardCategory,
+      addCardTag, deleteCardTag,
     },
     computed: {
       getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
@@ -750,4 +836,9 @@ export function useAppContext() {
   const context = useContext(AppContext);
   if (!context) throw new Error('useAppContext must be used within an AppProvider');
   return context;
+}
+
+export function useApp() {
+  const context = useAppContext();
+  return { ...context.state, ...context.actions, ...context.computed };
 }
