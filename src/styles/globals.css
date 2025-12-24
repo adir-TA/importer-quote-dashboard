@@ -1,41 +1,55 @@
-/* HA Tools - Light Theme (Skywork inspired) */
+/* HA Tools - Atlassian-style Admin Dashboard */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 :root {
+  /* Atlassian Color Palette */
   --bg-primary: #ffffff;
-  --bg-secondary: #F9FAFB;
-  --bg-tertiary: #F3F4F6;
-  --bg-hover: #F3F4F6;
-  --text-primary: #111827;
-  --text-secondary: #6B7280;
-  --text-muted: #9CA3AF;
-  --border: #E5E7EB;
-  --border-light: #F3F4F6;
-  --accent: #6366F1;
-  --accent-light: #EEF2FF;
-  --accent-hover: #4F46E5;
-  --gradient-primary: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
-  --sidebar-bg: #312E81;
-  --sidebar-text: #E0E7FF;
-  --sidebar-text-muted: #A5B4FC;
-  --success: #10B981;
-  --success-light: #D1FAE5;
-  --warning: #F59E0B;
-  --warning-light: #FEF3C7;
-  --error: #EF4444;
-  --error-light: #FEE2E2;
-  --info: #3B82F6;
-  --info-light: #DBEAFE;
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  --shadow-accent: 0 4px 14px rgba(99, 102, 241, 0.25);
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
-  --radius-xl: 16px;
+  --bg-secondary: #F4F5F7;
+  --bg-tertiary: #EBECF0;
+  --bg-hover: #F4F5F7;
+  --text-primary: #172B4D;
+  --text-secondary: #5E6C84;
+  --text-muted: #6B778C;
+  --border: #DFE1E6;
+  --border-light: #EBECF0;
+
+  /* Atlassian Blue */
+  --accent: #0052CC;
+  --accent-light: #DEEBFF;
+  --accent-hover: #0747A6;
+
+  /* Gradients */
+  --gradient-primary: linear-gradient(135deg, #0052CC 0%, #2684FF 100%);
+
+  /* Sidebar (Atlassian dark nav) */
+  --sidebar-bg: #0747A6;
+  --sidebar-text: #B3D4FF;
+  --sidebar-text-muted: #4C9AFF;
+
+  /* Status Colors */
+  --success: #00875A;
+  --success-light: #E3FCEF;
+  --warning: #FF991F;
+  --warning-light: #FFF0B3;
+  --error: #DE350B;
+  --error-light: #FFEBE6;
+  --info: #0065FF;
+  --info-light: #DEEBFF;
+
+  /* Shadows (subtle, Atlassian-style) */
+  --shadow-sm: 0 1px 1px rgba(9, 30, 66, 0.08);
+  --shadow-md: 0 1px 1px rgba(9, 30, 66, 0.1), 0 0 1px rgba(9, 30, 66, 0.16);
+  --shadow-lg: 0 4px 8px rgba(9, 30, 66, 0.12), 0 0 1px rgba(9, 30, 66, 0.16);
+  --shadow-accent: 0 1px 3px rgba(0, 82, 204, 0.2);
+
+  /* Border Radius (Atlassian uses subtle rounded corners) */
+  --radius-sm: 3px;
+  --radius-md: 3px;
+  --radius-lg: 3px;
+  --radius-xl: 8px;
   --radius-full: 9999px;
-  --transition: 0.2s ease;
+
+  --transition: 0.15s ease;
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -50,118 +64,102 @@ body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg-sec
 .header-actions { display: flex; gap: 12px; }
 .content { flex: 1; padding: 32px; overflow-y: auto; }
 
-/* Buttons */
-.btn { padding: 10px 18px; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: all var(--transition); }
+/* Buttons - Atlassian Style */
+.btn { padding: 8px 16px; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all var(--transition); }
 .btn svg { width: 16px; height: 16px; }
-.btn-primary { background: var(--accent); color: white; box-shadow: var(--shadow-accent); }
-.btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99, 102, 241, 0.35); }
-.btn-secondary { background: var(--bg-primary); color: var(--text-secondary); border: 1px solid var(--border); }
-.btn-secondary:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+.btn-primary { background: var(--accent); color: white; }
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary { background: white; color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--bg-hover); }
 .btn-ghost { background: transparent; color: var(--text-secondary); }
-.btn-ghost:hover { background: var(--bg-secondary); color: var(--text-primary); }
+.btn-ghost:hover { background: var(--bg-hover); color: var(--text-primary); }
 .btn-danger { background: var(--error); color: white; }
-.btn-danger:hover { background: #DC2626; transform: translateY(-1px); }
-.icon-btn { width: 40px; height: 40px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
-.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn-danger:hover { background: #BF2600; }
+.icon-btn { width: 32px; height: 32px; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg-primary); color: var(--text-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all var(--transition); }
+.icon-btn:hover { background: var(--bg-hover); }
 
-/* Cards */
+/* Cards - Atlassian Style */
 .card {
   background: white;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   transition: all var(--transition);
-  box-shadow: var(--shadow-sm);
 }
 .card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-1px);
+  border-color: #C1C7D0;
 }
 .card-header {
-  padding: 20px 24px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
 }
 .card-title {
-  font-size: 1rem;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   color: var(--text-primary);
+  text-transform: none;
 }
-.card-body { padding: 24px; }
+.card-body { padding: 20px; }
 
-/* Stats */
-.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; margin-bottom: 32px; }
+/* Stats - Atlassian Compact Style */
+.stats-grid { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .stat-card {
   background: white;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 20px 24px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  transition: all var(--transition);
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  position: relative;
-  overflow: visible;
-  box-shadow: var(--shadow-sm);
-}
-.stat-card::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background: var(--stat-color, var(--accent));
-  border-radius: 0 4px 4px 0;
+  align-items: center;
+  gap: 10px;
+  min-width: 140px;
 }
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-color: var(--border);
+  border-color: #C1C7D0;
+  background: var(--bg-hover);
 }
 .stat-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-bottom: 4px;
+  background: var(--bg-secondary);
 }
 .stat-content {
   flex: 1;
+  min-width: 0;
 }
 .stat-label {
   font-size: 0.75rem;
   color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 4px;
-  font-weight: 600;
+  margin-bottom: 2px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .stat-value {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 1.25rem;
+  font-weight: 600;
   color: var(--text-primary);
   line-height: 1;
 }
 .stat-trend {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
+  font-size: 0.7rem;
+  font-weight: 500;
   color: var(--success);
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 /* Grids */
@@ -320,28 +318,26 @@ textarea.form-input { resize: none; min-height: 100px; }
 .upload-text { font-weight: 600; margin-bottom: 8px; color: var(--text-primary); }
 .upload-hint { font-size: 0.8rem; color: var(--text-muted); }
 
-/* Table */
+/* Table - Atlassian Style */
 .table {
   width: 100%;
   border-collapse: collapse;
   background: white;
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-md);
   overflow: hidden;
 }
 .table th {
   text-align: left;
-  padding: 14px 20px;
+  padding: 10px 12px;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
 }
 .table td {
-  padding: 16px 20px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-light);
   font-size: 0.875rem;
   color: var(--text-primary);
@@ -352,8 +348,11 @@ textarea.form-input { resize: none; min-height: 100px; }
 .table tbody tr {
   transition: background var(--transition);
 }
+.table tbody tr:nth-child(even) {
+  background: #FAFBFC;
+}
 .table tbody tr:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-hover);
 }
 .table tr.clickable {
   cursor: pointer;

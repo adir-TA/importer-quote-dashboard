@@ -210,132 +210,166 @@ function Dashboard() {
     <div className="page">
       <div className="header">
         <div>
-          <h2>Decision Dashboard</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
-            Make confident sourcing decisions by comparing supplier prices
+          <h2>Dashboard</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
+            Manage buying intents and compare supplier quotes
           </p>
         </div>
       </div>
 
       <div className="content">
-        {/* Stats - Prominent at top */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '28px' }}>
-          {stats.map(stat => (
-            <div key={stat.label} className="stat-card" style={{ '--stat-color': stat.color, '--stat-bg': stat.bgColor }}>
-              <div className="stat-icon-wrapper" style={{ background: stat.bgColor }}>
-                <stat.icon size={22} color={stat.color} />
+        {/* Section: Overview */}
+        <div style={{ marginBottom: '24px' }}>
+          <h3 style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+            marginBottom: '12px',
+            paddingBottom: '8px',
+            borderBottom: '2px solid var(--border)'
+          }}>
+            Overview
+          </h3>
+          <div className="stats-grid">
+            {stats.map(stat => (
+              <div key={stat.label} className="stat-card">
+                <div className="stat-icon-wrapper">
+                  <stat.icon size={18} color="var(--text-secondary)" />
+                </div>
+                <div className="stat-content">
+                  <div className="stat-label">{stat.label}</div>
+                  <div className="stat-value">{stat.value}</div>
+                </div>
               </div>
-              <div className="stat-content">
-                <div className="stat-label">{stat.label}</div>
-                <div className="stat-value">{stat.value}</div>
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Two-column layout: Workflow on left, Best Price on right */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '28px' }}>
-          {/* Left: Workflow Steps */}
+        {/* Section: Workflow & Best Price */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+          {/* Workflow Steps */}
           <div style={{
             background: 'white',
             border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '24px',
-            boxShadow: 'var(--shadow-sm)'
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden'
           }}>
-            <h3 style={{
-              fontSize: '0.875rem',
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-              color: 'var(--text-muted)',
-              marginBottom: '20px'
+            <div style={{
+              padding: '12px 16px',
+              borderBottom: '2px solid var(--border)',
+              background: 'var(--bg-secondary)'
             }}>
-              Your Workflow
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h3 style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                margin: 0
+              }}>
+                Workflow
+              </h3>
+            </div>
+            <div style={{ padding: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div
                 className="workflow-step"
                 onClick={() => navigate('/products')}
-                style={{ cursor: 'pointer', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s' }}
+                style={{ cursor: 'pointer', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s', border: '1px solid var(--border-light)' }}
               >
                 <div style={{
-                  width: '40px',
-                  height: '40px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
-                  background: 'var(--accent)',
+                  background: 'var(--text-secondary)',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 700,
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
                   flexShrink: 0
                 }}>1</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>Buying Intents</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Define what you want to buy</p>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>Buying Intents</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Define what you want to buy</p>
                 </div>
               </div>
               <div
                 className="workflow-step"
                 onClick={() => navigate('/products')}
-                style={{ cursor: 'pointer', padding: '16px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s' }}
+                style={{ cursor: 'pointer', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s', border: '1px solid var(--border-light)' }}
               >
                 <div style={{
-                  width: '40px',
-                  height: '40px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
-                  background: 'var(--accent)',
+                  background: 'var(--text-secondary)',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 700,
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
                   flexShrink: 0
                 }}>2</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>Quotes</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Upload supplier quotes</p>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>Quotes</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Upload supplier quotes</p>
                 </div>
               </div>
               <div
                 className="workflow-step active"
                 onClick={() => navigate('/comparison')}
-                style={{ cursor: 'pointer', padding: '16px', background: 'var(--accent-light)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: '16px', transition: 'all 0.2s', border: '1px solid var(--accent)' }}
+                style={{ cursor: 'pointer', padding: '12px', background: 'var(--accent-light)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '12px', transition: 'all 0.15s', border: '1px solid var(--accent)' }}
               >
                 <div style={{
-                  width: '40px',
-                  height: '40px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
                   background: 'var(--accent)',
                   color: 'white',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontWeight: 700,
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
                   flexShrink: 0
                 }}>3</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 600, marginBottom: '4px', color: 'var(--text-primary)' }}>Compare</h4>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>Find the best price</p>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>Compare</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Find the best price</p>
                 </div>
-                <CheckCircle size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+                <CheckCircle size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               </div>
+            </div>
             </div>
           </div>
 
-          {/* Right: Best Price Finder */}
+          {/* Best Price Finder */}
           <div style={{
             background: 'white',
             border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '24px',
-            boxShadow: 'var(--shadow-sm)'
+            borderRadius: 'var(--radius-md)',
+            overflow: 'hidden'
           }}>
-          <div className="best-quote-header" style={{ borderBottom: '1px solid var(--border-light)', paddingBottom: '16px', marginBottom: '16px' }}>
-            <TrendingDown size={20} color="var(--success)" />
-            <span>Best Price</span>
-          </div>
+            <div style={{
+              padding: '12px 16px',
+              borderBottom: '2px solid var(--border)',
+              background: 'var(--bg-secondary)'
+            }}>
+              <h3 style={{
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                color: 'var(--text-primary)',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}>
+                <TrendingDown size={16} />
+                Best Price Finder
+              </h3>
+            </div>
+            <div style={{ padding: '16px' }}>
           
           {/* Product Selector */}
           <div style={{ marginBottom: '20px' }}>
@@ -416,21 +450,36 @@ function Dashboard() {
               <p style={{ margin: 0 }}>Select a buying intent above to see best price</p>
             </div>
           )}
+            </div>
           </div>
-          {/* End right panel */}
         </div>
-        {/* End two-column layout */}
 
-        {/* Quick Actions */}
-        <div className="quick-actions-grid">
-          <button className="quick-action-card" onClick={() => navigate('/products')}>
-            <Package size={24} />
-            <span>Buying Intents</span>
-          </button>
-          <button className="quick-action-card" onClick={() => navigate('/comparison')}>
-            <GitCompare size={24} />
-            <span>Compare Quotes</span>
-          </button>
+        {/* Section: Quick Actions */}
+        <div style={{ marginTop: '24px' }}>
+          <h3 style={{
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            color: 'var(--text-primary)',
+            marginBottom: '12px',
+            paddingBottom: '8px',
+            borderBottom: '2px solid var(--border)'
+          }}>
+            Quick Actions
+          </h3>
+          <div className="quick-actions-grid">
+            <button className="quick-action-card" onClick={() => navigate('/products')}>
+              <Package size={20} />
+              <span>Buying Intents</span>
+            </button>
+            <button className="quick-action-card" onClick={() => navigate('/comparison')}>
+              <GitCompare size={20} />
+              <span>Compare Quotes</span>
+            </button>
+            <button className="quick-action-card" onClick={() => navigate('/quote-capture')}>
+              <Plus size={20} />
+              <span>Upload Quote</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
