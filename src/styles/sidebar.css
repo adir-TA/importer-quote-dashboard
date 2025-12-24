@@ -1,8 +1,8 @@
-/* Sidebar - Enhanced Light Theme */
+/* Sidebar - Dark Purple Theme */
 .sidebar {
   width: 270px;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border);
+  background: var(--sidebar-bg);
+  border-right: none;
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
@@ -16,14 +16,14 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 3px;
-  background: #7c5cfc;
+  height: 0px;
+  background: transparent;
 }
 
 .sidebar-header {
   padding: 28px 20px 24px;
-  background: rgba(124, 92, 252, 0.06);
-  border-bottom: 1px solid rgba(124, 92, 252, 0.1);
+  background: rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .sidebar-logo {
@@ -35,14 +35,14 @@
 .sidebar-logo-icon {
   width: 46px;
   height: 46px;
-  background: #7c5cfc;
-  border-radius: 14px;
+  background: var(--accent);
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 1.4rem;
-  box-shadow: 0 8px 20px rgba(124, 92, 252, 0.35);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   position: relative;
 }
 
@@ -50,9 +50,9 @@
   content: '';
   position: absolute;
   inset: -2px;
-  border-radius: 16px;
-  background: #7c5cfc;
-  opacity: 0.3;
+  border-radius: 14px;
+  background: var(--accent);
+  opacity: 0.2;
   z-index: -1;
   filter: blur(8px);
 }
@@ -66,14 +66,14 @@
 .sidebar-brand-name {
   font-size: 1.3rem;
   font-weight: 800;
-  color: var(--text-primary);
+  color: white;
   letter-spacing: -0.5px;
   line-height: 1.2;
 }
 
 .sidebar-brand-tagline {
   font-size: 0.68rem;
-  color: var(--accent);
+  color: var(--sidebar-text-muted);
   font-weight: 600;
   letter-spacing: 0.8px;
   text-transform: uppercase;
@@ -94,18 +94,18 @@
 }
 
 .nav-section:hover {
-  background: rgba(124, 92, 252, 0.02);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 /* Section with active item gets subtle highlight */
 .nav-section:has(.nav-item.active) {
-  background: rgba(124, 92, 252, 0.04);
+  background: rgba(255, 255, 255, 0.05);
 }
 
 .nav-section-title {
   font-size: 0.68rem;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--sidebar-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.12em;
   padding: 8px 12px 10px;
@@ -118,13 +118,13 @@
   content: '';
   width: 3px;
   height: 12px;
-  background: #7c5cfc;
+  background: var(--accent);
   border-radius: 2px;
 }
 
 .nav-section-divider {
   height: 1px;
-  background: var(--border);
+  background: rgba(255, 255, 255, 0.1);
   margin: 4px 12px 12px;
 }
 
@@ -134,7 +134,7 @@
   gap: 12px;
   padding: 11px 14px;
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: var(--sidebar-text);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
@@ -149,20 +149,21 @@
 }
 
 .nav-item:hover {
-  background: var(--bg-secondary);
-  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
   transform: translateX(4px);
 }
 
 .nav-item.active {
-  background: #7c5cfc;
+  background: var(--accent);
   color: white;
-  box-shadow: 0 4px 12px rgba(124, 92, 252, 0.3);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
   font-weight: 600;
 }
 
 .nav-item.active:hover {
   transform: translateX(0);
+  background: var(--accent-hover);
 }
 
 .nav-item.active svg {
@@ -174,10 +175,16 @@
   height: 20px;
   flex-shrink: 0;
   transition: transform 0.2s;
+  color: var(--sidebar-text-muted);
+}
+
+.nav-item.active svg {
+  color: white;
 }
 
 .nav-item:hover svg {
   transform: scale(1.1);
+  color: white;
 }
 
 .nav-badge {
@@ -192,8 +199,8 @@
 
 .sidebar-footer {
   padding: 16px;
-  border-top: 1px solid var(--border-light);
-  background: rgba(248, 249, 252, 0.8);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.2);
 }
 
 .sidebar-user {
@@ -201,8 +208,8 @@
   align-items: center;
   gap: 12px;
   padding: 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
   margin-bottom: 12px;
 }
@@ -210,7 +217,7 @@
 .user-avatar {
   width: 38px;
   height: 38px;
-  background: #7c5cfc;
+  background: var(--accent);
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -219,7 +226,7 @@
   font-weight: 700;
   font-size: 0.95rem;
   flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(124, 92, 252, 0.25);
+  box-shadow: 0 4px 10px rgba(99, 102, 241, 0.25);
 }
 
 .user-info {
@@ -229,7 +236,7 @@
 
 .user-email {
   font-size: 0.8rem;
-  color: var(--text-secondary);
+  color: var(--sidebar-text);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -239,10 +246,10 @@
 .backup-btn {
   width: 100%;
   padding: 10px 12px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-md);
-  color: var(--text-secondary);
+  color: var(--sidebar-text);
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
@@ -255,8 +262,8 @@
 
 .backup-btn:hover {
   border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-light);
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .backup-btn svg {
