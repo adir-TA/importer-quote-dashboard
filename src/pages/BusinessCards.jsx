@@ -990,7 +990,7 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
           }}>
             {editingId ? 'Edit Category' : 'New Category'}
           </label>
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             <div style={{ flex: 1 }}>
               <input
                 type="text"
@@ -998,49 +998,48 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Category name"
                 className="form-input"
-                style={{ marginBottom: 0 }}
+                style={{ marginBottom: 0, height: '42px' }}
               />
             </div>
-            <div>
-              <button
-                type="button"
-                onClick={() => document.getElementById('category-color-picker').click()}
-                style={{
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: 'var(--radius-md)',
-                  border: '1px solid var(--border)',
-                  backgroundColor: color,
-                  cursor: 'pointer',
-                  transition: 'all var(--transition)',
-                  boxShadow: 'var(--shadow-sm)',
-                  position: 'relative'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--accent)';
-                  e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-light)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'var(--border)';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-                }}
-                title="Choose color"
-              />
-              <input
-                id="category-color-picker"
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                style={{
-                  position: 'absolute',
-                  opacity: 0,
-                  pointerEvents: 'none',
-                  width: 0,
-                  height: 0
-                }}
-              />
-            </div>
-            <button className="btn btn-primary" onClick={handleSave}>
+            <button
+              type="button"
+              onClick={() => document.getElementById('category-color-picker').click()}
+              style={{
+                width: '42px',
+                height: '42px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+                backgroundColor: color,
+                cursor: 'pointer',
+                transition: 'all var(--transition)',
+                boxShadow: 'var(--shadow-sm)',
+                padding: 0,
+                flexShrink: 0
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.borderColor = 'var(--accent)';
+                e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-light)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.borderColor = 'var(--border)';
+                e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+              }}
+              title="Choose color"
+            />
+            <input
+              id="category-color-picker"
+              type="color"
+              value={color}
+              onChange={(e) => setColor(e.target.value)}
+              style={{
+                position: 'absolute',
+                opacity: 0,
+                pointerEvents: 'none',
+                width: 0,
+                height: 0
+              }}
+            />
+            <button className="btn btn-primary" onClick={handleSave} style={{ height: '42px', padding: '0 16px' }}>
               {editingId ? 'Update' : 'Add'}
             </button>
             {editingId && (
@@ -1051,6 +1050,7 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
                   setName('');
                   setColor('#3b82f6');
                 }}
+                style={{ height: '42px', padding: '0 16px' }}
               >
                 Cancel
               </button>
