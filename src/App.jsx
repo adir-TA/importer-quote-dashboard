@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { Sidebar } from './components';
+import { Sidebar, GlobalSearch } from './components';
 import {
   Dashboard,
   Products,
@@ -60,9 +60,24 @@ function AuthRoute({ children }) {
 }
 
 function AppLayout() {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   return (
     <div className="app-container">
-      <Sidebar />
+      <Sidebar onSearchOpen={() => setIsSearchOpen(true)} />
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Dashboard />} />
@@ -80,6 +95,12 @@ function AppLayout() {
           <Route path="/ai-helpers" element={<AIHelpers />} />
         </Routes>
       </main>
+
+      {/* Global Search / Command Palette */}
+      <GlobalSearch
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
     </div>
   );
 }

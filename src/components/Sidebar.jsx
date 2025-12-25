@@ -9,11 +9,12 @@ import {
   Settings,
   LogOut,
   CreditCard,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import '../styles/sidebar.css';
 
-function Sidebar() {
+function Sidebar({ onSearchOpen }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -50,6 +51,17 @@ function Sidebar() {
           </div>
         </div>
       </div>
+
+      {/* Global Search Trigger */}
+      <button
+        className="sidebar-search-trigger"
+        onClick={onSearchOpen}
+        title="Search (⌘K or Ctrl+K)"
+      >
+        <Search size={16} />
+        <span>Search...</span>
+        <kbd className="search-kbd">⌘K</kbd>
+      </button>
 
       <nav className="sidebar-nav">
         {navItems.map(section => (
