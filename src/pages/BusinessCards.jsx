@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
@@ -13,6 +14,7 @@ import '../styles/business-cards.css';
 
 export default function BusinessCards() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { businessCards, cardCategories, cardTags, addBusinessCard, updateBusinessCard, deleteBusinessCard, bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards, addCardCategory, updateCardCategory, deleteCardCategory, refreshCardCategories, addCardTag } = useApp();
   const { alert, confirm } = useModal();
 
@@ -88,6 +90,16 @@ export default function BusinessCards() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showCategoryDropdown]);
+
+  // Handle URL-based category filtering (from Global Search)
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setCategoryFilter(categoryParam);
+      // Clear URL param after setting filter
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   // Open add modal
   const handleAdd = () => {

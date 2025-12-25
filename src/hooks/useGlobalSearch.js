@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
  * Returns grouped results sorted by relevance (starts-with > contains > recency)
  */
 export function useGlobalSearch(query) {
-  const { products, quotes, suppliers, documents, businessCards } = useApp();
+  const { products, quotes, suppliers, documents, businessCards, cardCategories } = useApp();
 
   const results = useMemo(() => {
     if (!query || query.trim().length === 0) {
@@ -16,6 +16,8 @@ export function useGlobalSearch(query) {
         quotes: [],
         documents: [],
         businessCards: [],
+        buyingIntentCategories: [],
+        businessCardCategories: [],
         total: 0
       };
     }
@@ -148,12 +150,76 @@ export function useGlobalSearch(query) {
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
+    // Search Buying Intent Categories (extract unique categories from products)
+    const buyingIntentCategoryMap = new Map();
+    products.forEach(product => {
+      if (product.category) {
+        if (!buyingIntentCategoryMap.has(product.category)) {
+          buyingIntentCategoryMap.set(product.category, {
+            name: product.category,
+            count: 0
+          });
+        }
+        buyingIntentCategoryMap.get(product.category).count++;
+      }
+    });
+
+    const buyingIntentCategoryResults = Array.from(buyingIntentCategoryMap.values())
+      .map(category => {
+        const nameScore = getRelevanceScore(category.name, 'primary');
+
+        return {
+          type: 'buyingIntentCategory',
+          id: category.name, // Use name as ID since categories are stored as strings
+          title: category.name,
+          subtitle: 'Buying Intent Category',
+          metadata: `${category.count} product${category.count === 1 ? '' : 's'}`,
+          score: nameScore,
+          data: category
+        };
+      })
+      .filter(r => r.score > 0)
+      .sort((a, b) => {
+        // Sort by score first, then by count (usage)
+        if (b.score !== a.score) return b.score - a.score;
+        return b.data.count - a.data.count;
+      })
+      .slice(0, 10);
+
+    // Search Business Card Categories
+    const businessCardCategoryResults = (cardCategories || [])
+      .map(category => {
+        const nameScore = getRelevanceScore(category.name, 'primary');
+
+        // Count how many business cards use this category
+        const count = businessCards.filter(card => card.category_id === category.id).length;
+
+        return {
+          type: 'businessCardCategory',
+          id: category.id,
+          title: category.name,
+          subtitle: 'Business Card Category',
+          metadata: `${count} card${count === 1 ? '' : 's'}`,
+          score: nameScore,
+          data: { ...category, count }
+        };
+      })
+      .filter(r => r.score > 0)
+      .sort((a, b) => {
+        // Sort by score first, then by count (usage)
+        if (b.score !== a.score) return b.score - a.score;
+        return b.data.count - a.data.count;
+      })
+      .slice(0, 10);
+
     const total =
       supplierResults.length +
       productResults.length +
       quoteResults.length +
       documentResults.length +
-      businessCardResults.length;
+      businessCardResults.length +
+      buyingIntentCategoryResults.length +
+      businessCardCategoryResults.length;
 
     return {
       suppliers: supplierResults,
@@ -161,9 +227,11 @@ export function useGlobalSearch(query) {
       quotes: quoteResults,
       documents: documentResults,
       businessCards: businessCardResults,
+      buyingIntentCategories: buyingIntentCategoryResults,
+      businessCardCategories: businessCardCategoryResults,
       total
     };
-  }, [query, products, quotes, suppliers, documents, businessCards]);
+  }, [query, products, quotes, suppliers, documents, businessCards, cardCategories]);
 
   return results;
 }

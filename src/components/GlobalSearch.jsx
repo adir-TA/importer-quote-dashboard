@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, File, Package, FileText, CreditCard, Building2, X } from 'lucide-react';
+import { Search, File, Package, FileText, CreditCard, Building2, X, Tag, FolderOpen } from 'lucide-react';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
 import '../styles/global-search.css';
 
@@ -17,6 +17,8 @@ export default function GlobalSearch({ isOpen, onClose }) {
   const flatResults = [
     ...results.suppliers.map(r => ({ ...r, group: 'Suppliers' })),
     ...results.products.map(r => ({ ...r, group: 'Buying Intents' })),
+    ...results.buyingIntentCategories.map(r => ({ ...r, group: 'Buying Intent Categories' })),
+    ...results.businessCardCategories.map(r => ({ ...r, group: 'Business Card Categories' })),
     ...results.quotes.map(r => ({ ...r, group: 'Quotes' })),
     ...results.documents.map(r => ({ ...r, group: 'Documents' })),
     ...results.businessCards.map(r => ({ ...r, group: 'Business Cards' }))
@@ -81,6 +83,14 @@ export default function GlobalSearch({ isOpen, onClose }) {
       case 'product':
         navigate(`/products/${result.id}`);
         break;
+      case 'buyingIntentCategory':
+        // Navigate to Products page filtered by this category
+        navigate(`/products?category=${encodeURIComponent(result.id)}`);
+        break;
+      case 'businessCardCategory':
+        // Navigate to Business Cards page filtered by this category
+        navigate(`/business-cards?category=${result.id}`);
+        break;
       case 'quote':
         // Navigate to comparison with this quote's product
         if (result.data.product_id) {
@@ -108,6 +118,10 @@ export default function GlobalSearch({ isOpen, onClose }) {
         return <Building2 size={16} />;
       case 'product':
         return <Package size={16} />;
+      case 'buyingIntentCategory':
+        return <FolderOpen size={16} />;
+      case 'businessCardCategory':
+        return <Tag size={16} />;
       case 'quote':
         return <FileText size={16} />;
       case 'document':
@@ -234,6 +248,70 @@ export default function GlobalSearch({ isOpen, onClose }) {
                     return (
                       <button
                         key={`product-${result.id}`}
+                        data-index={globalIndex}
+                        className={`search-result-item ${globalIndex === selectedIndex ? 'selected' : ''}`}
+                        onClick={() => handleSelect(result)}
+                        onMouseEnter={() => setSelectedIndex(globalIndex)}
+                      >
+                        <div className="result-icon">{getIcon(result.type)}</div>
+                        <div className="result-content">
+                          <div className="result-title">{highlightMatch(result.title, query)}</div>
+                          <div className="result-subtitle">{result.subtitle}</div>
+                        </div>
+                        {result.metadata && (
+                          <div className="result-metadata">{result.metadata}</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Buying Intent Categories */}
+              {results.buyingIntentCategories.length > 0 && (
+                <div className="search-result-group">
+                  <div className="search-result-group-header">
+                    <FolderOpen size={14} />
+                    Buying Intent Categories
+                    <span className="result-count">{results.buyingIntentCategories.length}</span>
+                  </div>
+                  {results.buyingIntentCategories.map((result) => {
+                    const globalIndex = flatResults.findIndex(r => r.type === result.type && r.id === result.id);
+                    return (
+                      <button
+                        key={`buying-intent-category-${result.id}`}
+                        data-index={globalIndex}
+                        className={`search-result-item ${globalIndex === selectedIndex ? 'selected' : ''}`}
+                        onClick={() => handleSelect(result)}
+                        onMouseEnter={() => setSelectedIndex(globalIndex)}
+                      >
+                        <div className="result-icon">{getIcon(result.type)}</div>
+                        <div className="result-content">
+                          <div className="result-title">{highlightMatch(result.title, query)}</div>
+                          <div className="result-subtitle">{result.subtitle}</div>
+                        </div>
+                        {result.metadata && (
+                          <div className="result-metadata">{result.metadata}</div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Business Card Categories */}
+              {results.businessCardCategories.length > 0 && (
+                <div className="search-result-group">
+                  <div className="search-result-group-header">
+                    <Tag size={14} />
+                    Business Card Categories
+                    <span className="result-count">{results.businessCardCategories.length}</span>
+                  </div>
+                  {results.businessCardCategories.map((result) => {
+                    const globalIndex = flatResults.findIndex(r => r.type === result.type && r.id === result.id);
+                    return (
+                      <button
+                        key={`business-card-category-${result.id}`}
                         data-index={globalIndex}
                         className={`search-result-item ${globalIndex === selectedIndex ? 'selected' : ''}`}
                         onClick={() => handleSelect(result)}

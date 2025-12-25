@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
@@ -9,6 +9,7 @@ import { filterBySearch } from '../utils/helpers';
 
 function Products() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { state, actions, computed } = useAppContext();
   const { confirm } = useModal();
   const { products } = state;
@@ -59,6 +60,16 @@ function Products() {
       setLoadingCounts(false);
     }
   }, [products, computed]);
+
+  // Handle URL-based category filtering (from Global Search)
+  useEffect(() => {
+    const categoryParam = searchParams.get('category');
+    if (categoryParam) {
+      setSelectedCategoryFilters([categoryParam]);
+      // Clear URL param after setting filter
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams]);
 
   const filteredProducts = useMemo(() => {
     let result = filterBySearch(products, search, ['name', 'category', 'description']);
