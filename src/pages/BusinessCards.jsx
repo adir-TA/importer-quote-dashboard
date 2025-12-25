@@ -3,6 +3,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useModal } from '../context/ModalContext';
 import SearchInput from '../components/SearchInput';
+import CustomSelect from '../components/CustomSelect';
 import Modal from '../components/Modal';
 import BusinessCardImageUpload from '../components/BusinessCardImageUpload';
 import TagInput from '../components/TagInput';
@@ -469,19 +470,18 @@ export default function BusinessCards() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 Status
               </label>
-              <select
+              <CustomSelect
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="form-input"
-                style={{ fontSize: '0.875rem' }}
-              >
-                <option value="all">All Status</option>
-                <option value="new">New</option>
-                <option value="contacted">Contacted</option>
-                <option value="accepted">Accepted</option>
-                <option value="rejected">Rejected</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                onChange={setStatusFilter}
+                options={[
+                  { value: 'all', label: 'All Status' },
+                  { value: 'new', label: 'New' },
+                  { value: 'contacted', label: 'Contacted' },
+                  { value: 'accepted', label: 'Accepted' },
+                  { value: 'rejected', label: 'Rejected' },
+                  { value: 'inactive', label: 'Inactive' }
+                ]}
+              />
             </div>
 
             {/* Category Filter */}
@@ -489,17 +489,17 @@ export default function BusinessCards() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 Category
               </label>
-              <select
+              <CustomSelect
                 value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="form-input"
-                style={{ fontSize: '0.875rem' }}
-              >
-                <option value="all">All Categories</option>
-                {cardCategories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
+                onChange={setCategoryFilter}
+                options={[
+                  { value: 'all', label: 'All Categories' },
+                  ...cardCategories.map(cat => ({
+                    value: cat.id,
+                    label: cat.name
+                  }))
+                ]}
+              />
             </div>
 
             {/* Tag Filter */}
@@ -507,17 +507,17 @@ export default function BusinessCards() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 Tags
               </label>
-              <select
+              <CustomSelect
                 value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                className="form-input"
-                style={{ fontSize: '0.875rem' }}
-              >
-                <option value="all">All Tags</option>
-                {cardTags.map(tag => (
-                  <option key={tag.id} value={tag.id}>{tag.name}</option>
-                ))}
-              </select>
+                onChange={setTagFilter}
+                options={[
+                  { value: 'all', label: 'All Tags' },
+                  ...cardTags.map(tag => ({
+                    value: tag.id,
+                    label: tag.name
+                  }))
+                ]}
+              />
             </div>
 
             {/* Manage Categories */}
@@ -543,20 +543,27 @@ export default function BusinessCards() {
                   {selectedCards.length} Selected
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <select onChange={(e) => e.target.value && handleBulkStatusChange(e.target.value)} defaultValue="" className="form-input" style={{ fontSize: '0.875rem' }}>
-                    <option value="">Change Status...</option>
-                    <option value="new">New</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
-                  <select onChange={(e) => e.target.value && handleBulkCategoryChange(e.target.value)} defaultValue="" className="form-input" style={{ fontSize: '0.875rem' }}>
-                    <option value="">Change Category...</option>
-                    {cardCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                  <CustomSelect
+                    value=""
+                    onChange={(val) => val && handleBulkStatusChange(val)}
+                    placeholder="Change Status..."
+                    options={[
+                      { value: 'new', label: 'New' },
+                      { value: 'contacted', label: 'Contacted' },
+                      { value: 'accepted', label: 'Accepted' },
+                      { value: 'rejected', label: 'Rejected' },
+                      { value: 'inactive', label: 'Inactive' }
+                    ]}
+                  />
+                  <CustomSelect
+                    value=""
+                    onChange={(val) => val && handleBulkCategoryChange(val)}
+                    placeholder="Change Category..."
+                    options={cardCategories.map(cat => ({
+                      value: cat.id,
+                      label: cat.name
+                    }))}
+                  />
                   <button className="btn btn-secondary" onClick={handleBulkDelete} style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem', background: 'var(--error)', color: 'white' }}>
                     <Trash2 size={14} />
                     Delete
@@ -744,16 +751,17 @@ export default function BusinessCards() {
                 </div>
                 <div className="form-group">
                   <label>Status</label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                  >
-                    <option value="new">New</option>
-                    <option value="contacted">Contacted</option>
-                    <option value="accepted">Accepted</option>
-                    <option value="rejected">Rejected</option>
-                    <option value="inactive">Inactive</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val })}
+                    options={[
+                      { value: 'new', label: 'New' },
+                      { value: 'contacted', label: 'Contacted' },
+                      { value: 'accepted', label: 'Accepted' },
+                      { value: 'rejected', label: 'Rejected' },
+                      { value: 'inactive', label: 'Inactive' }
+                    ]}
+                  />
                 </div>
               </div>
             </div>
@@ -805,15 +813,15 @@ export default function BusinessCards() {
               <div className="form-grid">
                 <div className="form-group">
                   <label>Category</label>
-                  <select
+                  <CustomSelect
                     value={formData.category_id || ''}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value || null })}
-                  >
-                    <option value="">No category</option>
-                    {cardCategories.map(cat => (
-                      <option key={cat.id} value={cat.id}>{cat.name}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, category_id: val || null })}
+                    placeholder="No category"
+                    options={cardCategories.map(cat => ({
+                      value: cat.id,
+                      label: cat.name
+                    }))}
+                  />
                 </div>
                 <div className="form-group">
                   <label>Tags</label>

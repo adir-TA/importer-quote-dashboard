@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Plus, Truck, X, Check, Edit2, Trash2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
-import { SearchInput, OrderTimeline, StatusBadge, STATUSES } from '../components';
+import { SearchInput, OrderTimeline, StatusBadge, STATUSES, CustomSelect } from '../components';
 import { filterBySearch, formatDate } from '../utils/helpers';
 
 function Orders() {
@@ -97,10 +97,14 @@ function Orders() {
 
         <div className="filter-bar">
           <SearchInput value={search} onChange={setSearch} placeholder="Search orders..." />
-          <select className="filter-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
-            <option value="all">All Status</option>
-            {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-          </select>
+          <CustomSelect
+            value={statusFilter}
+            onChange={setStatusFilter}
+            options={[
+              { value: 'all', label: 'All Status' },
+              ...STATUSES.map(s => ({ value: s.key, label: s.label }))
+            ]}
+          />
         </div>
 
         {filteredOrders.length === 0 ? (
@@ -160,16 +164,20 @@ function Orders() {
               <div className="form-row">
                 <div className="form-group">
                   <label className="form-label">Supplier</label>
-                  <select className="form-select" value={formData.supplier} onChange={e => setFormData({ ...formData, supplier: e.target.value })}>
-                    <option value="">-- Select --</option>
-                    {suppliers.map(s => <option key={s.id} value={s.company}>{s.company}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={formData.supplier}
+                    onChange={(val) => setFormData({ ...formData, supplier: val })}
+                    placeholder="-- Select --"
+                    options={suppliers.map(s => ({ value: s.company, label: s.company }))}
+                  />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Status</label>
-                  <select className="form-select" value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value })}>
-                    {STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
-                  </select>
+                  <CustomSelect
+                    value={formData.status}
+                    onChange={(val) => setFormData({ ...formData, status: val })}
+                    options={STATUSES.map(s => ({ value: s.key, label: s.label }))}
+                  />
                 </div>
               </div>
               <div className="form-row">
