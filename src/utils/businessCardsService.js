@@ -285,7 +285,6 @@ export const uploadCardImage = async (cardId, file, sortOrder, userId) => {
       card_id: cardId,
       user_id: userId,
       storage_path: storagePath,
-      file_name: fileName,
       public_url: publicUrl,
       sort_order: sortOrder,
     })
