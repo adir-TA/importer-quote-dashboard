@@ -8,7 +8,7 @@ import Modal from '../components/Modal';
 import BusinessCardImageUpload from '../components/BusinessCardImageUpload';
 import TagInput from '../components/TagInput';
 import * as businessCardsService from '../utils/businessCardsService';
-import { Plus, Grid, List, Filter, Settings, Mail, Phone, MessageCircle, Globe, Trash2, Edit2, Building2, User, CheckSquare, Square, CreditCard } from 'lucide-react';
+import { Plus, Grid, List, Filter, Settings, Mail, Phone, MessageCircle, Globe, Trash2, Edit2, Building2, User, CheckSquare, Square, CreditCard, ChevronDown } from 'lucide-react';
 import '../styles/business-cards.css';
 
 export default function BusinessCards() {
@@ -51,6 +51,13 @@ export default function BusinessCards() {
   // Last used category for quick defaults
   const [lastUsedCategoryId, setLastUsedCategoryId] = useState(null);
 
+  // Inline category creation states (for modal)
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#3b82f6');
+
   // Filtered cards
   const filteredCards = useMemo(() => {
     return businessCards.filter(card => {
@@ -69,6 +76,18 @@ export default function BusinessCards() {
       return matchesSearch && matchesStatus && matchesCategory && matchesTag;
     });
   }, [businessCards, searchTerm, statusFilter, categoryFilter, tagFilter]);
+
+  // Close category dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showCategoryDropdown && !event.target.closest('.form-group')) {
+        setShowCategoryDropdown(false);
+        setCategorySearch('');
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showCategoryDropdown]);
 
   // Open add modal
   const handleAdd = () => {
@@ -134,6 +153,47 @@ export default function BusinessCards() {
       tags: [],
       images: []
     });
+    // Reset category creation states
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+    setShowCreateCategory(false);
+    setNewCategoryName('');
+    setNewCategoryColor('#3b82f6');
+  };
+
+  // Handle category selection from dropdown
+  const handleSelectCategory = (categoryId) => {
+    setFormData({ ...formData, category_id: categoryId });
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+  };
+
+  // Handle inline category creation
+  const handleCreateCategoryInline = async () => {
+    if (!newCategoryName.trim()) {
+      await alert({
+        title: 'Error',
+        message: 'Please enter a category name',
+        type: 'error'
+      });
+      return;
+    }
+
+    try {
+      const newCategory = await addCardCategory(newCategoryName.trim(), newCategoryColor);
+      setFormData({ ...formData, category_id: newCategory.id });
+      setShowCreateCategory(false);
+      setShowCategoryDropdown(false);
+      setNewCategoryName('');
+      setNewCategoryColor('#3b82f6');
+      setCategorySearch('');
+    } catch (error) {
+      await alert({
+        title: 'Error',
+        message: error.message || 'Failed to create category',
+        type: 'error'
+      });
+    }
   };
 
   // Save card
@@ -811,17 +871,219 @@ export default function BusinessCards() {
             <div className="business-cards-modal-section">
               <h3>Organization</h3>
               <div className="form-grid">
-                <div className="form-group">
+                <div className="form-group" style={{ position: 'relative' }}>
                   <label>Category</label>
-                  <CustomSelect
-                    value={formData.category_id || ''}
-                    onChange={(val) => setFormData({ ...formData, category_id: val || null })}
-                    placeholder="No category"
-                    options={cardCategories.map(cat => ({
-                      value: cat.id,
-                      label: cat.name
-                    }))}
-                  />
+
+                  {showCreateCategory ? (
+                    /* Create new category form */
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={newCategoryName}
+                        onChange={(e) => setNewCategoryName(e.target.value)}
+                        placeholder="Category name"
+                        autoFocus
+                        style={{ flex: 1, marginBottom: 0, height: '42px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('inline-category-color-picker').click()}
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border)',
+                          backgroundColor: newCategoryColor,
+                          cursor: 'pointer',
+                          transition: 'all var(--transition)',
+                          boxShadow: 'var(--shadow-sm)',
+                          padding: 0,
+                          flexShrink: 0
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--accent)';
+                          e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-light)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.borderColor = 'var(--border)';
+                          e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                        }}
+                        title="Choose color"
+                      />
+                      <input
+                        id="inline-category-color-picker"
+                        type="color"
+                        value={newCategoryColor}
+                        onChange={(e) => setNewCategoryColor(e.target.value)}
+                        style={{
+                          position: 'absolute',
+                          opacity: 0,
+                          pointerEvents: 'none',
+                          width: 0,
+                          height: 0
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={handleCreateCategoryInline}
+                        style={{ height: '42px', padding: '0 16px' }}
+                      >
+                        Add
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={() => {
+                          setShowCreateCategory(false);
+                          setNewCategoryName('');
+                          setNewCategoryColor('#3b82f6');
+                        }}
+                        style={{ height: '42px', padding: '0 16px' }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : (
+                    /* Category selection button */
+                    <button
+                      type="button"
+                      className="form-input"
+                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+                      style={{
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        background: 'var(--bg-primary)',
+                        marginBottom: 0
+                      }}
+                    >
+                      <span style={{ color: formData.category_id ? 'var(--text-primary)' : 'var(--text-muted)' }}>
+                        {formData.category_id
+                          ? cardCategories.find(c => c.id === formData.category_id)?.name || 'Select or create category...'
+                          : 'Select or create category...'}
+                      </span>
+                      <ChevronDown size={16} />
+                    </button>
+                  )}
+
+                  {/* Category dropdown list */}
+                  {showCategoryDropdown && !showCreateCategory && (
+                    <div style={{
+                      position: 'absolute',
+                      top: 'calc(100% + 4px)',
+                      left: 0,
+                      right: 0,
+                      zIndex: 1000,
+                      background: 'var(--bg-primary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 'var(--radius-md)',
+                      boxShadow: 'var(--shadow-lg)',
+                      maxHeight: '300px',
+                      overflowY: 'auto'
+                    }}>
+                      {/* Search input */}
+                      <div style={{ padding: '12px', borderBottom: '1px solid var(--border)' }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          value={categorySearch}
+                          onChange={(e) => setCategorySearch(e.target.value)}
+                          placeholder="Search categories..."
+                          style={{ marginBottom: 0 }}
+                          autoFocus
+                        />
+                      </div>
+
+                      {/* Category list */}
+                      {cardCategories
+                        .filter(cat => !categorySearch || cat.name.toLowerCase().includes(categorySearch.toLowerCase()))
+                        .map(cat => (
+                          <button
+                            key={cat.id}
+                            type="button"
+                            onClick={() => handleSelectCategory(cat.id)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 16px',
+                              textAlign: 'left',
+                              border: 'none',
+                              background: formData.category_id === cat.id ? 'var(--bg-hover)' : 'transparent',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              fontSize: '0.875rem',
+                              color: 'var(--text-primary)',
+                              transition: 'background var(--transition)'
+                            }}
+                            onMouseEnter={(e) => {
+                              if (formData.category_id !== cat.id) {
+                                e.currentTarget.style.background = 'var(--bg-hover)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (formData.category_id !== cat.id) {
+                                e.currentTarget.style.background = 'transparent';
+                              }
+                            }}
+                          >
+                            <div style={{
+                              width: '16px',
+                              height: '16px',
+                              borderRadius: '3px',
+                              backgroundColor: cat.color,
+                              flexShrink: 0
+                            }} />
+                            {cat.name}
+                          </button>
+                        ))}
+
+                      {cardCategories.filter(cat => !categorySearch || cat.name.toLowerCase().includes(categorySearch.toLowerCase())).length === 0 && (
+                        <div style={{
+                          padding: '20px',
+                          textAlign: 'center',
+                          color: 'var(--text-muted)',
+                          fontSize: '0.875rem'
+                        }}>
+                          No categories found
+                        </div>
+                      )}
+
+                      {/* Create new category button */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCreateCategory(true);
+                          setShowCategoryDropdown(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          textAlign: 'left',
+                          border: 'none',
+                          background: 'transparent',
+                          cursor: 'pointer',
+                          color: 'var(--accent)',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          borderTop: '1px solid var(--border)',
+                          transition: 'background var(--transition)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'var(--bg-hover)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        + Create New Category
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="form-group">
                   <label>Tags</label>
