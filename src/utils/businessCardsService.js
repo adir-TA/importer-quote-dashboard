@@ -266,6 +266,18 @@ export const uploadCardImage = async (cardId, file, sortOrder, userId) => {
 
   if (uploadError) throw uploadError;
 
+  // Generate public URL
+  const { data: urlData } = supabase.storage
+    .from('business-cards')
+    .getPublicUrl(storagePath);
+
+  const publicUrl = urlData?.publicUrl;
+
+  // Guard: ensure we have a public URL before inserting
+  if (!publicUrl) {
+    throw new Error('Failed to generate public URL for uploaded image');
+  }
+
   // Create database record
   const { data, error } = await supabase
     .from('business_card_images')
@@ -273,6 +285,8 @@ export const uploadCardImage = async (cardId, file, sortOrder, userId) => {
       card_id: cardId,
       user_id: userId,
       storage_path: storagePath,
+      file_name: fileName,
+      public_url: publicUrl,
       sort_order: sortOrder,
     })
     .select()
