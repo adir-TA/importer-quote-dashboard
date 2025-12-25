@@ -674,6 +674,21 @@ export default function BusinessCards() {
         <div className={viewMode === 'grid' ? 'business-cards-grid' : 'business-cards-list'}>
           {filteredCards.map(card => (
             <div key={card.id} className="business-cards-card">
+              {/* Card Image - Always visible (with placeholder if no image) */}
+              <div className="business-cards-card-image" onClick={() => handleEdit(card)} style={{ cursor: 'pointer' }}>
+                {card.images && card.images.length > 0 ? (
+                  <img
+                    src={businessCardsService.getCardImageUrl(card.images[0].storage_path)}
+                    alt={card.display_name}
+                  />
+                ) : (
+                  <div className="business-cards-card-image-placeholder">
+                    <CreditCard size={48} style={{ opacity: 0.3 }} />
+                    <span>No card image</span>
+                  </div>
+                )}
+              </div>
+
               <div className="business-cards-card-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <button
@@ -693,15 +708,6 @@ export default function BusinessCards() {
                   </button>
                 </div>
               </div>
-
-              {card.images && card.images.length > 0 && (
-                <div className="business-cards-card-image">
-                  <img
-                    src={businessCardsService.getCardImageUrl(card.images[0].storage_path)}
-                    alt={card.display_name}
-                  />
-                </div>
-              )}
 
               <div className="business-cards-card-body">
                 {card.company_name && (
