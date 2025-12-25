@@ -971,36 +971,91 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
 
   return (
     <Modal isOpen={true} onClose={onClose} title="Manage Categories">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* Add new category form */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Category name"
-            style={{ flex: 1 }}
-          />
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-          />
-          <button className="btn btn-primary" onClick={handleSave}>
-            {editingId ? 'Update' : 'Add'}
-          </button>
-          {editingId && (
-            <button
-              className="btn btn-secondary"
-              onClick={() => {
-                setEditingId(null);
-                setName('');
-                setColor('#3b82f6');
-              }}
-            >
-              Cancel
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px',
+          borderRadius: 'var(--radius-md)',
+          border: '1px solid var(--border-light)'
+        }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: 'var(--text-secondary)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            marginBottom: '12px'
+          }}>
+            {editingId ? 'Edit Category' : 'New Category'}
+          </label>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
+            <div style={{ flex: 1 }}>
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Category name"
+                className="form-input"
+                style={{ marginBottom: 0 }}
+              />
+            </div>
+            <div>
+              <button
+                type="button"
+                onClick={() => document.getElementById('category-color-picker').click()}
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border)',
+                  backgroundColor: color,
+                  cursor: 'pointer',
+                  transition: 'all var(--transition)',
+                  boxShadow: 'var(--shadow-sm)',
+                  position: 'relative'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent)';
+                  e.currentTarget.style.boxShadow = '0 0 0 3px var(--accent-light)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                }}
+                title="Choose color"
+              />
+              <input
+                id="category-color-picker"
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                style={{
+                  position: 'absolute',
+                  opacity: 0,
+                  pointerEvents: 'none',
+                  width: 0,
+                  height: 0
+                }}
+              />
+            </div>
+            <button className="btn btn-primary" onClick={handleSave}>
+              {editingId ? 'Update' : 'Add'}
             </button>
-          )}
+            {editingId && (
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setEditingId(null);
+                  setName('');
+                  setColor('#3b82f6');
+                }}
+              >
+                Cancel
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Categories list */}
@@ -1009,22 +1064,26 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginBottom: '8px'
+            marginBottom: '12px',
+            paddingBottom: '8px',
+            borderBottom: '2px solid var(--border)'
           }}>
             <div style={{
               fontSize: '0.875rem',
               fontWeight: 600,
-              color: 'var(--text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
+              color: 'var(--text-primary)'
             }}>
               Categories ({categories.length})
             </div>
             <button
-              className="btn btn-secondary"
+              className="btn btn-ghost"
               onClick={handleRefresh}
               disabled={isRefreshing}
-              style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+              style={{
+                fontSize: '0.75rem',
+                padding: '6px 12px',
+                opacity: isRefreshing ? 0.6 : 1
+              }}
             >
               {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </button>
@@ -1033,17 +1092,31 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            maxHeight: '300px',
-            overflowY: 'auto'
+            maxHeight: '320px',
+            overflowY: 'auto',
+            padding: '2px'
           }}>
             {categories.length === 0 ? (
               <div style={{
-                padding: '24px',
+                padding: '32px 24px',
                 textAlign: 'center',
-                color: 'var(--text-muted)',
-                fontSize: '0.875rem'
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px dashed var(--border)'
               }}>
-                No categories yet. Create one above!
+                <div style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.875rem',
+                  marginBottom: '4px'
+                }}>
+                  No categories yet
+                </div>
+                <div style={{
+                  color: 'var(--text-muted)',
+                  fontSize: '0.75rem'
+                }}>
+                  Create one using the form above
+                </div>
               </div>
             ) : (
               categories.map(cat => (
@@ -1053,28 +1126,66 @@ function CategoryManager({ categories, onClose, onAdd, onUpdate, onDelete, onRef
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '8px',
+                    padding: '12px',
+                    background: 'var(--bg-primary)',
                     border: '1px solid var(--border)',
-                    borderRadius: '4px'
+                    borderRadius: 'var(--radius-md)',
+                    transition: 'all var(--transition)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-hover)';
+                    e.currentTarget.style.borderColor = '#C1C7D0';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'var(--bg-primary)';
+                    e.currentTarget.style.borderColor = 'var(--border)';
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <div
                       style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '4px',
-                        backgroundColor: cat.color
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: cat.color,
+                        border: '1px solid rgba(0,0,0,0.1)',
+                        flexShrink: 0
                       }}
                     />
-                    <span>{cat.name}</span>
+                    <span style={{
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      color: 'var(--text-primary)'
+                    }}>
+                      {cat.name}
+                    </span>
                   </div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <button className="btn btn-secondary" onClick={() => handleEdit(cat)}>
-                      Edit
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      className="icon-btn"
+                      onClick={() => handleEdit(cat)}
+                      title="Edit category"
+                    >
+                      <Edit2 size={14} />
                     </button>
-                    <button className="btn btn-danger" onClick={() => handleDelete(cat.id)}>
-                      Delete
+                    <button
+                      className="icon-btn"
+                      onClick={() => handleDelete(cat.id)}
+                      title="Delete category"
+                      style={{
+                        color: 'var(--error)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--error-light)';
+                        e.currentTarget.style.borderColor = 'var(--error)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'var(--bg-primary)';
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                        e.currentTarget.style.color = 'var(--error)';
+                      }}
+                    >
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
