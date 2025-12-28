@@ -1,32 +1,35 @@
 import React from 'react';
 import { FileText, Edit2, Trash2, Package } from 'lucide-react';
 
-// Helper to get primary specs (default order: Weight, Height, Length, Width)
+// Helper to get primary specs for grid view (max 2: Weight + one dimension)
 function getPrimarySpecs(specs) {
   if (!specs || specs.length === 0) return { primary: [], remaining: 0 };
 
-  const defaultKeys = ['Weight', 'Height', 'Length', 'Width'];
   const primary = [];
   const seen = new Set();
 
-  // First, add default keys in order
-  defaultKeys.forEach(key => {
-    const spec = specs.find(s => s.key.toLowerCase() === key.toLowerCase() && s.value);
-    if (spec) {
-      primary.push(spec);
-      seen.add(spec.key.toLowerCase());
-    }
-  });
-
-  // Then add remaining specs up to 4 total
-  const remaining = specs.filter(s => !seen.has(s.key.toLowerCase()) && s.value);
-  while (primary.length < 4 && remaining.length > 0) {
-    const spec = remaining.shift();
-    primary.push(spec);
-    seen.add(spec.key.toLowerCase());
+  // First, try to add Weight
+  const weight = specs.find(s => s.key.toLowerCase() === 'weight' && s.value);
+  if (weight) {
+    primary.push(weight);
+    seen.add(weight.key.toLowerCase());
   }
 
-  return { primary, remaining: specs.filter(s => !seen.has(s.key.toLowerCase()) && s.value).length };
+  // Second, add one dimension (prefer Length, then Height, then Width)
+  const dimensionOrder = ['Length', 'Height', 'Width'];
+  for (const dimKey of dimensionOrder) {
+    const dim = specs.find(s => s.key.toLowerCase() === dimKey.toLowerCase() && s.value);
+    if (dim && primary.length < 2) {
+      primary.push(dim);
+      seen.add(dim.key.toLowerCase());
+      break;
+    }
+  }
+
+  // Count remaining specs
+  const remaining = specs.filter(s => !seen.has(s.key.toLowerCase()) && s.value).length;
+
+  return { primary, remaining };
 }
 
 function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSelected, onToggleSelect }) {
@@ -59,25 +62,25 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
         background: isSelected
           ? '#eff6ff'
           : hasQuotes ? '#f0fdf4' : '#fef2f2',
-        padding: '16px',
-        borderRadius: '12px',
+        padding: '12px',
+        borderRadius: '8px',
         cursor: 'pointer',
         transition: 'all 0.2s',
         display: 'flex',
         flexDirection: 'column',
-        gap: '12px',
+        gap: '8px',
       }}
     >
-      {/* Header with checkbox and actions */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+      {/* Header with checkbox, name, and actions */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
         <input
           type="checkbox"
           checked={isSelected || false}
           onChange={handleCheckbox}
           onClick={(e) => e.stopPropagation()}
           style={{
-            width: '20px',
-            height: '20px',
+            width: '16px',
+            height: '16px',
             cursor: 'pointer',
             marginTop: '2px',
             flexShrink: 0,
@@ -87,9 +90,8 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontWeight: 600,
-            fontSize: '0.95rem',
+            fontSize: '0.875rem',
             color: '#1e293b',
-            marginBottom: '4px',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -109,8 +111,8 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
                 padding: '2px 6px',
                 background: '#fef3c7',
                 color: '#92400e',
-                borderRadius: '4px',
-                fontSize: '0.65rem',
+                borderRadius: '3px',
+                fontSize: '0.6rem',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
@@ -120,27 +122,17 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
               </span>
             )}
           </div>
-
-          {product.category && (
-            <div style={{
-              fontSize: '0.75rem',
-              color: '#64748b',
-              marginTop: '2px',
-            }}>
-              {product.category}
-            </div>
-          )}
         </div>
 
-        <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '2px', flexShrink: 0, opacity: 0.6 }}>
           {onEdit && (
-            <button className="icon-btn" onClick={handleEdit} style={{ padding: '6px' }}>
-              <Edit2 size={14} />
+            <button className="icon-btn" onClick={handleEdit} style={{ padding: '4px' }}>
+              <Edit2 size={12} />
             </button>
           )}
           {onDelete && (
-            <button className="icon-btn" onClick={handleDelete} style={{ padding: '6px' }}>
-              <Trash2 size={14} />
+            <button className="icon-btn" onClick={handleDelete} style={{ padding: '4px' }}>
+              <Trash2 size={12} />
             </button>
           )}
         </div>
@@ -150,15 +142,15 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
       <div style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: '6px',
-        padding: '6px 10px',
+        gap: '4px',
+        padding: '4px 8px',
         background: hasQuotes ? '#d1fae5' : '#fee2e2',
-        borderRadius: '6px',
+        borderRadius: '4px',
         alignSelf: 'flex-start',
       }}>
-        <FileText size={12} style={{ color: hasQuotes ? '#065f46' : '#991b1b' }} />
+        <FileText size={11} style={{ color: hasQuotes ? '#065f46' : '#991b1b' }} />
         <span style={{
-          fontSize: '0.8rem',
+          fontSize: '0.7rem',
           fontWeight: 600,
           color: hasQuotes ? '#065f46' : '#991b1b',
         }}>
@@ -167,47 +159,47 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
       </div>
 
       {/* Thumbnail and Specs Section */}
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
         {/* Thumbnail */}
         {product.image_url ? (
           <img
             src={product.image_url}
             alt={product.name}
             style={{
-              width: '60px',
-              height: '60px',
+              width: '40px',
+              height: '40px',
               objectFit: 'cover',
-              borderRadius: '8px',
+              borderRadius: '6px',
               border: '1px solid #e2e8f0',
               flexShrink: 0,
             }}
           />
         ) : (
           <div style={{
-            width: '60px',
-            height: '60px',
+            width: '40px',
+            height: '40px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             background: '#f1f5f9',
-            borderRadius: '8px',
+            borderRadius: '6px',
             border: '1px solid #e2e8f0',
             flexShrink: 0,
           }}>
-            <Package size={24} style={{ color: '#94a3b8' }} />
+            <Package size={18} style={{ color: '#94a3b8' }} />
           </div>
         )}
 
-        {/* Specs */}
+        {/* Specs (max 2 lines) */}
         {primary.length > 0 && (
           <div style={{ flex: 1, minWidth: 0 }}>
             {primary.map((spec, index) => (
               <div key={index} style={{
-                fontSize: '0.75rem',
+                fontSize: '0.7rem',
                 color: '#64748b',
-                marginBottom: '2px',
+                marginBottom: '1px',
                 display: 'flex',
-                gap: '6px',
+                gap: '4px',
               }}>
                 <span style={{ fontWeight: 600, color: '#475569' }}>{spec.key}:</span>
                 <span>{spec.value}</span>
@@ -215,10 +207,9 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
             ))}
             {remaining > 0 && (
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: '0.65rem',
                 color: '#94a3b8',
-                fontStyle: 'italic',
-                marginTop: '4px',
+                marginTop: '2px',
               }}>
                 +{remaining} more
               </div>

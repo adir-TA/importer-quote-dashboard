@@ -42,10 +42,18 @@ function Products() {
   const [selectedCategoryFilters, setSelectedCategoryFilters] = useState([]);
 
   // View and sorting options
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' or 'list'
+  const [viewMode, setViewMode] = useState(() => {
+    // Initialize from localStorage if user has manually set a preference
+    const saved = localStorage.getItem('buyingIntentsViewMode');
+    return saved || 'grid'; // Default to grid initially, will auto-adjust based on count
+  });
   const [sortBy, setSortBy] = useState('name'); // 'name', 'quotes', 'recent'
   const [collapsedCategories, setCollapsedCategories] = useState({}); // track which categories are collapsed
   const [loadingCounts, setLoadingCounts] = useState(true); // track loading state
+  const [viewModeManuallySet, setViewModeManuallySet] = useState(() => {
+    // Track if user has manually overridden the view mode
+    return localStorage.getItem('buyingIntentsViewMode') !== null;
+  });
 
   // Bulk selection
   const [selectedProducts, setSelectedProducts] = useState(new Set());
@@ -88,6 +96,15 @@ function Products() {
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
+
+  // Auto-default to list view when many intents exist (if user hasn't manually set preference)
+  useEffect(() => {
+    if (!viewModeManuallySet && products.length > 15) {
+      setViewMode('list');
+    } else if (!viewModeManuallySet && products.length <= 15) {
+      setViewMode('grid');
+    }
+  }, [products.length, viewModeManuallySet]);
 
   const filteredProducts = useMemo(() => {
     let result = filterBySearch(products, search, ['name', 'category', 'description']);
@@ -511,7 +528,11 @@ function Products() {
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
-                  onClick={() => setViewMode('grid')}
+                  onClick={() => {
+                    setViewMode('grid');
+                    localStorage.setItem('buyingIntentsViewMode', 'grid');
+                    setViewModeManuallySet(true);
+                  }}
                   style={{
                     padding: '12px',
                     background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
@@ -531,7 +552,11 @@ function Products() {
                   Grid
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
+                  onClick={() => {
+                    setViewMode('list');
+                    localStorage.setItem('buyingIntentsViewMode', 'list');
+                    setViewModeManuallySet(true);
+                  }}
                   style={{
                     padding: '12px',
                     background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
@@ -796,103 +821,157 @@ function Products() {
                       ))}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      {products.map(product => (
-                        <div
-                          key={product.id}
-                          onClick={() => navigate(`/products/${product.id}`)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '16px',
-                            padding: '16px 20px',
-                            background: selectedProducts.has(product.id) ? '#eff6ff' : 'white',
-                            borderRadius: '8px',
-                            border: selectedProducts.has(product.id)
-                              ? '2px solid #3b82f6'
-                              : `2px solid ${quoteCounts[product.id] > 0 ? '#10b981' : '#ef4444'}`,
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.transform = 'translateX(4px)';
-                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.transform = 'translateX(0)';
-                            e.currentTarget.style.boxShadow = 'none';
-                          }}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={selectedProducts.has(product.id)}
-                            onChange={() => toggleSelection(product.id)}
-                            onClick={(e) => e.stopPropagation()}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      {products.map(product => {
+                        // Helper to get spec value
+                        const getSpec = (key) => {
+                          const spec = product.specs?.find(s => s.key.toLowerCase() === key.toLowerCase());
+                          return spec?.value || '-';
+                        };
+                        const weight = getSpec('weight');
+                        const length = getSpec('length');
+                        const hasQuotes = (quoteCounts[product.id] || 0) > 0;
+                        const isDraft = product.status === 'draft';
+
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => navigate(`/products/${product.id}`)}
                             style={{
-                              width: '18px',
-                              height: '18px',
+                              display: 'grid',
+                              gridTemplateColumns: '32px 1fr 80px 80px 80px 100px 60px',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '8px 12px',
+                              background: selectedProducts.has(product.id) ? '#eff6ff' : 'white',
+                              borderRadius: '6px',
+                              border: selectedProducts.has(product.id)
+                                ? '1px solid #3b82f6'
+                                : `1px solid ${hasQuotes ? '#10b981' : '#ef4444'}`,
                               cursor: 'pointer',
-                              flexShrink: 0,
+                              transition: 'all 0.15s',
+                              fontSize: '0.8rem',
                             }}
-                          />
-                          <Package size={20} style={{ color: '#94a3b8', flexShrink: 0 }} />
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontWeight: 600, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              {product.name}
-                              {product.status === 'draft' && (
+                            onMouseEnter={(e) => {
+                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                            }}
+                            onMouseLeave={(e) => {
+                              e.currentTarget.style.boxShadow = 'none';
+                            }}
+                          >
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.has(product.id)}
+                              onChange={() => toggleSelection(product.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                cursor: 'pointer',
+                              }}
+                            />
+
+                            {/* Item Name */}
+                            <div style={{
+                              fontWeight: 600,
+                              color: '#1e293b',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                            }}>
+                              <span style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                              }}>
+                                {product.name}
+                              </span>
+                              {isDraft && (
                                 <span style={{
-                                  padding: '2px 8px',
+                                  padding: '2px 4px',
                                   background: '#fef3c7',
                                   color: '#92400e',
-                                  borderRadius: '4px',
-                                  fontSize: '0.7rem',
+                                  borderRadius: '3px',
+                                  fontSize: '0.6rem',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
-                                  letterSpacing: '0.3px',
+                                  whiteSpace: 'nowrap',
                                 }}>
                                   Draft
                                 </span>
                               )}
                             </div>
-                            {product.description && (
-                              <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                                {product.description}
-                              </div>
-                            )}
+
+                            {/* Quotes Count */}
+                            <div style={{
+                              fontSize: '0.75rem',
+                              fontWeight: 600,
+                              color: hasQuotes ? '#065f46' : '#991b1b',
+                              textAlign: 'center',
+                            }}>
+                              {quoteCounts[product.id] || 0}
+                            </div>
+
+                            {/* Weight */}
+                            <div style={{
+                              fontSize: '0.75rem',
+                              color: '#64748b',
+                              textAlign: 'center',
+                            }}>
+                              {weight}
+                            </div>
+
+                            {/* Length */}
+                            <div style={{
+                              fontSize: '0.75rem',
+                              color: '#64748b',
+                              textAlign: 'center',
+                            }}>
+                              {length}
+                            </div>
+
+                            {/* Status */}
+                            <div style={{
+                              fontSize: '0.7rem',
+                              fontWeight: 600,
+                              padding: '4px 6px',
+                              background: hasQuotes ? '#d1fae5' : '#fee2e2',
+                              color: hasQuotes ? '#065f46' : '#991b1b',
+                              borderRadius: '4px',
+                              textAlign: 'center',
+                            }}>
+                              {hasQuotes ? 'Has Quotes' : 'No Quotes'}
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
+                              <button
+                                className="icon-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenModal(product);
+                                }}
+                                style={{ padding: '4px' }}
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(product.id);
+                                }}
+                                style={{ padding: '4px' }}
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
                           </div>
-                          <div style={{
-                            padding: '6px 12px',
-                            background: quoteCounts[product.id] > 0 ? '#d1fae5' : '#fee2e2',
-                            color: quoteCounts[product.id] > 0 ? '#065f46' : '#991b1b',
-                            borderRadius: '6px',
-                            fontSize: '0.875rem',
-                            fontWeight: 600,
-                            flexShrink: 0,
-                          }}>
-                            {quoteCounts[product.id] || 0} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
-                          </div>
-                          <div style={{ display: 'flex', gap: '4px', flexShrink: 0 }}>
-                            <button
-                              className="icon-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleOpenModal(product);
-                              }}
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              className="icon-btn"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDelete(product.id);
-                              }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )
                 )}
