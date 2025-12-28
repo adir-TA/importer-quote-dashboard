@@ -7,24 +7,10 @@ import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import DocumentsTab from '../components/DocumentsTab';
 import UploadDocumentModal from '../components/UploadDocumentModal';
 import ExcelJS from 'exceljs';
+import { EXPORT_THEMES } from '../utils/exportThemes';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
-
-// RFQ Export Themes (reused from QuoteComparison)
-const RFQ_THEMES = {
-  vibrant: {
-    colors: {
-      title: { bg: 'FF0F172A', text: 'FFFFFFFF' },
-      imagePlaceholder: { bg: 'FFFCE7F3', text: 'FF9F1239', border: 'FFF43F5E' },
-      productName: { bg: 'FFE0E7FF', text: 'FF3730A3' },
-      category: { bg: 'FFE0E7FF', text: 'FF3730A3' },
-      date: { bg: 'FFDBEAFE', text: 'FF1E40AF' },
-      infoRow: { bg: 'FFF1F5F9', text: 'FF475569' },
-      header: { bg: 'FF1E293B', text: 'FFFFFFFF' }
-    }
-  }
-};
 
 // Helper to get image dimensions from buffer
 async function getImageDimensions(buffer) {
@@ -40,7 +26,7 @@ async function getImageDimensions(buffer) {
 }
 
 async function generateRFQExcel(product, themeName = 'vibrant') {
-  const theme = RFQ_THEMES[themeName];
+  const theme = EXPORT_THEMES[themeName];
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'HA Tools';
@@ -338,6 +324,8 @@ function ProductDetail() {
   const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
   const [documentsRefreshKey, setDocumentsRefreshKey] = useState(0);
   const [editingQuote, setEditingQuote] = useState(null);
+  const [showRFQThemeSelector, setShowRFQThemeSelector] = useState(false);
+  const [selectedRFQTheme, setSelectedRFQTheme] = useState('vibrant');
   const [formData, setFormData] = useState({
     supplierName: '',
     unitPrice: '',
@@ -484,7 +472,7 @@ function ProductDetail() {
               Compare Quotes
             </button>
           )}
-          <button className="btn btn-secondary" onClick={() => generateRFQExcel(product)}>
+          <button className="btn btn-secondary" onClick={() => setShowRFQThemeSelector(true)}>
             <FileDown size={16} /> Generate RFQ
           </button>
           <button className="btn btn-secondary" onClick={() => setIsUploadModalOpen(true)}>
@@ -934,6 +922,337 @@ function ProductDetail() {
         buyingIntentId={id}
         onUploadSuccess={() => setDocumentsRefreshKey(prev => prev + 1)}
       />
+
+      {/* RFQ Theme Selection Modal */}
+      {showRFQThemeSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            maxWidth: '900px',
+            width: '90%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            {/* Header */}
+            <div style={{
+              padding: '24px 32px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                  Choose RFQ Export Theme
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                  Select a theme for your RFQ Excel export
+                </p>
+              </div>
+              <button
+                onClick={() => setShowRFQThemeSelector(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s',
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+              >
+                <X size={24} color="#64748b" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{
+              display: 'flex',
+              overflow: 'hidden',
+              flex: 1,
+            }}>
+              {/* Left: Theme List */}
+              <div style={{
+                width: '280px',
+                borderRight: '1px solid #e5e7eb',
+                padding: '16px',
+                background: '#f8fafc',
+                overflow: 'auto',
+              }}>
+                <div style={{
+                  flex: 1,
+                  overflow: 'auto',
+                  padding: '8px',
+                }}>
+                  {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
+                    <button
+                      key={key}
+                      onClick={() => setSelectedRFQTheme(key)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        gap: '12px',
+                        padding: '16px',
+                        marginBottom: '8px',
+                        background: selectedRFQTheme === key ? '#eff6ff' : 'white',
+                        border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#e5e7eb'}`,
+                        borderRadius: '10px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        textAlign: 'left',
+                      }}
+                      onMouseEnter={(e) => {
+                        if (selectedRFQTheme !== key) {
+                          e.currentTarget.style.borderColor = '#cbd5e1';
+                          e.currentTarget.style.background = '#f9fafb';
+                        }
+                      }}
+                      onMouseLeave={(e) => {
+                        if (selectedRFQTheme !== key) {
+                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.background = 'white';
+                        }
+                      }}
+                    >
+                      {/* Radio Button */}
+                      <div style={{
+                        width: '20px',
+                        height: '20px',
+                        borderRadius: '50%',
+                        border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#d1d5db'}`,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}>
+                        {selectedRFQTheme === key && (
+                          <div style={{
+                            width: '10px',
+                            height: '10px',
+                            borderRadius: '50%',
+                            background: '#3b82f6',
+                          }} />
+                        )}
+                      </div>
+
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontWeight: 600,
+                          fontSize: '0.95rem',
+                          color: '#1e293b',
+                          marginBottom: '4px',
+                        }}>
+                          {theme.name}
+                        </div>
+                        <div style={{
+                          fontSize: '0.85rem',
+                          color: '#64748b',
+                          marginBottom: '10px',
+                        }}>
+                          {theme.description}
+                        </div>
+                        {/* Color Preview */}
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                          {theme.preview.map((color, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                width: '24px',
+                                height: '24px',
+                                borderRadius: '4px',
+                                background: color,
+                                border: '1px solid rgba(0,0,0,0.1)',
+                              }}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Preview */}
+              <div style={{
+                flex: 1,
+                padding: '32px',
+                overflow: 'auto',
+                background: '#f8fafc',
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'center',
+              }}>
+                {/* Excel-Style Preview */}
+                {(() => {
+                  const theme = EXPORT_THEMES[selectedRFQTheme];
+                  return (
+                    <div style={{
+                      background: 'white',
+                      border: '2px solid #000',
+                      borderRadius: '4px',
+                      overflow: 'hidden',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      width: '100%',
+                      maxWidth: '450px',
+                    }}>
+                      {/* Title Row */}
+                      <div style={{
+                        padding: '12px',
+                        background: `#${theme.colors.title.bg.substring(2)}`,
+                        color: `#${theme.colors.title.text.substring(2)}`,
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        textAlign: 'center',
+                        borderBottom: '2px solid #000',
+                      }}>
+                        REQUEST FOR QUOTATION (RFQ)
+                      </div>
+
+                      {/* Product Info Rows */}
+                      <div style={{
+                        padding: '8px',
+                        background: `#${theme.colors.productName.bg.substring(2)}`,
+                        color: `#${theme.colors.productName.text.substring(2)}`,
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        borderBottom: '1px solid #ddd',
+                      }}>
+                        Product: {product.name}
+                      </div>
+                      <div style={{
+                        padding: '8px',
+                        background: `#${theme.colors.category.bg.substring(2)}`,
+                        color: `#${theme.colors.category.text.substring(2)}`,
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        borderBottom: '1px solid #ddd',
+                      }}>
+                        Category: {product.category || 'General'}
+                      </div>
+
+                      {/* Header Row */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 1fr',
+                        background: `#${theme.colors.header.bg.substring(2)}`,
+                        color: `#${theme.colors.header.text.substring(2)}`,
+                        fontWeight: 700,
+                        fontSize: '0.75rem',
+                        borderBottom: '1px solid #000',
+                      }}>
+                        <div style={{ padding: '6px 8px', borderRight: '1px solid #555' }}>Item Name</div>
+                        <div style={{ padding: '6px 8px', borderRight: '1px solid #555' }}>Specs</div>
+                        <div style={{ padding: '6px 8px' }}>MOQ/Price</div>
+                      </div>
+
+                      {/* Sample Data Row */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '1fr 1fr 1fr',
+                        fontSize: '0.75rem',
+                        borderBottom: '1px solid #ddd',
+                      }}>
+                        <div style={{ padding: '6px 8px', borderRight: '1px solid #ddd' }}>Sample Item</div>
+                        <div style={{ padding: '6px 8px', borderRight: '1px solid #ddd' }}>Spec Value</div>
+                        <div style={{ padding: '6px 8px' }}>-</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div style={{
+              padding: '20px 32px',
+              borderTop: '1px solid #e5e7eb',
+              background: '#f8fafc',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <button
+                onClick={() => setShowRFQThemeSelector(false)}
+                style={{
+                  padding: '10px 20px',
+                  border: '1px solid #cbd5e1',
+                  background: 'white',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '0.95rem',
+                  color: '#475569',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = '#f1f5f9';
+                  e.currentTarget.style.borderColor = '#94a3b8';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'white';
+                  e.currentTarget.style.borderColor = '#cbd5e1';
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={() => {
+                  generateRFQExcel(product, selectedRFQTheme);
+                  setShowRFQThemeSelector(false);
+                }}
+                style={{
+                  padding: '10px 24px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  fontSize: '0.95rem',
+                  color: 'white',
+                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                }}
+              >
+                <FileDown size={18} />
+                Export with {EXPORT_THEMES[selectedRFQTheme].name}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
