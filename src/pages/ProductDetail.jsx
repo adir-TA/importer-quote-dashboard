@@ -35,17 +35,59 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
 
   const worksheet = workbook.addWorksheet('RFQ');
 
-  // Set column widths
-  worksheet.columns = [
-    { width: 15 },
-    { width: 25 },
-    { width: 25 },
-    { width: 25 },
-    { width: 20 }
+  // Get specs with default order: Weight, Height, Length, Width, then custom fields
+  const specs = product.specs && product.specs.length > 0
+    ? product.specs.filter(spec => spec.value)
+    : [];
+
+  const defaultKeys = ['Weight', 'Height', 'Length', 'Width'];
+  const orderedSpecs = [];
+  const seen = new Set();
+
+  // Add default specs in order
+  defaultKeys.forEach(key => {
+    const spec = specs.find(s => s.key.toLowerCase() === key.toLowerCase());
+    if (spec) {
+      orderedSpecs.push(spec);
+      seen.add(spec.key.toLowerCase());
+    }
+  });
+
+  // Add custom specs
+  specs.forEach(spec => {
+    if (!seen.has(spec.key.toLowerCase())) {
+      orderedSpecs.push(spec);
+    }
+  });
+
+  // Calculate columns: Item Name | Category | Image | Weight | Height | Length | Width | ...custom
+  const baseColumns = 3; // Item, Category, Image
+  const totalColumns = baseColumns + orderedSpecs.length;
+
+  // Set column widths dynamically
+  const columnWidths = [
+    { width: 25 },  // Item Name
+    { width: 15 },  // Category
+    { width: 20 }   // Image
   ];
+  orderedSpecs.forEach(() => columnWidths.push({ width: 15 }));
+  worksheet.columns = columnWidths;
+
+  // Helper to convert column number to letter
+  const getColLetter = (num) => {
+    let letter = '';
+    while (num > 0) {
+      const mod = (num - 1) % 26;
+      letter = String.fromCharCode(65 + mod) + letter;
+      num = Math.floor((num - mod) / 26);
+    }
+    return letter;
+  };
+
+  const lastCol = getColLetter(totalColumns);
 
   // Row 1: Title
-  worksheet.mergeCells('A1:E1');
+  worksheet.mergeCells(`A1:${lastCol}1`);
   const titleCell = worksheet.getCell('A1');
   titleCell.value = 'REQUEST FOR QUOTATION (RFQ)';
   titleCell.font = { name: 'Calibri', size: 20, bold: true, color: { argb: theme.colors.title.text } };
@@ -59,59 +101,9 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   // Row 2: Empty
   worksheet.getRow(2).height = 8;
 
-  // Row 3-6: Product Image (if exists) or placeholder
-  if (product.image_url) {
-    try {
-      // Fetch the image
-      const response = await fetch(product.image_url);
-      const arrayBuffer = await response.arrayBuffer();
-      const imageId = workbook.addImage({
-        buffer: arrayBuffer,
-        extension: 'png',
-      });
-
-      // Add image to worksheet
-      worksheet.addImage(imageId, {
-        tl: { col: 0, row: 2 },
-        br: { col: 2.5, row: 6 },
-        editAs: 'oneCell'
-      });
-    } catch (error) {
-      console.error('Failed to embed image:', error);
-      // Fall back to placeholder
-      worksheet.mergeCells('A3:C6');
-      const imageCell = worksheet.getCell('A3');
-      imageCell.value = 'PRODUCT IMAGE';
-      imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
-      imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.imagePlaceholder.bg } };
-      imageCell.alignment = { horizontal: 'center', vertical: 'middle' };
-      imageCell.border = {
-        top: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
-        bottom: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
-        left: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
-        right: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } }
-      };
-      worksheet.getRow(3).height = 90;
-    }
-  } else {
-    worksheet.mergeCells('A3:C6');
-    const imageCell = worksheet.getCell('A3');
-    imageCell.value = 'PRODUCT IMAGE';
-    imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
-    imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.imagePlaceholder.bg } };
-    imageCell.alignment = { horizontal: 'center', vertical: 'middle' };
-    imageCell.border = {
-      top: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
-      bottom: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
-      left: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
-      right: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } }
-    };
-    worksheet.getRow(3).height = 90;
-  }
-
-  // Product name (row 3)
-  worksheet.mergeCells('D3:E3');
-  const productCell = worksheet.getCell('D3');
+  // Row 3: Product info
+  worksheet.mergeCells(`A3:${lastCol}3`);
+  const productCell = worksheet.getCell('A3');
   productCell.value = `Product: ${product.name}`;
   productCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.productName.text } };
   productCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.productName.bg } };
@@ -124,9 +116,9 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   };
   worksheet.getRow(3).height = 22;
 
-  // Category (row 4)
-  worksheet.mergeCells('D4:E4');
-  const categoryCell = worksheet.getCell('D4');
+  // Row 4: Category
+  worksheet.mergeCells(`A4:${lastCol}4`);
+  const categoryCell = worksheet.getCell('A4');
   categoryCell.value = `Category: ${product.category || 'General'}`;
   categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.category.text } };
   categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.category.bg } };
@@ -139,9 +131,9 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   };
   worksheet.getRow(4).height = 22;
 
-  // Generated date (row 5)
-  worksheet.mergeCells('D5:E5');
-  const dateCell = worksheet.getCell('D5');
+  // Row 5: Generated date
+  worksheet.mergeCells(`A5:${lastCol}5`);
+  const dateCell = worksheet.getCell('A5');
   dateCell.value = `Generated: ${new Date().toLocaleDateString()}`;
   dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.date.text } };
   dateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.date.bg } };
@@ -159,7 +151,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   worksheet.getRow(7).height = 8;
 
   // Row 8: Request Header
-  worksheet.mergeCells('A8:E8');
+  worksheet.mergeCells(`A8:${lastCol}8`);
   const requestHeader = worksheet.getCell('A8');
   requestHeader.value = 'Please provide your best quotation for the following:';
   requestHeader.font = { name: 'Calibri', size: 12, bold: true, color: { argb: theme.colors.header.text } };
@@ -176,9 +168,11 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   // Row 9: Empty
   worksheet.getRow(9).height = 8;
 
-  // Row 10: Information Request Headers
+  // Row 10: Column headers - Item Name | Category | Image | Weight | Height | Length | Width | ...custom
   const headerRow = worksheet.getRow(10);
-  headerRow.values = ['Item', 'Unit Price', 'MOQ', 'Lead Time', 'Incoterm'];
+  const headerValues = ['Item Name', 'Category', 'Image'];
+  orderedSpecs.forEach(spec => headerValues.push(spec.key));
+  headerRow.values = headerValues;
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
     cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.header.text } };
@@ -192,19 +186,15 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     };
   });
 
-  // Row 11: Product info row (for supplier to fill)
-  const infoRow = worksheet.addRow([
-    product.name,
-    '_______________',
-    '_______________',
-    '_______________',
-    '_______________'
-  ]);
-  infoRow.height = 30;
-  infoRow.eachCell((cell, colNum) => {
+  // Row 11: Data row with product info and spec values
+  const dataRowValues = [product.name, product.category || 'General', ''];
+  orderedSpecs.forEach(spec => dataRowValues.push(spec.value));
+  const dataRow = worksheet.addRow(dataRowValues);
+  dataRow.height = 60; // Initial height, will adjust if image is present
+  dataRow.eachCell((cell) => {
     cell.font = { name: 'Calibri', size: 11 };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
       bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -213,73 +203,39 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     };
   });
 
-  // Row 12: Empty
+  // Embed image in the Image column (column C, row 11) if present
+  if (product.image_url) {
+    try {
+      const response = await fetch(product.image_url);
+      const arrayBuffer = await response.arrayBuffer();
+      const imageId = workbook.addImage({
+        buffer: arrayBuffer,
+        extension: 'png',
+      });
+
+      // Embed image in column C (index 2), row 11 (index 10)
+      // Use contain mode to preserve aspect ratio
+      worksheet.addImage(imageId, {
+        tl: { col: 2, row: 10 },
+        br: { col: 3, row: 11 },
+        editAs: 'oneCell'
+      });
+
+      // Adjust row height to accommodate image
+      dataRow.height = 80;
+    } catch (error) {
+      console.error('Failed to embed image:', error);
+      // Image cell remains empty on error
+    }
+  }
+
+  // Empty row after data
   let currentRow = 12;
   worksheet.getRow(currentRow).height = 16;
   currentRow++;
 
-  // Specifications Section
-  const specs = product.specs && product.specs.length > 0
-    ? product.specs.filter(spec => spec.value)
-    : [];
-
-  if (specs.length > 0) {
-    // Specifications Header
-    worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
-    const specsHeader = worksheet.getCell(`A${currentRow}`);
-    specsHeader.value = 'Specifications';
-    specsHeader.font = { name: 'Calibri', size: 12, bold: true, color: { argb: theme.colors.header.text } };
-    specsHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
-    specsHeader.alignment = { horizontal: 'left', vertical: 'middle' };
-    specsHeader.border = {
-      top: { style: 'medium', color: { argb: theme.colors.header.bg } },
-      bottom: { style: 'medium', color: { argb: theme.colors.header.bg } },
-      left: { style: 'medium', color: { argb: theme.colors.header.bg } },
-      right: { style: 'medium', color: { argb: theme.colors.header.bg } }
-    };
-    worksheet.getRow(currentRow).height = 25;
-    currentRow++;
-
-    // Spec rows (two columns: Spec Name | Spec Value)
-    specs.forEach(spec => {
-      const specRow = worksheet.addRow([spec.key, spec.value, '', '', '']);
-      specRow.height = 22;
-
-      // Spec name cell (column A)
-      const nameCell = specRow.getCell(1);
-      nameCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: theme.colors.infoRow.text } };
-      nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.infoRow.bg } };
-      nameCell.alignment = { horizontal: 'left', vertical: 'middle' };
-      nameCell.border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-      };
-
-      // Spec value cell (columns B-E merged)
-      worksheet.mergeCells(`B${currentRow}:E${currentRow}`);
-      const valueCell = specRow.getCell(2);
-      valueCell.font = { name: 'Calibri', size: 10 };
-      valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-      valueCell.alignment = { horizontal: 'left', vertical: 'middle' };
-      valueCell.border = {
-        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-      };
-
-      currentRow++;
-    });
-
-    // Empty row after specs
-    worksheet.getRow(currentRow).height = 16;
-    currentRow++;
-  }
-
   // Additional Notes
-  worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
+  worksheet.mergeCells(`A${currentRow}:${lastCol}${currentRow}`);
   const notesCell = worksheet.getCell(`A${currentRow}`);
   notesCell.value = 'Additional Notes:';
   notesCell.font = { name: 'Calibri', size: 11, bold: true };
@@ -289,7 +245,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   // Notes area (3 rows)
   const notesStartRow = currentRow;
   const notesEndRow = currentRow + 2;
-  worksheet.mergeCells(`A${notesStartRow}:E${notesEndRow}`);
+  worksheet.mergeCells(`A${notesStartRow}:${lastCol}${notesEndRow}`);
   const notesArea = worksheet.getCell(`A${notesStartRow}`);
   notesArea.value = '';
   notesArea.border = {
