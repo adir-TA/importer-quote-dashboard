@@ -76,20 +76,24 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
   });
 
   // Factory-fill columns (for supplier to complete)
-  const factoryColumns = ['MOQ', 'Price per Unit', 'Incoterm\n(FOB/EXW/CIF)', 'Packaging'];
+  const factoryColumns = [
+    { name: 'MOQ', width: 18 },
+    { name: 'Price per Unit', width: 18 },
+    { name: 'Incoterm\n(FOB/EXW/CIF)', width: 22 }, // Wider for readability
+    { name: 'Packaging', width: 18 }
+  ];
 
-  // Calculate columns: Item Name | Category | Image | specs... | factory fields
-  const baseColumns = 3; // Item, Category, Image
+  // Calculate columns: Item Name | Image | specs... | factory fields (no Category)
+  const baseColumns = 2; // Item Name, Image (removed Category)
   const totalColumns = baseColumns + orderedSpecKeys.length + factoryColumns.length;
 
   // Set column widths dynamically
   const columnWidths = [
-    { width: 25 },  // Item Name
-    { width: 15 },  // Category
+    { width: 30 },  // Item Name (wider since no category)
     { width: 20 }   // Image
   ];
   orderedSpecKeys.forEach(() => columnWidths.push({ width: 15 }));
-  factoryColumns.forEach(() => columnWidths.push({ width: 18 })); // Factory columns slightly wider
+  factoryColumns.forEach(col => columnWidths.push({ width: col.width }));
   worksheet.columns = columnWidths;
 
   // Helper to convert column number to letter
@@ -105,97 +109,69 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
 
   const lastCol = getColLetter(totalColumns);
 
-  // Row 1: Title
+  // Row 1: Title (compact)
   worksheet.mergeCells(`A1:${lastCol}1`);
   const titleCell = worksheet.getCell('A1');
   titleCell.value = 'REQUEST FOR QUOTATION (RFQ)';
-  titleCell.font = { name: 'Calibri', size: 20, bold: true, color: { argb: theme.colors.title.text } };
+  titleCell.font = { name: 'Calibri', size: 18, bold: true, color: { argb: theme.colors.title.text } };
   titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.title.bg } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   titleCell.border = {
     bottom: { style: 'medium', color: { argb: theme.colors.title.bg } }
   };
-  worksheet.getRow(1).height = 35;
+  worksheet.getRow(1).height = 28;
 
-  // Row 2: Empty
-  worksheet.getRow(2).height = 8;
-
-  // Row 3: Product count info
-  worksheet.mergeCells(`A3:${lastCol}3`);
-  const productCell = worksheet.getCell('A3');
-  productCell.value = productList.length === 1
-    ? `Product: ${productList[0].name}`
+  // Row 2: Compact metadata line
+  worksheet.mergeCells(`A2:${lastCol}2`);
+  const metaCell = worksheet.getCell('A2');
+  const productInfo = productList.length === 1
+    ? `Product: ${productList[0].name}${productList[0].category ? ' | Category: ' + productList[0].category : ''}`
     : `Products: ${productList.length} items`;
-  productCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.productName.text } };
-  productCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.productName.bg } };
-  productCell.alignment = { horizontal: 'left', vertical: 'middle' };
-  productCell.border = {
+  metaCell.value = `${productInfo} | Generated: ${new Date().toLocaleDateString()}`;
+  metaCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: theme.colors.date.text } };
+  metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.date.bg } };
+  metaCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  metaCell.border = {
     top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(3).height = 22;
+  worksheet.getRow(2).height = 18;
 
-  // Row 4: Category (only show if single product, otherwise skip)
-  if (productList.length === 1) {
-    worksheet.mergeCells(`A4:${lastCol}4`);
-    const categoryCell = worksheet.getCell('A4');
-    categoryCell.value = `Category: ${productList[0].category || 'General'}`;
-    categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.category.text } };
-    categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.category.bg } };
-    categoryCell.alignment = { horizontal: 'left', vertical: 'middle' };
-    categoryCell.border = {
-      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-    };
-    worksheet.getRow(4).height = 22;
-  } else {
-    worksheet.getRow(4).height = 8;
-  }
-
-  // Row 5: Generated date
-  worksheet.mergeCells(`A5:${lastCol}5`);
-  const dateCell = worksheet.getCell('A5');
-  dateCell.value = `Generated: ${new Date().toLocaleDateString()}`;
-  dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.date.text } };
-  dateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.date.bg } };
-  dateCell.alignment = { horizontal: 'left', vertical: 'middle' };
-  dateCell.border = {
+  // Row 3: Additional Notes header
+  worksheet.mergeCells(`A3:${lastCol}3`);
+  const notesHeaderCell = worksheet.getCell('A3');
+  notesHeaderCell.value = 'Additional Notes:';
+  notesHeaderCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF475569' } };
+  notesHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
+  notesHeaderCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  notesHeaderCell.border = {
     top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(5).height = 22;
+  worksheet.getRow(3).height = 16;
 
-  // Empty rows
-  worksheet.getRow(6).height = 8;
-  worksheet.getRow(7).height = 8;
-
-  // Row 8: Request Header
-  worksheet.mergeCells(`A8:${lastCol}8`);
-  const requestHeader = worksheet.getCell('A8');
-  requestHeader.value = 'Please provide your best quotation for the following:';
-  requestHeader.font = { name: 'Calibri', size: 12, bold: true, color: { argb: theme.colors.header.text } };
-  requestHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
-  requestHeader.alignment = { horizontal: 'left', vertical: 'middle' };
-  requestHeader.border = {
-    top: { style: 'medium', color: { argb: theme.colors.header.bg } },
-    bottom: { style: 'medium', color: { argb: theme.colors.header.bg } },
-    left: { style: 'medium', color: { argb: theme.colors.header.bg } },
-    right: { style: 'medium', color: { argb: theme.colors.header.bg } }
+  // Rows 4-5: Additional Notes area (fillable)
+  worksheet.mergeCells(`A4:${lastCol}5`);
+  const notesAreaCell = worksheet.getCell('A4');
+  notesAreaCell.value = '';
+  notesAreaCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
+  notesAreaCell.border = {
+    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(8).height = 28;
+  worksheet.getRow(4).height = 18;
+  worksheet.getRow(5).height = 18;
 
-  // Row 9: Empty
-  worksheet.getRow(9).height = 8;
+  // Row 6: Small spacer before table
+  worksheet.getRow(6).height = 6;
 
-  // Row 10: Column headers - Item Name | Category | Image | specs... | factory fields
+  // Row 10: Column headers - Item Name | Image | specs... | factory fields
   const headerRow = worksheet.getRow(10);
-  const headerValues = ['Item Name', 'Category', 'Image'];
+  const headerValues = ['Item Name', 'Image'];
 
   // Add spec headers with units for default specs
   orderedSpecKeys.forEach(specKey => {
@@ -213,7 +189,7 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     headerValues.push(displayName);
   });
 
-  factoryColumns.forEach(col => headerValues.push(col)); // Add factory columns
+  factoryColumns.forEach(col => headerValues.push(col.name)); // Add factory columns
   headerRow.values = headerValues;
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
@@ -243,8 +219,8 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
       specMap.set(spec.key, spec.value);
     });
 
-    // Build row values: Item Name | Category | Image | spec values | factory fields
-    const dataRowValues = [formatProductNameWithTranslation(product.name), product.category || 'General', ''];
+    // Build row values: Item Name | Image | spec values | factory fields
+    const dataRowValues = [formatProductNameWithTranslation(product.name), ''];
 
     // Add spec values in order (use empty string if spec doesn't exist for this product)
     orderedSpecKeys.forEach(specKey => {
@@ -316,9 +292,9 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
         const rowHeightPt = Math.ceil(targetHeight * 0.75) + 8;
         dataRow.height = Math.max(60, rowHeightPt);
 
-        // Insert image at column C (index 2), current row
+        // Insert image at column B (index 1), current row
         worksheet.addImage(imageId, {
-          tl: { col: 2, row: currentRowIndex },
+          tl: { col: 1, row: currentRowIndex },
           ext: { width: targetWidth, height: targetHeight },
           editAs: 'oneCell'
         });
@@ -330,35 +306,6 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
 
     currentRowIndex++; // Move to next row for next product
   }
-
-  // Empty row after data
-  let currentRow = currentRowIndex + 1;
-  worksheet.getRow(currentRow).height = 16;
-  currentRow++;
-
-  // Additional Notes
-  worksheet.mergeCells(`A${currentRow}:${lastCol}${currentRow}`);
-  const notesCell = worksheet.getCell(`A${currentRow}`);
-  notesCell.value = 'Additional Notes:';
-  notesCell.font = { name: 'Calibri', size: 11, bold: true };
-  notesCell.alignment = { horizontal: 'left', vertical: 'top' };
-  currentRow++;
-
-  // Notes area (3 rows)
-  const notesStartRow = currentRow;
-  const notesEndRow = currentRow + 2;
-  worksheet.mergeCells(`A${notesStartRow}:${lastCol}${notesEndRow}`);
-  const notesArea = worksheet.getCell(`A${notesStartRow}`);
-  notesArea.value = '';
-  notesArea.border = {
-    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-  };
-  worksheet.getRow(notesStartRow).height = 20;
-  worksheet.getRow(notesStartRow + 1).height = 20;
-  worksheet.getRow(notesEndRow).height = 20;
 
   // Generate filename and export
   const filename = productList.length === 1
