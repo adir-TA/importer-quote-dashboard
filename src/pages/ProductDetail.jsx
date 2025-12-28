@@ -26,6 +26,19 @@ const RFQ_THEMES = {
   }
 };
 
+// Helper to get image dimensions from buffer
+async function getImageDimensions(buffer) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([buffer]);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
 async function generateRFQExcel(product, themeName = 'vibrant') {
   const theme = RFQ_THEMES[themeName];
 
@@ -60,9 +73,12 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     }
   });
 
-  // Calculate columns: Item Name | Category | Image | Weight | Height | Length | Width | ...custom
+  // Factory-fill columns (for supplier to complete)
+  const factoryColumns = ['MOQ', 'Price per Unit', 'Incoterm', 'Packaging'];
+
+  // Calculate columns: Item Name | Category | Image | specs... | factory fields
   const baseColumns = 3; // Item, Category, Image
-  const totalColumns = baseColumns + orderedSpecs.length;
+  const totalColumns = baseColumns + orderedSpecs.length + factoryColumns.length;
 
   // Set column widths dynamically
   const columnWidths = [
@@ -71,6 +87,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     { width: 20 }   // Image
   ];
   orderedSpecs.forEach(() => columnWidths.push({ width: 15 }));
+  factoryColumns.forEach(() => columnWidths.push({ width: 18 })); // Factory columns slightly wider
   worksheet.columns = columnWidths;
 
   // Helper to convert column number to letter
@@ -168,10 +185,11 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   // Row 9: Empty
   worksheet.getRow(9).height = 8;
 
-  // Row 10: Column headers - Item Name | Category | Image | Weight | Height | Length | Width | ...custom
+  // Row 10: Column headers - Item Name | Category | Image | specs... | factory fields
   const headerRow = worksheet.getRow(10);
   const headerValues = ['Item Name', 'Category', 'Image'];
   orderedSpecs.forEach(spec => headerValues.push(spec.key));
+  factoryColumns.forEach(col => headerValues.push(col)); // Add factory columns
   headerRow.values = headerValues;
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
@@ -186,9 +204,10 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     };
   });
 
-  // Row 11: Data row with product info and spec values
+  // Row 11: Data row with product info, spec values, and empty factory fields
   const dataRowValues = [product.name, product.category || 'General', ''];
   orderedSpecs.forEach(spec => dataRowValues.push(spec.value));
+  factoryColumns.forEach(() => dataRowValues.push('')); // Empty cells for factory to fill
   const dataRow = worksheet.addRow(dataRowValues);
   dataRow.height = 60; // Initial height, will adjust if image is present
   dataRow.eachCell((cell) => {
@@ -204,25 +223,54 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   });
 
   // Embed image in the Image column (column C, row 11) if present
+  // Uses "image drives cell size" approach: preserve aspect ratio and adjust row height
   if (product.image_url) {
     try {
       const response = await fetch(product.image_url);
       const arrayBuffer = await response.arrayBuffer();
+
+      // Get actual image dimensions
+      const dimensions = await getImageDimensions(arrayBuffer);
+
       const imageId = workbook.addImage({
         buffer: arrayBuffer,
         extension: 'png',
       });
 
-      // Embed image in column C (index 2), row 11 (index 10)
-      // Use contain mode to preserve aspect ratio
+      // Excel column width is in characters, roughly 7 pixels per character
+      // Image column width is 20 chars = ~140 pixels
+      const targetWidthPx = 140;
+      const scale = Math.min(targetWidthPx / dimensions.width, 1); // Don't upscale
+      const scaledWidth = dimensions.width * scale;
+      const scaledHeight = dimensions.height * scale;
+
+      // Excel row height is in points (1 point = 1.333 pixels approximately)
+      const rowHeightPoints = Math.ceil(scaledHeight / 1.333);
+      dataRow.height = Math.max(60, rowHeightPoints + 10); // Add padding
+
+      // Position image in cell C11 (col index 2, row index 10)
+      // Center it horizontally and vertically within the cell
+      const colWidthPx = 140;
+      const rowHeightPx = dataRow.height * 1.333;
+      const offsetX = (colWidthPx - scaledWidth) / 2;
+      const offsetY = (rowHeightPx - scaledHeight) / 2;
+
+      // Convert to EMUs (English Metric Units): 1 pixel = 9525 EMUs
+      const emuPerPx = 9525;
+
       worksheet.addImage(imageId, {
-        tl: { col: 2, row: 10 },
-        br: { col: 3, row: 11 },
+        tl: {
+          col: 2,
+          row: 10,
+          colOff: Math.max(0, offsetX * emuPerPx),
+          rowOff: Math.max(0, offsetY * emuPerPx)
+        },
+        ext: {
+          width: scaledWidth * emuPerPx,
+          height: scaledHeight * emuPerPx
+        },
         editAs: 'oneCell'
       });
-
-      // Adjust row height to accommodate image
-      dataRow.height = 80;
     } catch (error) {
       console.error('Failed to embed image:', error);
       // Image cell remains empty on error
