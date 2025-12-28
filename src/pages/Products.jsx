@@ -222,13 +222,19 @@ function Products() {
 
       // Upload image if a new one was selected
       if (selectedImage) {
-        const { user } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not authenticated');
+        // Correct destructuring: getUser() returns { data: { user }, error }
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError || !user) {
+          console.error('Auth error:', authError);
+          throw new Error('User not authenticated');
+        }
+
+        console.log('✅ User authenticated for image upload:', user.id);
 
         // Generate unique filename
         const fileExt = selectedImage.name.split('.').pop();
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const storagePath = `${user.user.id}/products/${fileName}`;
+        const storagePath = `${user.id}/products/${fileName}`;
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
