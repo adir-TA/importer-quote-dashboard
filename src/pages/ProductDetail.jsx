@@ -119,7 +119,7 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
   titleCell.border = {
     bottom: { style: 'medium', color: { argb: theme.colors.title.bg } }
   };
-  worksheet.getRow(1).height = 24;
+  worksheet.getRow(1).height = 20;
 
   // Row 2: Compact metadata line (no category, "Created" instead of "Generated")
   worksheet.mergeCells(`A2:${lastCol}2`);
@@ -153,12 +153,14 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
   };
   worksheet.getRow(3).height = 14;
 
-  // Rows 4-5: Additional Notes area (only 2 rows, compact)
+  // Rows 4-5: Additional Notes area (only 2 rows, compact, subtle background)
   worksheet.mergeCells(`A4:${lastCol}5`);
   const notesAreaCell = worksheet.getCell('A4');
   notesAreaCell.value = '';
+  notesAreaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF8FAFC' } }; // Subtle background
   notesAreaCell.alignment = { horizontal: 'left', vertical: 'top', wrapText: true };
   notesAreaCell.border = {
+    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }
@@ -188,7 +190,7 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
 
   factoryColumns.forEach(col => headerValues.push(col.name)); // Add factory columns
   headerRow.values = headerValues;
-  headerRow.height = 22;
+  headerRow.height = 26;
   headerRow.eachCell((cell) => {
     cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: theme.colors.header.text } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
