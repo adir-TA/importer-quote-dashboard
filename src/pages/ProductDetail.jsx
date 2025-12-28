@@ -154,28 +154,13 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   };
   worksheet.getRow(5).height = 22;
 
-  // Description (row 6)
-  worksheet.mergeCells('D6:E6');
-  const descCell = worksheet.getCell('D6');
-  descCell.value = product.description || 'N/A';
-  descCell.font = { name: 'Calibri', size: 10, color: { argb: theme.colors.infoRow.text } };
-  descCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.infoRow.bg } };
-  descCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
-  descCell.border = {
-    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-  };
-  worksheet.getRow(6).height = 22;
-
   // Empty rows
+  worksheet.getRow(6).height = 8;
   worksheet.getRow(7).height = 8;
-  worksheet.getRow(8).height = 8;
 
-  // Row 9: Request Header
-  worksheet.mergeCells('A9:E9');
-  const requestHeader = worksheet.getCell('A9');
+  // Row 8: Request Header
+  worksheet.mergeCells('A8:E8');
+  const requestHeader = worksheet.getCell('A8');
   requestHeader.value = 'Please provide your best quotation for the following:';
   requestHeader.font = { name: 'Calibri', size: 12, bold: true, color: { argb: theme.colors.header.text } };
   requestHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
@@ -186,13 +171,13 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     left: { style: 'medium', color: { argb: theme.colors.header.bg } },
     right: { style: 'medium', color: { argb: theme.colors.header.bg } }
   };
-  worksheet.getRow(9).height = 28;
+  worksheet.getRow(8).height = 28;
 
-  // Row 10: Empty
-  worksheet.getRow(10).height = 8;
+  // Row 9: Empty
+  worksheet.getRow(9).height = 8;
 
-  // Row 11: Information Request Headers
-  const headerRow = worksheet.getRow(11);
+  // Row 10: Information Request Headers
+  const headerRow = worksheet.getRow(10);
   headerRow.values = ['Item', 'Unit Price', 'MOQ', 'Lead Time', 'Incoterm'];
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
@@ -207,7 +192,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     };
   });
 
-  // Row 12: Product info row (for supplier to fill)
+  // Row 11: Product info row (for supplier to fill)
   const infoRow = worksheet.addRow([
     product.name,
     '_______________',
@@ -228,19 +213,84 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     };
   });
 
-  // Row 13: Empty
-  worksheet.getRow(13).height = 16;
+  // Row 12: Empty
+  let currentRow = 12;
+  worksheet.getRow(currentRow).height = 16;
+  currentRow++;
 
-  // Row 14: Additional Notes
-  worksheet.mergeCells('A14:E14');
-  const notesCell = worksheet.getCell('A14');
+  // Specifications Section
+  const specs = product.specs && product.specs.length > 0
+    ? product.specs.filter(spec => spec.value)
+    : [];
+
+  if (specs.length > 0) {
+    // Specifications Header
+    worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
+    const specsHeader = worksheet.getCell(`A${currentRow}`);
+    specsHeader.value = 'Specifications';
+    specsHeader.font = { name: 'Calibri', size: 12, bold: true, color: { argb: theme.colors.header.text } };
+    specsHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
+    specsHeader.alignment = { horizontal: 'left', vertical: 'middle' };
+    specsHeader.border = {
+      top: { style: 'medium', color: { argb: theme.colors.header.bg } },
+      bottom: { style: 'medium', color: { argb: theme.colors.header.bg } },
+      left: { style: 'medium', color: { argb: theme.colors.header.bg } },
+      right: { style: 'medium', color: { argb: theme.colors.header.bg } }
+    };
+    worksheet.getRow(currentRow).height = 25;
+    currentRow++;
+
+    // Spec rows (two columns: Spec Name | Spec Value)
+    specs.forEach(spec => {
+      const specRow = worksheet.addRow([spec.key, spec.value, '', '', '']);
+      specRow.height = 22;
+
+      // Spec name cell (column A)
+      const nameCell = specRow.getCell(1);
+      nameCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: theme.colors.infoRow.text } };
+      nameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.infoRow.bg } };
+      nameCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      nameCell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+
+      // Spec value cell (columns B-E merged)
+      worksheet.mergeCells(`B${currentRow}:E${currentRow}`);
+      const valueCell = specRow.getCell(2);
+      valueCell.font = { name: 'Calibri', size: 10 };
+      valueCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+      valueCell.alignment = { horizontal: 'left', vertical: 'middle' };
+      valueCell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+
+      currentRow++;
+    });
+
+    // Empty row after specs
+    worksheet.getRow(currentRow).height = 16;
+    currentRow++;
+  }
+
+  // Additional Notes
+  worksheet.mergeCells(`A${currentRow}:E${currentRow}`);
+  const notesCell = worksheet.getCell(`A${currentRow}`);
   notesCell.value = 'Additional Notes:';
   notesCell.font = { name: 'Calibri', size: 11, bold: true };
   notesCell.alignment = { horizontal: 'left', vertical: 'top' };
+  currentRow++;
 
-  // Row 15-17: Notes area
-  worksheet.mergeCells('A15:E17');
-  const notesArea = worksheet.getCell('A15');
+  // Notes area (3 rows)
+  const notesStartRow = currentRow;
+  const notesEndRow = currentRow + 2;
+  worksheet.mergeCells(`A${notesStartRow}:E${notesEndRow}`);
+  const notesArea = worksheet.getCell(`A${notesStartRow}`);
   notesArea.value = '';
   notesArea.border = {
     top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -248,9 +298,9 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(15).height = 20;
-  worksheet.getRow(16).height = 20;
-  worksheet.getRow(17).height = 20;
+  worksheet.getRow(notesStartRow).height = 20;
+  worksheet.getRow(notesStartRow + 1).height = 20;
+  worksheet.getRow(notesEndRow).height = 20;
 
   // Generate filename and export
   const filename = `RFQ_${product.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -541,7 +591,26 @@ function ProductDetail() {
               </div>
             )}
 
-            {product.description && (
+            {/* Specifications (or fallback to description) */}
+            {(product.specs && product.specs.length > 0) ? (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Specifications
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {product.specs.filter(spec => spec.value).map((spec, index) => (
+                    <div key={index} style={{ display: 'flex', gap: '8px', fontSize: '0.875rem' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--text-secondary)', minWidth: '100px' }}>
+                        {spec.key}:
+                      </span>
+                      <span style={{ color: 'var(--text-primary)' }}>
+                        {spec.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : product.description && (
               <div style={{ marginBottom: '20px' }}>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Description

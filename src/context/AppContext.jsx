@@ -151,6 +151,7 @@ export function AppProvider({ children }) {
         name: product.name,
         category: product.category || null,
         description: product.description || null,
+        specs: product.specs || [],
         status: product.status || 'draft', // Auto-created intents start as draft
         image_storage_path: product.image_storage_path || null,
         image_url: product.image_url || null
@@ -173,6 +174,11 @@ export function AppProvider({ children }) {
       category: product.category,
       description: product.description
     };
+
+    // Include specs if provided
+    if (product.specs !== undefined) {
+      updateData.specs = product.specs;
+    }
 
     // Include status if provided
     if (product.status !== undefined) {

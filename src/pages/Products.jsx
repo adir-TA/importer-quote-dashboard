@@ -18,13 +18,17 @@ function Products() {
   const [search, setSearch] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [formData, setFormData] = useState({ name: '', category: '', description: '' });
+  const [formData, setFormData] = useState({ name: '', category: '', description: '', specs: [] });
   const [quoteCounts, setQuoteCounts] = useState({});
   const [isUploadQuoteModalOpen, setIsUploadQuoteModalOpen] = useState(false);
 
   // Image upload state
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+
+  // Specs editor state
+  const [customFieldName, setCustomFieldName] = useState('');
+  const [customFieldValue, setCustomFieldValue] = useState('');
 
   // Category dropdown states (for modal)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -143,14 +147,39 @@ function Products() {
   const handleOpenModal = (product = null) => {
     if (product) {
       setEditingProduct(product);
-      setFormData({ name: product.name, category: product.category || '', description: product.description || '' });
+      // Initialize with existing specs or default structure
+      const initialSpecs = product.specs && product.specs.length > 0
+        ? product.specs
+        : [
+            { key: 'Weight', value: '' },
+            { key: 'Height', value: '' },
+            { key: 'Length', value: '' },
+            { key: 'Width', value: '' }
+          ];
+      setFormData({
+        name: product.name,
+        category: product.category || '',
+        description: product.description || '',
+        specs: initialSpecs
+      });
       // Set existing image preview if product has an image
       if (product.image_url) {
         setImagePreview(product.image_url);
       }
     } else {
       setEditingProduct(null);
-      setFormData({ name: '', category: '', description: '' });
+      // Initialize with default spec fields
+      setFormData({
+        name: '',
+        category: '',
+        description: '',
+        specs: [
+          { key: 'Weight', value: '' },
+          { key: 'Height', value: '' },
+          { key: 'Length', value: '' },
+          { key: 'Width', value: '' }
+        ]
+      });
     }
     setIsModalOpen(true);
   };
@@ -158,7 +187,7 @@ function Products() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ name: '', category: '', description: '' });
+    setFormData({ name: '', category: '', description: '', specs: [] });
     setShowCategoryDropdown(false);
     setCategorySearch('');
     setShowCreateCategory(false);
@@ -166,6 +195,8 @@ function Products() {
     setIsSubmitting(false); // Reset submission guard
     setSelectedImage(null); // Reset image state
     setImagePreview(null);
+    setCustomFieldName(''); // Reset custom field state
+    setCustomFieldValue('');
   };
 
   const handleSelectCategory = (category) => {
@@ -208,6 +239,40 @@ function Products() {
   const handleRemoveImage = () => {
     setSelectedImage(null);
     setImagePreview(null);
+  };
+
+  // Specs management handlers
+  const handleSpecChange = (index, value) => {
+    const updatedSpecs = [...formData.specs];
+    updatedSpecs[index] = { ...updatedSpecs[index], value };
+    setFormData({ ...formData, specs: updatedSpecs });
+  };
+
+  const handleAddCustomField = () => {
+    if (!customFieldName.trim()) {
+      alert('Please enter a field name');
+      return;
+    }
+
+    // Check for duplicate field names (case-insensitive)
+    const isDuplicate = formData.specs.some(
+      spec => spec.key.toLowerCase() === customFieldName.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      alert('A field with this name already exists');
+      return;
+    }
+
+    const newSpec = { key: customFieldName.trim(), value: customFieldValue.trim() };
+    setFormData({ ...formData, specs: [...formData.specs, newSpec] });
+    setCustomFieldName('');
+    setCustomFieldValue('');
+  };
+
+  const handleRemoveSpec = (index) => {
+    const updatedSpecs = formData.specs.filter((_, i) => i !== index);
+    setFormData({ ...formData, specs: updatedSpecs });
   };
 
   const handleSave = async () => {
@@ -1033,9 +1098,74 @@ function Products() {
                   )}
                 </div>
 
+                {/* Specifications Editor */}
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Target Specifications</label>
-                  <textarea className="form-input" rows={3} placeholder="Dimensions, material, target price range, quality requirements..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                  <label className="form-label">Specifications</label>
+
+                  {/* Spec fields */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {formData.specs.map((spec, index) => {
+                      const isDefaultField = ['Weight', 'Height', 'Length', 'Width'].includes(spec.key);
+                      return (
+                        <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <div style={{ minWidth: '100px', fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                            {spec.key}:
+                          </div>
+                          <input
+                            type="text"
+                            className="form-input"
+                            placeholder={`e.g., ${spec.key === 'Weight' ? '1.94kg' : spec.key === 'Height' ? '76cm' : spec.key === 'Length' ? '46cm' : spec.key === 'Width' ? '30cm' : 'Value'}`}
+                            value={spec.value}
+                            onChange={(e) => handleSpecChange(index, e.target.value)}
+                            style={{ flex: 1 }}
+                          />
+                          {!isDefaultField && (
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              onClick={() => handleRemoveSpec(index)}
+                              title="Remove field"
+                            >
+                              <X size={16} />
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+
+                    {/* Add custom field */}
+                    <div style={{ marginTop: '8px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        Add Custom Field
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Field name (e.g., Material)"
+                          value={customFieldName}
+                          onChange={(e) => setCustomFieldName(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                        <input
+                          type="text"
+                          className="form-input"
+                          placeholder="Value (e.g., Aluminum)"
+                          value={customFieldValue}
+                          onChange={(e) => setCustomFieldValue(e.target.value)}
+                          style={{ flex: 1 }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-secondary"
+                          onClick={handleAddCustomField}
+                          style={{ padding: '0 16px' }}
+                        >
+                          <Plus size={14} /> Add
+                        </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
