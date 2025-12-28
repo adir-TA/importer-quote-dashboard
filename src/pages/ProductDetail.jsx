@@ -223,57 +223,60 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   });
 
   // Embed image in the Image column (column C, row 11) if present
-  // Uses "image drives cell size" approach: preserve aspect ratio and adjust row height
   if (product.image_url) {
     try {
       const response = await fetch(product.image_url);
+      if (!response.ok) throw new Error('Failed to fetch image');
+
       const arrayBuffer = await response.arrayBuffer();
 
       // Get actual image dimensions
       const dimensions = await getImageDimensions(arrayBuffer);
 
+      // Determine image format from URL or default to PNG
+      let extension = 'png';
+      if (product.image_url.toLowerCase().includes('.jpg') || product.image_url.toLowerCase().includes('.jpeg')) {
+        extension = 'jpeg';
+      }
+
       const imageId = workbook.addImage({
         buffer: arrayBuffer,
-        extension: 'png',
+        extension: extension,
       });
 
-      // Excel column width is in characters, roughly 7 pixels per character
-      // Image column width is 20 chars = ~140 pixels
-      const targetWidthPx = 140;
-      const scale = Math.min(targetWidthPx / dimensions.width, 1); // Don't upscale
-      const scaledWidth = dimensions.width * scale;
-      const scaledHeight = dimensions.height * scale;
+      // Calculate scaling to fit within reasonable bounds
+      // Max width: 130px (fits well in 20-char column)
+      // Max height: 100px (keeps row size manageable)
+      const maxWidth = 130;
+      const maxHeight = 100;
 
-      // Excel row height is in points (1 point = 1.333 pixels approximately)
-      const rowHeightPoints = Math.ceil(scaledHeight / 1.333);
-      dataRow.height = Math.max(60, rowHeightPoints + 10); // Add padding
+      let targetWidth = dimensions.width;
+      let targetHeight = dimensions.height;
 
-      // Position image in cell C11 (col index 2, row index 10)
-      // Center it horizontally and vertically within the cell
-      const colWidthPx = 140;
-      const rowHeightPx = dataRow.height * 1.333;
-      const offsetX = (colWidthPx - scaledWidth) / 2;
-      const offsetY = (rowHeightPx - scaledHeight) / 2;
+      // Scale down if needed (preserve aspect ratio, never upscale)
+      if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
+        const widthRatio = maxWidth / dimensions.width;
+        const heightRatio = maxHeight / dimensions.height;
+        const ratio = Math.min(widthRatio, heightRatio);
 
-      // Convert to EMUs (English Metric Units): 1 pixel = 9525 EMUs
-      const emuPerPx = 9525;
+        targetWidth = Math.floor(dimensions.width * ratio);
+        targetHeight = Math.floor(dimensions.height * ratio);
+      }
 
+      // Adjust row height to fit image (Excel row height is in points, ~0.75 * pixels)
+      const rowHeightPt = Math.ceil(targetHeight * 0.75) + 8;
+      dataRow.height = Math.max(60, rowHeightPt);
+
+      // Insert image at column C (index 2), row 11 (index 10)
+      // Position with small margins for centering within cell
       worksheet.addImage(imageId, {
-        tl: {
-          col: 2,
-          row: 10,
-          colOff: Math.max(0, offsetX * emuPerPx),
-          rowOff: Math.max(0, offsetY * emuPerPx)
-        },
-        ext: {
-          width: scaledWidth * emuPerPx,
-          height: scaledHeight * emuPerPx
-        },
+        tl: { col: 2, row: 10 },
+        ext: { width: targetWidth, height: targetHeight },
         editAs: 'oneCell'
       });
     } catch (error) {
       console.error('Failed to embed image:', error);
-      // Image cell remains empty on error
+      // Image cell remains empty on error - don't break the export
     }
   }
 
