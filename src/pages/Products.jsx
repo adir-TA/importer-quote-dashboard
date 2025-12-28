@@ -39,6 +39,9 @@ function Products() {
   // Bulk selection
   const [selectedProducts, setSelectedProducts] = useState(new Set());
 
+  // Submission guard
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Load quote counts for all products
   useEffect(() => {
     const loadQuoteCounts = async () => {
@@ -151,6 +154,7 @@ function Products() {
     setCategorySearch('');
     setShowCreateCategory(false);
     setNewCategoryName('');
+    setIsSubmitting(false); // Reset submission guard
   };
 
   const handleSelectCategory = (category) => {
@@ -173,6 +177,11 @@ function Products() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) { alert('Please enter a buying intent name'); return; }
+
+    // Guard: prevent duplicate submissions
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
       if (editingProduct) {
         await actions.updateProduct({ ...editingProduct, ...formData });
@@ -188,6 +197,8 @@ function Products() {
     } catch (error) {
       console.error('Error saving buying intent:', error);
       alert('Error saving buying intent');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -906,8 +917,8 @@ function Products() {
               </div>
             </div>
             <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleCloseModal}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}><Check size={16} /> {editingProduct ? 'Update' : 'Save'}</button>
+              <button className="btn btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSave} disabled={isSubmitting}><Check size={16} /> {editingProduct ? 'Update' : 'Save'}</button>
             </div>
           </div>
         </div>
