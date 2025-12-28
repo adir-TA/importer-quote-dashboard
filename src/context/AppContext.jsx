@@ -151,7 +151,9 @@ export function AppProvider({ children }) {
         name: product.name,
         category: product.category || null,
         description: product.description || null,
-        status: product.status || 'draft' // Auto-created intents start as draft
+        status: product.status || 'draft', // Auto-created intents start as draft
+        image_storage_path: product.image_storage_path || null,
+        image_url: product.image_url || null
       })
       .select()
       .single();
@@ -175,6 +177,14 @@ export function AppProvider({ children }) {
     // Include status if provided
     if (product.status !== undefined) {
       updateData.status = product.status;
+    }
+
+    // Include image fields if provided
+    if (product.image_storage_path !== undefined) {
+      updateData.image_storage_path = product.image_storage_path;
+    }
+    if (product.image_url !== undefined) {
+      updateData.image_url = product.image_url;
     }
 
     const { data, error } = await supabase

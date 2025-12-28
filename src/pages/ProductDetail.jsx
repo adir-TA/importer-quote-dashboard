@@ -1,14 +1,269 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File, FileDown } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import DocumentsTab from '../components/DocumentsTab';
 import UploadDocumentModal from '../components/UploadDocumentModal';
+import ExcelJS from 'exceljs';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
+
+// RFQ Export Themes (reused from QuoteComparison)
+const RFQ_THEMES = {
+  vibrant: {
+    colors: {
+      title: { bg: 'FF0F172A', text: 'FFFFFFFF' },
+      imagePlaceholder: { bg: 'FFFCE7F3', text: 'FF9F1239', border: 'FFF43F5E' },
+      productName: { bg: 'FFE0E7FF', text: 'FF3730A3' },
+      category: { bg: 'FFE0E7FF', text: 'FF3730A3' },
+      date: { bg: 'FFDBEAFE', text: 'FF1E40AF' },
+      infoRow: { bg: 'FFF1F5F9', text: 'FF475569' },
+      header: { bg: 'FF1E293B', text: 'FFFFFFFF' }
+    }
+  }
+};
+
+async function generateRFQExcel(product, themeName = 'vibrant') {
+  const theme = RFQ_THEMES[themeName];
+
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'HA Tools';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('RFQ');
+
+  // Set column widths
+  worksheet.columns = [
+    { width: 15 },
+    { width: 25 },
+    { width: 25 },
+    { width: 25 },
+    { width: 20 }
+  ];
+
+  // Row 1: Title
+  worksheet.mergeCells('A1:E1');
+  const titleCell = worksheet.getCell('A1');
+  titleCell.value = 'REQUEST FOR QUOTATION (RFQ)';
+  titleCell.font = { name: 'Calibri', size: 20, bold: true, color: { argb: theme.colors.title.text } };
+  titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.title.bg } };
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  titleCell.border = {
+    bottom: { style: 'medium', color: { argb: theme.colors.title.bg } }
+  };
+  worksheet.getRow(1).height = 35;
+
+  // Row 2: Empty
+  worksheet.getRow(2).height = 8;
+
+  // Row 3-6: Product Image (if exists) or placeholder
+  if (product.image_url) {
+    try {
+      // Fetch the image
+      const response = await fetch(product.image_url);
+      const arrayBuffer = await response.arrayBuffer();
+      const imageId = workbook.addImage({
+        buffer: arrayBuffer,
+        extension: 'png',
+      });
+
+      // Add image to worksheet
+      worksheet.addImage(imageId, {
+        tl: { col: 0, row: 2 },
+        br: { col: 2.5, row: 6 },
+        editAs: 'oneCell'
+      });
+    } catch (error) {
+      console.error('Failed to embed image:', error);
+      // Fall back to placeholder
+      worksheet.mergeCells('A3:C6');
+      const imageCell = worksheet.getCell('A3');
+      imageCell.value = 'PRODUCT IMAGE';
+      imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
+      imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.imagePlaceholder.bg } };
+      imageCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      imageCell.border = {
+        top: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+        bottom: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+        left: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+        right: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } }
+      };
+      worksheet.getRow(3).height = 90;
+    }
+  } else {
+    worksheet.mergeCells('A3:C6');
+    const imageCell = worksheet.getCell('A3');
+    imageCell.value = 'PRODUCT IMAGE';
+    imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
+    imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.imagePlaceholder.bg } };
+    imageCell.alignment = { horizontal: 'center', vertical: 'middle' };
+    imageCell.border = {
+      top: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+      bottom: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+      left: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
+      right: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } }
+    };
+    worksheet.getRow(3).height = 90;
+  }
+
+  // Product name (row 3)
+  worksheet.mergeCells('D3:E3');
+  const productCell = worksheet.getCell('D3');
+  productCell.value = `Product: ${product.name}`;
+  productCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.productName.text } };
+  productCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.productName.bg } };
+  productCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  productCell.border = {
+    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+  };
+  worksheet.getRow(3).height = 22;
+
+  // Category (row 4)
+  worksheet.mergeCells('D4:E4');
+  const categoryCell = worksheet.getCell('D4');
+  categoryCell.value = `Category: ${product.category || 'General'}`;
+  categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.category.text } };
+  categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.category.bg } };
+  categoryCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  categoryCell.border = {
+    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+  };
+  worksheet.getRow(4).height = 22;
+
+  // Generated date (row 5)
+  worksheet.mergeCells('D5:E5');
+  const dateCell = worksheet.getCell('D5');
+  dateCell.value = `Generated: ${new Date().toLocaleDateString()}`;
+  dateCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.date.text } };
+  dateCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.date.bg } };
+  dateCell.alignment = { horizontal: 'left', vertical: 'middle' };
+  dateCell.border = {
+    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+  };
+  worksheet.getRow(5).height = 22;
+
+  // Description (row 6)
+  worksheet.mergeCells('D6:E6');
+  const descCell = worksheet.getCell('D6');
+  descCell.value = product.description || 'N/A';
+  descCell.font = { name: 'Calibri', size: 10, color: { argb: theme.colors.infoRow.text } };
+  descCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.infoRow.bg } };
+  descCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  descCell.border = {
+    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+  };
+  worksheet.getRow(6).height = 22;
+
+  // Empty rows
+  worksheet.getRow(7).height = 8;
+  worksheet.getRow(8).height = 8;
+
+  // Row 9: Request Header
+  worksheet.mergeCells('A9:E9');
+  const requestHeader = worksheet.getCell('A9');
+  requestHeader.value = 'Please provide your best quotation for the following:';
+  requestHeader.font = { name: 'Calibri', size: 12, bold: true, color: { argb: theme.colors.header.text } };
+  requestHeader.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
+  requestHeader.alignment = { horizontal: 'left', vertical: 'middle' };
+  requestHeader.border = {
+    top: { style: 'medium', color: { argb: theme.colors.header.bg } },
+    bottom: { style: 'medium', color: { argb: theme.colors.header.bg } },
+    left: { style: 'medium', color: { argb: theme.colors.header.bg } },
+    right: { style: 'medium', color: { argb: theme.colors.header.bg } }
+  };
+  worksheet.getRow(9).height = 28;
+
+  // Row 10: Empty
+  worksheet.getRow(10).height = 8;
+
+  // Row 11: Information Request Headers
+  const headerRow = worksheet.getRow(11);
+  headerRow.values = ['Item', 'Unit Price', 'MOQ', 'Lead Time', 'Incoterm'];
+  headerRow.height = 25;
+  headerRow.eachCell((cell) => {
+    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.header.text } };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+    };
+  });
+
+  // Row 12: Product info row (for supplier to fill)
+  const infoRow = worksheet.addRow([
+    product.name,
+    '_______________',
+    '_______________',
+    '_______________',
+    '_______________'
+  ]);
+  infoRow.height = 30;
+  infoRow.eachCell((cell, colNum) => {
+    cell.font = { name: 'Calibri', size: 11 };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+    };
+  });
+
+  // Row 13: Empty
+  worksheet.getRow(13).height = 16;
+
+  // Row 14: Additional Notes
+  worksheet.mergeCells('A14:E14');
+  const notesCell = worksheet.getCell('A14');
+  notesCell.value = 'Additional Notes:';
+  notesCell.font = { name: 'Calibri', size: 11, bold: true };
+  notesCell.alignment = { horizontal: 'left', vertical: 'top' };
+
+  // Row 15-17: Notes area
+  worksheet.mergeCells('A15:E17');
+  const notesArea = worksheet.getCell('A15');
+  notesArea.value = '';
+  notesArea.border = {
+    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+  };
+  worksheet.getRow(15).height = 20;
+  worksheet.getRow(16).height = 20;
+  worksheet.getRow(17).height = 20;
+
+  // Generate filename and export
+  const filename = `RFQ_${product.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
 
 function ProductDetail() {
   const { id } = useParams();
@@ -172,6 +427,9 @@ function ProductDetail() {
               Compare Quotes
             </button>
           )}
+          <button className="btn btn-secondary" onClick={() => generateRFQExcel(product)}>
+            <FileDown size={16} /> Generate RFQ
+          </button>
           <button className="btn btn-secondary" onClick={() => setIsUploadModalOpen(true)}>
             <Upload size={16} /> Upload Quote
           </button>
@@ -242,6 +500,27 @@ function ProductDetail() {
             }}>
               Product Details
             </h3>
+
+            {/* Product Image Preview */}
+            {product.image_url && (
+              <div style={{ marginBottom: '20px' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Product Image
+                </div>
+                <img
+                  src={product.image_url}
+                  alt={product.name}
+                  style={{
+                    maxWidth: '200px',
+                    maxHeight: '200px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    objectFit: 'contain',
+                    background: 'white'
+                  }}
+                />
+              </div>
+            )}
 
             {product.category && (
               <div style={{ marginBottom: '20px' }}>

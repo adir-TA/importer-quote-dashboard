@@ -1,11 +1,12 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch } from '../utils/helpers';
+import { supabase } from '../lib/supabase';
 
 function Products() {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ function Products() {
   const [formData, setFormData] = useState({ name: '', category: '', description: '' });
   const [quoteCounts, setQuoteCounts] = useState({});
   const [isUploadQuoteModalOpen, setIsUploadQuoteModalOpen] = useState(false);
+
+  // Image upload state
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   // Category dropdown states (for modal)
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
@@ -139,6 +144,10 @@ function Products() {
     if (product) {
       setEditingProduct(product);
       setFormData({ name: product.name, category: product.category || '', description: product.description || '' });
+      // Set existing image preview if product has an image
+      if (product.image_url) {
+        setImagePreview(product.image_url);
+      }
     } else {
       setEditingProduct(null);
       setFormData({ name: '', category: '', description: '' });
@@ -155,6 +164,8 @@ function Products() {
     setShowCreateCategory(false);
     setNewCategoryName('');
     setIsSubmitting(false); // Reset submission guard
+    setSelectedImage(null); // Reset image state
+    setImagePreview(null);
   };
 
   const handleSelectCategory = (category) => {
@@ -175,6 +186,30 @@ function Products() {
     setCategorySearch('');
   };
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
+    }
+
+    setSelectedImage(file);
+    // Create preview URL
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
   const handleSave = async () => {
     if (!formData.name.trim()) { alert('Please enter a buying intent name'); return; }
 
@@ -183,10 +218,42 @@ function Products() {
 
     setIsSubmitting(true);
     try {
+      let imageData = {};
+
+      // Upload image if a new one was selected
+      if (selectedImage) {
+        const { user } = await supabase.auth.getUser();
+        if (!user) throw new Error('User not authenticated');
+
+        // Generate unique filename
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `${crypto.randomUUID()}.${fileExt}`;
+        const storagePath = `${user.user.id}/products/${fileName}`;
+
+        // Upload to storage
+        const { error: uploadError } = await supabase.storage
+          .from('business-cards') // Reuse existing bucket
+          .upload(storagePath, selectedImage);
+
+        if (uploadError) throw uploadError;
+
+        // Generate public URL
+        const { data: urlData } = supabase.storage
+          .from('business-cards')
+          .getPublicUrl(storagePath);
+
+        imageData = {
+          image_storage_path: storagePath,
+          image_url: urlData?.publicUrl || null
+        };
+      }
+
+      const productData = { ...formData, ...imageData };
+
       if (editingProduct) {
-        await actions.updateProduct({ ...editingProduct, ...formData });
+        await actions.updateProduct({ ...editingProduct, ...productData });
       } else {
-        const newProduct = await actions.addProduct(formData);
+        const newProduct = await actions.addProduct(productData);
         if (newProduct?.id) {
           handleCloseModal();
           navigate(`/products/${newProduct.id}`);
@@ -910,6 +977,56 @@ function Products() {
                     </div>
                   )}
                 </div>
+
+                {/* Image Upload (Optional) */}
+                <div className="form-group">
+                  <label className="form-label">
+                    <ImageIcon size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                    Product Image (Optional)
+                  </label>
+                  {imagePreview ? (
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{
+                          maxWidth: '120px',
+                          maxHeight: '120px',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          objectFit: 'contain'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={handleRemoveImage}
+                        style={{ padding: '6px 12px', fontSize: '0.875rem' }}
+                      >
+                        <X size={14} /> Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageSelect}
+                        style={{ display: 'none' }}
+                        id="product-image-upload"
+                      />
+                      <label
+                        htmlFor="product-image-upload"
+                        className="btn btn-secondary"
+                        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Upload size={14} /> Choose Image
+                      </label>
+                      <p className="form-hint">Upload an image to help identify this product</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">Target Specifications</label>
                   <textarea className="form-input" rows={3} placeholder="Dimensions, material, target price range, quality requirements..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
