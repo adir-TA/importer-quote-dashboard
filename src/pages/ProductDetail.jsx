@@ -25,7 +25,9 @@ async function getImageDimensions(buffer) {
   });
 }
 
-async function generateRFQExcel(product, themeName = 'vibrant') {
+export async function generateRFQExcel(products, themeName = 'vibrant') {
+  // Handle both single product and array of products
+  const productList = Array.isArray(products) ? products : [products];
   const theme = EXPORT_THEMES[themeName];
 
   const workbook = new ExcelJS.Workbook();
@@ -34,28 +36,27 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
 
   const worksheet = workbook.addWorksheet('RFQ');
 
-  // Get specs with default order: Weight, Height, Length, Width, then custom fields
-  const specs = product.specs && product.specs.length > 0
-    ? product.specs.filter(spec => spec.value)
-    : [];
-
+  // Collect all unique specs from all products (for column headers)
   const defaultKeys = ['Weight', 'Height', 'Length', 'Width'];
-  const orderedSpecs = [];
-  const seen = new Set();
+  const allSpecKeys = new Set();
 
-  // Add default specs in order
-  defaultKeys.forEach(key => {
-    const spec = specs.find(s => s.key.toLowerCase() === key.toLowerCase());
-    if (spec) {
-      orderedSpecs.push(spec);
-      seen.add(spec.key.toLowerCase());
-    }
+  productList.forEach(product => {
+    const specs = product.specs && product.specs.length > 0
+      ? product.specs.filter(spec => spec.value)
+      : [];
+    specs.forEach(spec => allSpecKeys.add(spec.key));
   });
 
-  // Add custom specs
-  specs.forEach(spec => {
-    if (!seen.has(spec.key.toLowerCase())) {
-      orderedSpecs.push(spec);
+  // Order specs: default keys first, then custom
+  const orderedSpecKeys = [];
+  defaultKeys.forEach(key => {
+    if (Array.from(allSpecKeys).some(k => k.toLowerCase() === key.toLowerCase())) {
+      orderedSpecKeys.push(key);
+    }
+  });
+  Array.from(allSpecKeys).forEach(key => {
+    if (!defaultKeys.some(dk => dk.toLowerCase() === key.toLowerCase())) {
+      orderedSpecKeys.push(key);
     }
   });
 
@@ -64,7 +65,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
 
   // Calculate columns: Item Name | Category | Image | specs... | factory fields
   const baseColumns = 3; // Item, Category, Image
-  const totalColumns = baseColumns + orderedSpecs.length + factoryColumns.length;
+  const totalColumns = baseColumns + orderedSpecKeys.length + factoryColumns.length;
 
   // Set column widths dynamically
   const columnWidths = [
@@ -72,7 +73,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     { width: 15 },  // Category
     { width: 20 }   // Image
   ];
-  orderedSpecs.forEach(() => columnWidths.push({ width: 15 }));
+  orderedSpecKeys.forEach(() => columnWidths.push({ width: 15 }));
   factoryColumns.forEach(() => columnWidths.push({ width: 18 })); // Factory columns slightly wider
   worksheet.columns = columnWidths;
 
@@ -104,10 +105,12 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   // Row 2: Empty
   worksheet.getRow(2).height = 8;
 
-  // Row 3: Product info
+  // Row 3: Product count info
   worksheet.mergeCells(`A3:${lastCol}3`);
   const productCell = worksheet.getCell('A3');
-  productCell.value = `Product: ${product.name}`;
+  productCell.value = productList.length === 1
+    ? `Product: ${productList[0].name}`
+    : `Products: ${productList.length} items`;
   productCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.productName.text } };
   productCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.productName.bg } };
   productCell.alignment = { horizontal: 'left', vertical: 'middle' };
@@ -119,20 +122,24 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   };
   worksheet.getRow(3).height = 22;
 
-  // Row 4: Category
-  worksheet.mergeCells(`A4:${lastCol}4`);
-  const categoryCell = worksheet.getCell('A4');
-  categoryCell.value = `Category: ${product.category || 'General'}`;
-  categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.category.text } };
-  categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.category.bg } };
-  categoryCell.alignment = { horizontal: 'left', vertical: 'middle' };
-  categoryCell.border = {
-    top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-    right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-  };
-  worksheet.getRow(4).height = 22;
+  // Row 4: Category (only show if single product, otherwise skip)
+  if (productList.length === 1) {
+    worksheet.mergeCells(`A4:${lastCol}4`);
+    const categoryCell = worksheet.getCell('A4');
+    categoryCell.value = `Category: ${productList[0].category || 'General'}`;
+    categoryCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.category.text } };
+    categoryCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.category.bg } };
+    categoryCell.alignment = { horizontal: 'left', vertical: 'middle' };
+    categoryCell.border = {
+      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+      right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+    };
+    worksheet.getRow(4).height = 22;
+  } else {
+    worksheet.getRow(4).height = 8;
+  }
 
   // Row 5: Generated date
   worksheet.mergeCells(`A5:${lastCol}5`);
@@ -174,7 +181,7 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   // Row 10: Column headers - Item Name | Category | Image | specs... | factory fields
   const headerRow = worksheet.getRow(10);
   const headerValues = ['Item Name', 'Category', 'Image'];
-  orderedSpecs.forEach(spec => headerValues.push(spec.key));
+  orderedSpecKeys.forEach(specKey => headerValues.push(specKey));
   factoryColumns.forEach(col => headerValues.push(col)); // Add factory columns
   headerRow.values = headerValues;
   headerRow.height = 25;
@@ -190,84 +197,111 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
     };
   });
 
-  // Row 11: Data row with product info, spec values, and empty factory fields
-  const dataRowValues = [product.name, product.category || 'General', ''];
-  orderedSpecs.forEach(spec => dataRowValues.push(spec.value));
-  factoryColumns.forEach(() => dataRowValues.push('')); // Empty cells for factory to fill
-  const dataRow = worksheet.addRow(dataRowValues);
-  dataRow.height = 60; // Initial height, will adjust if image is present
-  dataRow.eachCell((cell) => {
-    cell.font = { name: 'Calibri', size: 11 };
-    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
-    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
-    cell.border = {
-      top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
-      right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
-    };
-  });
+  // Data rows: one row per product (starting at row 11)
+  let currentRowIndex = 10; // Excel row index (0-based), row 11 in Excel
 
-  // Embed image in the Image column (column C, row 11) if present
-  if (product.image_url) {
-    try {
-      const response = await fetch(product.image_url);
-      if (!response.ok) throw new Error('Failed to fetch image');
+  for (const product of productList) {
+    // Get specs for this product
+    const productSpecs = product.specs && product.specs.length > 0
+      ? product.specs.filter(spec => spec.value)
+      : [];
 
-      const arrayBuffer = await response.arrayBuffer();
+    // Create a map of spec key -> value for this product
+    const specMap = new Map();
+    productSpecs.forEach(spec => {
+      specMap.set(spec.key, spec.value);
+    });
 
-      // Get actual image dimensions
-      const dimensions = await getImageDimensions(arrayBuffer);
+    // Build row values: Item Name | Category | Image | spec values | factory fields
+    const dataRowValues = [product.name, product.category || 'General', ''];
 
-      // Determine image format from URL or default to PNG
-      let extension = 'png';
-      if (product.image_url.toLowerCase().includes('.jpg') || product.image_url.toLowerCase().includes('.jpeg')) {
-        extension = 'jpeg';
+    // Add spec values in order (use empty string if spec doesn't exist for this product)
+    orderedSpecKeys.forEach(specKey => {
+      const value = Array.from(specMap.entries()).find(
+        ([key]) => key.toLowerCase() === specKey.toLowerCase()
+      )?.[1] || '';
+      dataRowValues.push(value);
+    });
+
+    // Add empty factory columns
+    factoryColumns.forEach(() => dataRowValues.push(''));
+
+    const dataRow = worksheet.addRow(dataRowValues);
+    dataRow.height = 60; // Initial height, will adjust if image is present
+    dataRow.eachCell((cell) => {
+      cell.font = { name: 'Calibri', size: 11 };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+      cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
+        right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
+      };
+    });
+
+    // Embed image in the Image column (column C) if present
+    if (product.image_url) {
+      try {
+        const response = await fetch(product.image_url);
+        if (!response.ok) throw new Error('Failed to fetch image');
+
+        const arrayBuffer = await response.arrayBuffer();
+
+        // Get actual image dimensions
+        const dimensions = await getImageDimensions(arrayBuffer);
+
+        // Determine image format from URL or default to PNG
+        let extension = 'png';
+        if (product.image_url.toLowerCase().includes('.jpg') || product.image_url.toLowerCase().includes('.jpeg')) {
+          extension = 'jpeg';
+        }
+
+        const imageId = workbook.addImage({
+          buffer: arrayBuffer,
+          extension: extension,
+        });
+
+        // Calculate scaling to fit within reasonable bounds
+        // Max width: 130px (fits well in 20-char column)
+        // Max height: 100px (keeps row size manageable)
+        const maxWidth = 130;
+        const maxHeight = 100;
+
+        let targetWidth = dimensions.width;
+        let targetHeight = dimensions.height;
+
+        // Scale down if needed (preserve aspect ratio, never upscale)
+        if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
+          const widthRatio = maxWidth / dimensions.width;
+          const heightRatio = maxHeight / dimensions.height;
+          const ratio = Math.min(widthRatio, heightRatio);
+
+          targetWidth = Math.floor(dimensions.width * ratio);
+          targetHeight = Math.floor(dimensions.height * ratio);
+        }
+
+        // Adjust row height to fit image (Excel row height is in points, ~0.75 * pixels)
+        const rowHeightPt = Math.ceil(targetHeight * 0.75) + 8;
+        dataRow.height = Math.max(60, rowHeightPt);
+
+        // Insert image at column C (index 2), current row
+        worksheet.addImage(imageId, {
+          tl: { col: 2, row: currentRowIndex },
+          ext: { width: targetWidth, height: targetHeight },
+          editAs: 'oneCell'
+        });
+      } catch (error) {
+        console.error(`Failed to embed image for ${product.name}:`, error);
+        // Image cell remains empty on error - don't break the export
       }
-
-      const imageId = workbook.addImage({
-        buffer: arrayBuffer,
-        extension: extension,
-      });
-
-      // Calculate scaling to fit within reasonable bounds
-      // Max width: 130px (fits well in 20-char column)
-      // Max height: 100px (keeps row size manageable)
-      const maxWidth = 130;
-      const maxHeight = 100;
-
-      let targetWidth = dimensions.width;
-      let targetHeight = dimensions.height;
-
-      // Scale down if needed (preserve aspect ratio, never upscale)
-      if (dimensions.width > maxWidth || dimensions.height > maxHeight) {
-        const widthRatio = maxWidth / dimensions.width;
-        const heightRatio = maxHeight / dimensions.height;
-        const ratio = Math.min(widthRatio, heightRatio);
-
-        targetWidth = Math.floor(dimensions.width * ratio);
-        targetHeight = Math.floor(dimensions.height * ratio);
-      }
-
-      // Adjust row height to fit image (Excel row height is in points, ~0.75 * pixels)
-      const rowHeightPt = Math.ceil(targetHeight * 0.75) + 8;
-      dataRow.height = Math.max(60, rowHeightPt);
-
-      // Insert image at column C (index 2), row 11 (index 10)
-      // Position with small margins for centering within cell
-      worksheet.addImage(imageId, {
-        tl: { col: 2, row: 10 },
-        ext: { width: targetWidth, height: targetHeight },
-        editAs: 'oneCell'
-      });
-    } catch (error) {
-      console.error('Failed to embed image:', error);
-      // Image cell remains empty on error - don't break the export
     }
+
+    currentRowIndex++; // Move to next row for next product
   }
 
   // Empty row after data
-  let currentRow = 12;
+  let currentRow = currentRowIndex + 1;
   worksheet.getRow(currentRow).height = 16;
   currentRow++;
 
@@ -296,7 +330,9 @@ async function generateRFQExcel(product, themeName = 'vibrant') {
   worksheet.getRow(notesEndRow).height = 20;
 
   // Generate filename and export
-  const filename = `RFQ_${product.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+  const filename = productList.length === 1
+    ? `RFQ_${productList[0].name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
+    : `RFQ_${productList.length}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
 
   const buffer = await workbook.xlsx.writeBuffer();
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

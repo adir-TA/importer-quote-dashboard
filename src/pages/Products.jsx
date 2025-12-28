@@ -1,12 +1,14 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
+import { EXPORT_THEMES } from '../utils/exportThemes';
+import { generateRFQExcel } from './ProductDetail';
 
 function Products() {
   const navigate = useNavigate();
@@ -47,6 +49,10 @@ function Products() {
 
   // Bulk selection
   const [selectedProducts, setSelectedProducts] = useState(new Set());
+
+  // RFQ export state
+  const [showRFQThemeSelector, setShowRFQThemeSelector] = useState(false);
+  const [selectedRFQTheme, setSelectedRFQTheme] = useState('vibrant');
 
   // Submission guard
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -647,6 +653,28 @@ function Products() {
                   {selectedProducts.size} Selected
                 </div>
                 <button
+                  onClick={() => setShowRFQThemeSelector(true)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <FileDown size={16} />
+                  Generate RFQ ({selectedProducts.size})
+                </button>
+                <button
                   onClick={handleBulkDelete}
                   style={{
                     width: '100%',
@@ -662,6 +690,7 @@ function Products() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
+                    marginTop: '8px',
                   }}
                 >
                   <Trash2 size={16} />
@@ -1172,6 +1201,80 @@ function Products() {
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave} disabled={isSubmitting}><Check size={16} /> {editingProduct ? 'Update' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* RFQ Theme Selection Modal */}
+      {showRFQThemeSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            maxWidth: '900px',
+            width: '90%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '24px 32px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                  Choose RFQ Export Theme
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                  Generating RFQ for {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''}
+                </p>
+              </div>
+              <button onClick={() => setShowRFQThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}>
+                <X size={24} color="#64748b" />
+              </button>
+            </div>
+            <div style={{ display: 'flex', overflow: 'hidden', flex: 1 }}>
+              <div style={{ width: '280px', borderRight: '1px solid #e5e7eb', padding: '24px 16px', background: '#f8fafc', overflow: 'auto' }}>
+                {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
+                  <button key={key} onClick={() => setSelectedRFQTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedRFQTheme === key ? '#eff6ff' : 'white', border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {selectedRFQTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b', marginBottom: '4px' }}>{theme.name}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>{theme.description}</div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: '4px', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: '#64748b' }}>
+                  <FileDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>Multi-Item RFQ Export</div>
+                  <div style={{ fontSize: '0.875rem', marginTop: '8px' }}>Excel file will include {selectedProducts.size} buying intent{selectedProducts.size > 1 ? 's' : ''}</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '20px 32px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setShowRFQThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '0.95rem', color: '#475569' }}>Cancel</button>
+              <button onClick={async () => { const selectedProductList = Array.from(selectedProducts).map(id => products.find(p => p.id === id)).filter(Boolean); await generateRFQExcel(selectedProductList, selectedRFQTheme); setShowRFQThemeSelector(false); }} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'white', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileDown size={18} />Export with {EXPORT_THEMES[selectedRFQTheme].name}
+              </button>
             </div>
           </div>
         </div>
