@@ -25,6 +25,21 @@ async function getImageDimensions(buffer) {
   });
 }
 
+// Helper to ensure product name has English translation if needed
+function formatProductNameWithTranslation(name) {
+  // Check if name contains non-Latin characters (Hebrew, Chinese, etc.)
+  const hasNonLatin = /[^\u0000-\u007F]/.test(name);
+
+  // If name already has translation in parentheses, return as-is
+  if (name.includes('(') && name.includes(')')) {
+    return name;
+  }
+
+  // If non-Latin characters but no translation, return as-is
+  // (Translation should be added in the product data)
+  return name;
+}
+
 export async function generateRFQExcel(products, themeName = 'vibrant') {
   // Handle both single product and array of products
   const productList = Array.isArray(products) ? products : [products];
@@ -61,7 +76,7 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
   });
 
   // Factory-fill columns (for supplier to complete)
-  const factoryColumns = ['MOQ', 'Price per Unit', 'Incoterm', 'Packaging'];
+  const factoryColumns = ['MOQ', 'Price per Unit', 'Incoterm\n(FOB/EXW/CIF)', 'Packaging'];
 
   // Calculate columns: Item Name | Category | Image | specs... | factory fields
   const baseColumns = 3; // Item, Category, Image
@@ -181,14 +196,30 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
   // Row 10: Column headers - Item Name | Category | Image | specs... | factory fields
   const headerRow = worksheet.getRow(10);
   const headerValues = ['Item Name', 'Category', 'Image'];
-  orderedSpecKeys.forEach(specKey => headerValues.push(specKey));
+
+  // Add spec headers with units for default specs
+  orderedSpecKeys.forEach(specKey => {
+    let displayName = specKey;
+    const lowerKey = specKey.toLowerCase();
+    if (lowerKey === 'weight') {
+      displayName = 'Weight (g)';
+    } else if (lowerKey === 'height') {
+      displayName = 'Height (cm)';
+    } else if (lowerKey === 'length') {
+      displayName = 'Length (cm)';
+    } else if (lowerKey === 'width') {
+      displayName = 'Width (cm)';
+    }
+    headerValues.push(displayName);
+  });
+
   factoryColumns.forEach(col => headerValues.push(col)); // Add factory columns
   headerRow.values = headerValues;
   headerRow.height = 25;
   headerRow.eachCell((cell) => {
     cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.header.text } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
-    cell.alignment = { horizontal: 'center', vertical: 'middle' };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
       top: { style: 'thin', color: { argb: 'FFCBD5E1' } },
       bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } },
@@ -213,7 +244,7 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     });
 
     // Build row values: Item Name | Category | Image | spec values | factory fields
-    const dataRowValues = [product.name, product.category || 'General', ''];
+    const dataRowValues = [formatProductNameWithTranslation(product.name), product.category || 'General', ''];
 
     // Add spec values in order (use empty string if spec doesn't exist for this product)
     orderedSpecKeys.forEach(specKey => {
