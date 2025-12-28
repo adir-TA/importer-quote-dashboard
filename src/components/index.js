@@ -18,3 +18,4 @@ export { default as QuoteUploadModal } from './QuoteUploadModal';
 export { default as MultiItemQuoteUploadModal } from './MultiItemQuoteUploadModal';
 export { default as CustomSelect } from './CustomSelect';
 export { default as GlobalSearch } from './GlobalSearch';
+export { default as BuyingIntentCommandSelect } from './BuyingIntentCommandSelect';

@@ -1,10 +1,10 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Package, FileText, Calculator, GitCompare, Plus, ArrowRight, TrendingDown, CheckCircle,
-  ChevronDown, Search, X, Check
+import {
+  Package, FileText, Calculator, GitCompare, Plus, ArrowRight, TrendingDown, CheckCircle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { BuyingIntentCommandSelect } from '../components';
 
 // Formatting helper (display only)
 const formatCurrency = (amount) => {
@@ -19,113 +19,7 @@ const formatNumber = (num) => {
   return new Intl.NumberFormat('en-US').format(num);
 };
 
-// ============================================
-// PRODUCT SELECTOR (same style as comparison flow)
-// ============================================
-function ProductSelector({ products, quotes, selectedProductId, onSelect }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  const productsWithCounts = useMemo(() => {
-    return products.map(product => ({
-      ...product,
-      quoteCount: quotes.filter(q => q.product_id === product.id).length,
-    }));
-  }, [products, quotes]);
-
-  const filteredProducts = useMemo(() => {
-    if (!searchTerm.trim()) return productsWithCounts;
-    const term = searchTerm.toLowerCase();
-    return productsWithCounts.filter(p => p.name.toLowerCase().includes(term));
-  }, [productsWithCounts, searchTerm]);
-
-  const selectedProduct = productsWithCounts.find(p => p.id === selectedProductId);
-
-  return (
-    <div className="product-selector" ref={dropdownRef} style={{ maxWidth: '100%' }}>
-      <button 
-        className="product-selector-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        type="button"
-      >
-        <Package size={18} className="trigger-icon" />
-        <span className="trigger-text">
-          {selectedProduct ? (
-            <>
-              {selectedProduct.name}
-              <span className={`quote-count ${selectedProduct.quoteCount === 0 ? 'muted' : ''}`}>
-                ({selectedProduct.quoteCount} {selectedProduct.quoteCount === 1 ? 'quote' : 'quotes'})
-              </span>
-            </>
-          ) : (
-            <span style={{ color: 'var(--text-muted)' }}>Select a buying intent...</span>
-          )}
-        </span>
-        <ChevronDown size={18} className={`trigger-chevron ${isOpen ? 'open' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div className="product-selector-dropdown">
-          <div className="product-selector-search">
-            <Search size={16} className="search-icon" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search buying intents..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            {searchTerm && (
-              <button className="search-clear" onClick={() => setSearchTerm('')} type="button">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-          <div className="product-selector-options">
-            {filteredProducts.length === 0 ? (
-              <div className="product-selector-empty">No buying intents found</div>
-            ) : (
-              filteredProducts.map(product => (
-                <button
-                  key={product.id}
-                  className={`product-option ${product.id === selectedProductId ? 'selected' : ''}`}
-                  onClick={() => { onSelect(product.id); setIsOpen(false); setSearchTerm(''); }}
-                  type="button"
-                >
-                  <span className="option-name">{product.name}</span>
-                  <span className={`option-count ${product.quoteCount === 0 ? 'muted' : ''}`}>
-                    ({product.quoteCount} {product.quoteCount === 1 ? 'quote' : 'quotes'})
-                  </span>
-                  {product.id === selectedProductId && <Check size={16} className="option-check" />}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+// ProductSelector removed - now using BuyingIntentCommandSelect
 
 // ============================================
 // MAIN DASHBOARD
@@ -384,11 +278,12 @@ function Dashboard() {
             }}>
               Select Buying Intent
             </label>
-            <ProductSelector
-              products={products}
-              quotes={quotes}
-              selectedProductId={selectedProductId}
-              onSelect={setSelectedProductId}
+            <BuyingIntentCommandSelect
+              buyingIntents={products}
+              value={selectedProductId}
+              onChange={setSelectedProductId}
+              quoteCounts={quoteCounts}
+              placeholder="Select a buying intent..."
             />
           </div>
 

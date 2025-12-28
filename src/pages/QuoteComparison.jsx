@@ -3,9 +3,10 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, FileSpreadsheet, FileText, Sparkles,
   TrendingDown, MessageSquare, Trophy, X, Check, CheckCircle2,
-  FileDown, Calculator, Package, ChevronDown, Search, AlertCircle, AlertTriangle
+  FileDown, Calculator, Package, AlertCircle, AlertTriangle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { BuyingIntentCommandSelect } from '../components';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 
@@ -67,169 +68,7 @@ Best regards,
   },
 };
 
-// ============================================
-// SEARCHABLE PRODUCT SELECTOR
-// ============================================
-function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteCounts }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef(null);
-  const inputRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (isOpen && inputRef.current) {
-      inputRef.current.focus();
-    }
-  }, [isOpen]);
-
-  const productsWithCounts = useMemo(() => {
-    return products.map(product => ({
-      ...product,
-      quoteCount: quoteCounts[product.id] || 0,
-    }));
-  }, [products, quoteCounts]);
-
-  const filteredProducts = useMemo(() => {
-    // Exclude the currently selected product from dropdown to avoid duplication
-    const availableProducts = productsWithCounts.filter(p => p.id !== selectedProductId);
-
-    if (!searchTerm.trim()) return availableProducts;
-    const term = searchTerm.toLowerCase();
-    return availableProducts.filter(p =>
-      p.name.toLowerCase().includes(term) ||
-      (p.category && p.category.toLowerCase().includes(term))
-    );
-  }, [productsWithCounts, searchTerm, selectedProductId]);
-
-  // Group by category
-  const groupedProducts = useMemo(() => {
-    const groups = {};
-    filteredProducts.forEach(product => {
-      const cat = product.category || 'Uncategorized';
-      if (!groups[cat]) groups[cat] = [];
-      groups[cat].push(product);
-    });
-    return groups;
-  }, [filteredProducts]);
-
-  const selectedProduct = productsWithCounts.find(p => p.id === selectedProductId);
-
-  return (
-    <div className="product-selector" ref={dropdownRef}>
-      <button
-        className="product-selector-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        type="button"
-      >
-        <Package size={18} className="trigger-icon" />
-        <span className="trigger-text">
-          {selectedProduct ? (
-            <>
-              {selectedProduct.name}
-              <span className={`quote-count ${selectedProduct.quoteCount === 0 ? 'muted' : ''}`}>
-                ({selectedProduct.quoteCount} {selectedProduct.quoteCount === 1 ? 'quote' : 'quotes'})
-              </span>
-            </>
-          ) : (
-            <span style={{ color: 'var(--text-muted)' }}>Select a buying intent to compare...</span>
-          )}
-        </span>
-        <ChevronDown size={18} className={`trigger-chevron ${isOpen ? 'open' : ''}`} />
-      </button>
-
-      {isOpen && (
-        <div className="product-selector-dropdown" style={{ maxHeight: '500px', overflowY: 'auto' }}>
-          <div className="product-selector-search">
-            <Search size={16} className="search-icon" />
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Search by name or category..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            {searchTerm && (
-              <button className="search-clear" onClick={() => setSearchTerm('')} type="button">
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          <div className="product-selector-options">
-            {filteredProducts.length === 0 ? (
-              <div className="product-selector-empty">
-                {searchTerm ? (
-                  <>
-                    No other buying intents found
-                    <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
-                      Try a different search term
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    No other buying intents available
-                    <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
-                      Currently viewing: {selectedProduct?.name}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
-              Object.entries(groupedProducts).map(([category, categoryProducts]) => (
-                <div key={category}>
-                  <div style={{
-                    padding: '10px 16px',
-                    background: 'var(--bg-secondary)',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: 'var(--text-secondary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
-                    position: 'sticky',
-                    top: 0,
-                    zIndex: 5,
-                    borderTop: '1px solid var(--border-light)',
-                  }}>
-                    {category}
-                  </div>
-                  {categoryProducts.map(product => (
-                    <button
-                      key={product.id}
-                      className="product-option"
-                      onClick={() => {
-                        onSelect(product.id);
-                        setIsOpen(false);
-                        setSearchTerm('');
-                      }}
-                      type="button"
-                    >
-                      <span className="option-name">{product.name}</span>
-                      <span className={`option-count ${product.quoteCount === 0 ? 'muted' : ''}`}>
-                        {product.quoteCount}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+// ProductSelector removed - now using BuyingIntentCommandSelect
 
 
 // ============================================
@@ -725,12 +564,12 @@ function QuoteComparison() {
               Select Buying Intent
             </h3>
 
-            <ProductSelector
-              products={products}
-              quotes={[]}
-              selectedProductId={selectedProductId}
-              onSelect={handleProductChange}
+            <BuyingIntentCommandSelect
+              buyingIntents={products}
+              value={selectedProductId}
+              onChange={handleProductChange}
               quoteCounts={quoteCounts}
+              placeholder="Select a buying intent to compare..."
             />
 
             {!selectedProductId && (
