@@ -109,26 +109,26 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
 
   const lastCol = getColLetter(totalColumns);
 
-  // Row 1: Title (compact)
+  // Row 1: Title (compact, professional)
   worksheet.mergeCells(`A1:${lastCol}1`);
   const titleCell = worksheet.getCell('A1');
   titleCell.value = 'REQUEST FOR QUOTATION (RFQ)';
-  titleCell.font = { name: 'Calibri', size: 18, bold: true, color: { argb: theme.colors.title.text } };
+  titleCell.font = { name: 'Calibri', size: 16, bold: true, color: { argb: theme.colors.title.text } };
   titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.title.bg } };
   titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
   titleCell.border = {
     bottom: { style: 'medium', color: { argb: theme.colors.title.bg } }
   };
-  worksheet.getRow(1).height = 28;
+  worksheet.getRow(1).height = 24;
 
-  // Row 2: Compact metadata line
+  // Row 2: Compact metadata line (no category, "Created" instead of "Generated")
   worksheet.mergeCells(`A2:${lastCol}2`);
   const metaCell = worksheet.getCell('A2');
   const productInfo = productList.length === 1
-    ? `Product: ${productList[0].name}${productList[0].category ? ' | Category: ' + productList[0].category : ''}`
+    ? `Product: ${productList[0].name}`
     : `Products: ${productList.length} items`;
-  metaCell.value = `${productInfo} | Generated: ${new Date().toLocaleDateString()}`;
-  metaCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: theme.colors.date.text } };
+  metaCell.value = `${productInfo} | Created: ${new Date().toLocaleDateString()}`;
+  metaCell.font = { name: 'Calibri', size: 9, bold: true, color: { argb: theme.colors.date.text } };
   metaCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.date.bg } };
   metaCell.alignment = { horizontal: 'left', vertical: 'middle' };
   metaCell.border = {
@@ -137,13 +137,13 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(2).height = 18;
+  worksheet.getRow(2).height = 14;
 
-  // Row 3: Additional Notes header
+  // Row 3: Additional Notes header (tight)
   worksheet.mergeCells(`A3:${lastCol}3`);
   const notesHeaderCell = worksheet.getCell('A3');
   notesHeaderCell.value = 'Additional Notes:';
-  notesHeaderCell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: 'FF475569' } };
+  notesHeaderCell.font = { name: 'Calibri', size: 9, bold: true, color: { argb: 'FF475569' } };
   notesHeaderCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF1F5F9' } };
   notesHeaderCell.alignment = { horizontal: 'left', vertical: 'middle' };
   notesHeaderCell.border = {
@@ -151,9 +151,9 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     left: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(3).height = 16;
+  worksheet.getRow(3).height = 14;
 
-  // Rows 4-5: Additional Notes area (fillable)
+  // Rows 4-5: Additional Notes area (only 2 rows, compact)
   worksheet.mergeCells(`A4:${lastCol}5`);
   const notesAreaCell = worksheet.getCell('A4');
   notesAreaCell.value = '';
@@ -163,14 +163,11 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     right: { style: 'thin', color: { argb: 'FFCBD5E1' } },
     bottom: { style: 'thin', color: { argb: 'FFCBD5E1' } }
   };
-  worksheet.getRow(4).height = 18;
-  worksheet.getRow(5).height = 18;
+  worksheet.getRow(4).height = 14;
+  worksheet.getRow(5).height = 14;
 
-  // Row 6: Small spacer before table
-  worksheet.getRow(6).height = 6;
-
-  // Row 10: Column headers - Item Name | Image | specs... | factory fields
-  const headerRow = worksheet.getRow(10);
+  // Row 6: Table header starts immediately (no spacer)
+  const headerRow = worksheet.getRow(6);
   const headerValues = ['Item Name', 'Image'];
 
   // Add spec headers with units for default specs
@@ -191,9 +188,9 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
 
   factoryColumns.forEach(col => headerValues.push(col.name)); // Add factory columns
   headerRow.values = headerValues;
-  headerRow.height = 25;
+  headerRow.height = 22;
   headerRow.eachCell((cell) => {
-    cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.header.text } };
+    cell.font = { name: 'Calibri', size: 10, bold: true, color: { argb: theme.colors.header.text } };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.header.bg } };
     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
@@ -204,8 +201,8 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     };
   });
 
-  // Data rows: one row per product (starting at row 11)
-  let currentRowIndex = 10; // Excel row index (0-based), row 11 in Excel
+  // Data rows: one row per product (starting at row 7)
+  let currentRowIndex = 6; // Excel row index (0-based), row 7 in Excel
 
   for (const product of productList) {
     // Get specs for this product
@@ -234,9 +231,9 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     factoryColumns.forEach(() => dataRowValues.push(''));
 
     const dataRow = worksheet.addRow(dataRowValues);
-    dataRow.height = 60; // Initial height, will adjust if image is present
+    dataRow.height = 50; // Initial height, will adjust if image is present
     dataRow.eachCell((cell) => {
-      cell.font = { name: 'Calibri', size: 11 };
+      cell.font = { name: 'Calibri', size: 10 };
       cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
       cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
       cell.border = {
@@ -290,7 +287,7 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
 
         // Adjust row height to fit image (Excel row height is in points, ~0.75 * pixels)
         const rowHeightPt = Math.ceil(targetHeight * 0.75) + 8;
-        dataRow.height = Math.max(60, rowHeightPt);
+        dataRow.height = Math.max(50, rowHeightPt);
 
         // Insert image at column B (index 1), current row
         worksheet.addImage(imageId, {
