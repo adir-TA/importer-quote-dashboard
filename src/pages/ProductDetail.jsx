@@ -447,17 +447,42 @@ function ProductDetail() {
     resetForm();
   };
 
+  // Simple toast notification
+  const showToast = (message, type = 'info') => {
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 10000;
+      font-size: 0.875rem;
+      max-width: 320px;
+      animation: slideIn 0.3s ease-out;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease-in';
+      setTimeout(() => document.body.removeChild(toast), 300);
+    }, 3000);
+  };
+
   const copyImageToClipboard = async () => {
     if (!product?.image_url) return;
 
     // Check if Clipboard API is available
     if (!navigator.clipboard || !navigator.clipboard.write) {
-      alert('Clipboard API not supported. Requires HTTPS and modern browser.');
+      showToast('Clipboard not supported. Requires HTTPS and modern browser.', 'error');
       return;
     }
 
     try {
-      // PRIMARY: Fetch image as blob and copy to clipboard
+      // Step 1: Fetch image as blob
       // For Supabase public storage, MUST omit credentials (CORS incompatible with credentials: 'include' when ACAO is '*')
       const isSupabasePublic = product.image_url.includes('/storage/v1/object/public/');
 
@@ -478,39 +503,82 @@ function ProductDetail() {
         throw new Error(`Invalid content type: ${blob.type || 'unknown'}`);
       }
 
-      // Copy image blob to clipboard
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [blob.type]: blob
-        })
-      ]);
+      // Step 2: Try direct clipboard write first (works for PNG in most browsers)
+      let clipboardBlob = blob;
+      let needsConversion = blob.type === 'image/jpeg' || blob.type === 'image/jpg';
 
-      alert('Image copied to clipboard!');
-
-    } catch (error) {
-      console.error('Blob copy failed:', error);
-
-      // Determine failure reason
-      let reason = '';
-      if (error.message.includes('HTTP')) {
-        reason = 'Image fetch failed: ' + error.message;
-      } else if (error.message.includes('CORS') || error.name === 'TypeError') {
-        reason = 'Image host blocks CORS';
-      } else if (error.message.includes('content type')) {
-        reason = error.message;
-      } else if (error.name === 'NotAllowedError') {
-        reason = 'Clipboard permission denied';
-      } else {
-        reason = 'Image copy not supported: ' + error.message;
+      if (!needsConversion) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              [blob.type]: blob
+            })
+          ]);
+          showToast('Image copied to clipboard!', 'success');
+          return;
+        } catch (directWriteError) {
+          // If direct write fails, try PNG conversion
+          console.log('Direct write failed, converting to PNG:', directWriteError);
+          needsConversion = true;
+        }
       }
 
-      // FALLBACK: Copy URL instead
+      // Step 3: Convert to PNG if needed (JPEG or direct write failed)
+      if (needsConversion) {
+        const imageBitmap = await createImageBitmap(blob);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = imageBitmap.width;
+        canvas.height = imageBitmap.height;
+
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imageBitmap, 0, 0);
+
+        // Convert canvas to PNG blob
+        const pngBlob = await new Promise((resolve) => {
+          canvas.toBlob(resolve, 'image/png');
+        });
+
+        if (!pngBlob) {
+          throw new Error('Failed to convert image to PNG');
+        }
+
+        // Try writing PNG to clipboard
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'image/png': pngBlob
+          })
+        ]);
+
+        showToast('Image copied to clipboard!', 'success');
+      }
+
+    } catch (error) {
+      console.error('Image copy failed:', error);
+
+      // FALLBACK: Copy URL instead with clear reason
+      let reason = '';
+
+      if (error.message.includes('HTTP')) {
+        reason = 'Image fetch failed';
+      } else if (error.message.includes('CORS') || error.name === 'TypeError') {
+        reason = 'Image host blocks CORS';
+      } else if (error.message.includes('content type') || error.message.includes('convert')) {
+        reason = 'Image format not supported';
+      } else if (error.name === 'NotAllowedError' && error.message.includes('permission')) {
+        reason = 'Clipboard permission denied';
+      } else if (error.name === 'NotAllowedError' || error.message.includes('not supported')) {
+        reason = 'Image clipboard not supported on this browser/OS';
+      } else {
+        reason = 'Image copy failed';
+      }
+
       try {
         await navigator.clipboard.writeText(product.image_url);
-        alert(`${reason}\n\nCopied image link instead.`);
+        showToast(`${reason}, copied link instead`, 'info');
       } catch (urlError) {
         console.error('URL copy also failed:', urlError);
-        alert(`Failed to copy image.\nReason: ${reason}\n\nPlease right-click the image to copy manually.`);
+        showToast(`${reason}. Please right-click image to copy.`, 'error');
       }
     }
   };

@@ -2545,3 +2545,26 @@ textarea.form-input { resize: none; min-height: 100px; }
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-light);
 }
+
+/* Toast Animations */
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+}
