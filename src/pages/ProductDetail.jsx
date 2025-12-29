@@ -334,20 +334,6 @@ function ProductDetail() {
   const quotes = computed.getProductQuotes(id); // Old quotes
   const [lineItems, setLineItems] = useState([]); // New line items
 
-  // Categories for edit modal
-  const categories = useMemo(() => {
-    const cats = new Set(products.map(p => p.category).filter(Boolean));
-    return Array.from(cats).sort();
-  }, [products]);
-
-  // Filter categories by search
-  const filteredCategories = useMemo(() => {
-    if (!categorySearch.trim()) return categories;
-    return categories.filter(cat =>
-      cat.toLowerCase().includes(categorySearch.toLowerCase())
-    );
-  }, [categories, categorySearch]);
-
   const [activeTab, setActiveTab] = useState('quotes'); // 'quotes' | 'documents'
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -381,6 +367,20 @@ function ProductDetail() {
   const [newCategoryName, setNewCategoryName] = useState('');
   const [customFieldName, setCustomFieldName] = useState('');
   const [customFieldValue, setCustomFieldValue] = useState('');
+
+  // Categories for edit modal
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Filter categories by search
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    return categories.filter(cat =>
+      cat.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
 
   // Fetch exchange rate when modal opens
   useEffect(() => {
