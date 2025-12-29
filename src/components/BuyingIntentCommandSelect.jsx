@@ -60,6 +60,7 @@ function BuyingIntentCommandSelect({
   const [search, setSearch] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [recentIds, setRecentIds] = useState([]);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   const containerRef = useRef(null);
   const searchInputRef = useRef(null);
@@ -69,6 +70,21 @@ function BuyingIntentCommandSelect({
   useEffect(() => {
     setRecentIds(getRecentIntents());
   }, []);
+
+  // Calculate dropdown position when opened
+  useEffect(() => {
+    if (isOpen && containerRef.current) {
+      const updatePosition = () => {
+        const rect = containerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 4,
+          left: rect.left,
+          width: rect.width
+        });
+      };
+      updatePosition();
+    }
+  }, [isOpen]);
 
   // Focus search input when opened
   useEffect(() => {
@@ -433,9 +449,9 @@ function BuyingIntentCommandSelect({
         <div
           style={{
             position: 'fixed',
-            top: containerRef.current?.getBoundingClientRect().bottom + 4,
-            left: containerRef.current?.getBoundingClientRect().left,
-            width: containerRef.current?.offsetWidth,
+            top: dropdownPosition.top,
+            left: dropdownPosition.left,
+            width: dropdownPosition.width,
             zIndex: 9999,
           }}
         >

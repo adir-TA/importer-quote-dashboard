@@ -451,56 +451,62 @@ function ProductDetail() {
     if (!product?.image_url) return;
 
     // Check if Clipboard API is available
-    if (!navigator.clipboard) {
-      alert('Clipboard API is not supported in your browser. Please use HTTPS or a modern browser.');
+    if (!navigator.clipboard || !navigator.clipboard.write) {
+      alert('Clipboard API not supported. Requires HTTPS and modern browser.');
       return;
     }
 
     try {
-      // Attempt to fetch and copy image as blob
+      // PRIMARY: Fetch image as blob and copy to clipboard
       const response = await fetch(product.image_url, {
         mode: 'cors',
         credentials: 'include',
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch image: ${response.status}`);
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const blob = await response.blob();
 
-      // Ensure blob type is valid for clipboard
-      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-      const blobType = blob.type || 'image/png';
-
-      if (!validTypes.includes(blobType)) {
-        throw new Error(`Unsupported image type: ${blobType}`);
+      // Validate blob type
+      if (!blob.type || !blob.type.startsWith('image/')) {
+        throw new Error(`Invalid content type: ${blob.type || 'unknown'}`);
       }
 
-      // Try to write image to clipboard
+      // Copy image blob to clipboard
       await navigator.clipboard.write([
         new ClipboardItem({
-          [blobType]: blob
+          [blob.type]: blob
         })
       ]);
 
       alert('Image copied to clipboard!');
-    } catch (blobError) {
-      console.error('Failed to copy image as blob:', blobError);
 
-      // Fallback 1: Try copying image URL as text
+    } catch (error) {
+      console.error('Blob copy failed:', error);
+
+      // Determine failure reason
+      let reason = '';
+      if (error.message.includes('HTTP')) {
+        reason = 'Image fetch failed: ' + error.message;
+      } else if (error.message.includes('CORS') || error.name === 'TypeError') {
+        reason = 'Image host blocks CORS';
+      } else if (error.message.includes('content type')) {
+        reason = error.message;
+      } else if (error.name === 'NotAllowedError') {
+        reason = 'Clipboard permission denied';
+      } else {
+        reason = 'Image copy not supported: ' + error.message;
+      }
+
+      // FALLBACK: Copy URL instead
       try {
         await navigator.clipboard.writeText(product.image_url);
-        alert('Could not copy image, but image URL was copied to clipboard instead.');
+        alert(`${reason}\n\nCopied image link instead.`);
       } catch (urlError) {
-        console.error('Failed to copy URL:', urlError);
-
-        // Fallback 2: Show helpful error message
-        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
-          alert('Failed to copy image. Clipboard API requires HTTPS. Please access this page over HTTPS.');
-        } else {
-          alert('Failed to copy image to clipboard. Your browser may not support this feature or the image format is incompatible. Error: ' + blobError.message);
-        }
+        console.error('URL copy also failed:', urlError);
+        alert(`Failed to copy image.\nReason: ${reason}\n\nPlease right-click the image to copy manually.`);
       }
     }
   };
@@ -972,9 +978,11 @@ function ProductDetail() {
                 </div>
 
                 {/* USD/RMB Price Conversion */}
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label" style={{ minHeight: '16px' }}>Unit Price (USD) *</label>
+                <div className="form-row" style={{ marginBottom: '20px' }}>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ height: '32px', display: 'block', lineHeight: '1.4' }}>
+                      Unit Price (USD) *
+                    </label>
                     <input
                       type="number"
                       className="form-input"
@@ -985,13 +993,13 @@ function ProductDetail() {
                       onChange={(e) => handleUsdChange(e.target.value)}
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ minHeight: '16px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
-                      <span>Unit Price (RMB/CNY)</span>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" style={{ height: '32px', display: 'block', lineHeight: '1.4' }}>
+                      <div>Unit Price (RMB/CNY)</div>
                       {exchangeRate && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 'normal' }}>
-                          (Rate: {exchangeRate.toFixed(4)})
-                        </span>
+                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, marginTop: '2px' }}>
+                          Rate: {exchangeRate.toFixed(4)}
+                        </div>
                       )}
                     </label>
                     <input
@@ -1018,7 +1026,7 @@ function ProductDetail() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" style={{ minHeight: '16px' }}>Currency</label>
+                  <label className="form-label">Currency</label>
                   <select
                     className="form-select"
                     value={formData.currency}
@@ -1035,8 +1043,8 @@ function ProductDetail() {
                 </div>
 
                 <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label" style={{ minHeight: '16px' }}>MOQ (Minimum Order Qty)</label>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">MOQ (Minimum Order Qty)</label>
                     <input
                       type="number"
                       className="form-input"
@@ -1048,8 +1056,8 @@ function ProductDetail() {
                       }
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label" style={{ minHeight: '16px' }}>Incoterm</label>
+                  <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label">Incoterm</label>
                     <select
                       className="form-select"
                       value={formData.incoterm}
