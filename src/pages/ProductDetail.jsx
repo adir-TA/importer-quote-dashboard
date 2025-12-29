@@ -458,9 +458,13 @@ function ProductDetail() {
 
     try {
       // PRIMARY: Fetch image as blob and copy to clipboard
+      // For Supabase public storage, MUST omit credentials (CORS incompatible with credentials: 'include' when ACAO is '*')
+      const isSupabasePublic = product.image_url.includes('/storage/v1/object/public/');
+
       const response = await fetch(product.image_url, {
         mode: 'cors',
-        credentials: 'include',
+        credentials: isSupabasePublic ? 'omit' : 'include',
+        cache: 'no-store',
       });
 
       if (!response.ok) {
