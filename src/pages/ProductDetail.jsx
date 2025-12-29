@@ -672,6 +672,9 @@ function ProductDetail() {
           </div>
         </div>
         <div className="header-actions">
+          <button className="btn btn-secondary" onClick={() => navigate('/products', { state: { editProductId: product.id } })}>
+            <Edit2 size={16} /> Edit
+          </button>
           {(quotes.length + lineItems.length) >= 2 && (
             <button className="btn btn-secondary" onClick={handleCompare}>
               Compare Quotes
