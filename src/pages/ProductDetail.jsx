@@ -1024,7 +1024,7 @@ function ProductDetail() {
           <div className="modal">
             <div className="modal-header">
               <span className="modal-title">
-                📝 {editingQuote ? 'Edit Quote' : 'New Quote'}
+                {editingQuote ? 'Edit Quote' : 'New Quote'}{product?.name ? ` (${product.name})` : ''}
               </span>
               <button className="icon-btn" onClick={handleCloseQuoteModal}>
                 <X size={20} />
@@ -1116,7 +1116,7 @@ function ProductDetail() {
 
                 <div className="form-row">
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">MOQ (Minimum Order Qty)</label>
+                    <label className="form-label" style={{ height: '32px', display: 'block', lineHeight: '1.4' }}>MOQ (Minimum Order Qty)</label>
                     <input
                       type="number"
                       className="form-input"
@@ -1129,7 +1129,7 @@ function ProductDetail() {
                     />
                   </div>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label">Incoterm</label>
+                    <label className="form-label" style={{ height: '32px', display: 'block', lineHeight: '1.4' }}>Incoterm</label>
                     <select
                       className="form-select"
                       value={formData.incoterm}
