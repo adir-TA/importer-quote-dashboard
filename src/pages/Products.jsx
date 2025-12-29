@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
-import { ProductCard, SearchInput } from '../components';
+import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
@@ -1039,304 +1039,54 @@ function Products() {
         )}
       </div>
 
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <span className="modal-title">🎯 {editingProduct ? 'Edit Buying Intent' : 'New Buying Intent'}</span>
-              <button className="icon-btn" onClick={handleCloseModal}><X size={20} /></button>
-            </div>
-            <div className="modal-body">
-              <div className="form-section">
-                <div className="form-section-title"><Package size={18} color="var(--accent)" /> What You Want to Buy</div>
-                <div className="form-group">
-                  <label className="form-label">Intent Name *</label>
-                  <input type="text" className="form-input" placeholder="e.g., Aluminum Container 225×175×42mm" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                  <p className="form-hint">Describe what you're trying to buy (independent of suppliers)</p>
-                </div>
-                <div className="form-group" style={{ position: 'relative' }}>
-                  <label className="form-label">Category</label>
-
-                  {showCreateCategory ? (
-                    /* Create new category form */
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <input
-                        type="text"
-                        className="form-input"
-                        value={newCategoryName}
-                        onChange={e => setNewCategoryName(e.target.value)}
-                        placeholder="New category name"
-                        autoFocus
-                        style={{ flex: 1 }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-primary"
-                        onClick={handleCreateCategory}
-                        style={{ padding: '0 16px' }}
-                      >
-                        Add
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={() => {
-                          setShowCreateCategory(false);
-                          setNewCategoryName('');
-                        }}
-                        style={{ padding: '0 16px' }}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ) : (
-                    /* Category selection button */
-                    <button
-                      type="button"
-                      className="form-input"
-                      onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      style={{
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        background: 'var(--bg-primary)',
-                      }}
-                    >
-                      <span style={{ color: formData.category ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                        {formData.category || 'Select or create category...'}
-                      </span>
-                      <ChevronDown size={16} />
-                    </button>
-                  )}
-
-                  {/* Category dropdown list */}
-                  {showCategoryDropdown && !showCreateCategory && (
-                    <div style={{
-                      position: 'absolute',
-                      top: 'calc(100% + 4px)',
-                      left: 0,
-                      right: 0,
-                      background: 'var(--bg-primary)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-md)',
-                      boxShadow: 'var(--shadow-lg)',
-                      maxHeight: '280px',
-                      overflowY: 'auto',
-                      zIndex: 9999,
-                    }}>
-                      {/* Search input */}
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '12px',
-                        borderBottom: '1px solid var(--border)',
-                        background: 'var(--bg-secondary)',
-                      }}>
-                        <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                        <input
-                          type="text"
-                          className="form-input"
-                          value={categorySearch}
-                          onChange={e => setCategorySearch(e.target.value)}
-                          placeholder="Search categories..."
-                          onClick={e => e.stopPropagation()}
-                          style={{ fontSize: '0.875rem', flex: 1, border: 'none', background: 'transparent', padding: 0 }}
-                        />
-                      </div>
-
-                      {/* Category list */}
-                      {filteredCategories.length > 0 ? (
-                        filteredCategories.map(cat => (
-                          <button
-                            key={cat}
-                            type="button"
-                            onClick={() => handleSelectCategory(cat)}
-                            style={{
-                              width: '100%',
-                              padding: '10px 16px',
-                              textAlign: 'left',
-                              border: 'none',
-                              background: formData.category === cat ? 'var(--accent-light)' : 'transparent',
-                              color: formData.category === cat ? 'var(--accent)' : 'var(--text-primary)',
-                              cursor: 'pointer',
-                              fontSize: '0.875rem',
-                              borderBottom: '1px solid var(--border-light)',
-                              transition: 'background var(--transition)',
-                            }}
-                            onMouseEnter={e => { if (formData.category !== cat) e.target.style.background = 'var(--bg-hover)'; }}
-                            onMouseLeave={e => { if (formData.category !== cat) e.target.style.background = 'transparent'; }}
-                          >
-                            {cat}
-                          </button>
-                        ))
-                      ) : (
-                        <div style={{
-                          padding: '16px',
-                          textAlign: 'center',
-                          color: 'var(--text-muted)',
-                          fontSize: '0.875rem',
-                        }}>
-                          No categories found
-                        </div>
-                      )}
-
-                      {/* Create new category button */}
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowCreateCategory(true);
-                          setShowCategoryDropdown(false);
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '12px 16px',
-                          textAlign: 'left',
-                          border: 'none',
-                          background: 'var(--accent-light)',
-                          color: 'var(--accent)',
-                          cursor: 'pointer',
-                          fontSize: '0.875rem',
-                          fontWeight: 600,
-                          borderTop: '1px solid var(--border)',
-                        }}
-                      >
-                        + Create New Category
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Image Upload (Optional) */}
-                <div className="form-group">
-                  <label className="form-label">
-                    <ImageIcon size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                    Product Image (Optional)
-                  </label>
-                  {imagePreview ? (
-                    <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        style={{
-                          maxWidth: '120px',
-                          maxHeight: '120px',
-                          border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-md)',
-                          objectFit: 'contain'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-secondary"
-                        onClick={handleRemoveImage}
-                        style={{ padding: '6px 12px', fontSize: '0.875rem' }}
-                      >
-                        <X size={14} /> Remove
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageSelect}
-                        style={{ display: 'none' }}
-                        id="product-image-upload"
-                      />
-                      <label
-                        htmlFor="product-image-upload"
-                        className="btn btn-secondary"
-                        style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        <Upload size={14} /> Choose Image
-                      </label>
-                      <p className="form-hint">Upload an image to help identify this product</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Specifications Editor */}
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Specifications</label>
-
-                  {/* Spec fields */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {formData.specs.map((spec, index) => {
-                      const isDefaultField = ['Weight', 'Height', 'Length', 'Width'].includes(spec.key);
-                      return (
-                        <div key={index} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <div style={{ minWidth: '100px', fontWeight: 500, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
-                            {spec.key}:
-                          </div>
-                          <input
-                            type="text"
-                            className="form-input"
-                            placeholder={`e.g., ${spec.key === 'Weight' ? '1.94kg' : spec.key === 'Height' ? '76cm' : spec.key === 'Length' ? '46cm' : spec.key === 'Width' ? '30cm' : 'Value'}`}
-                            value={spec.value}
-                            onChange={(e) => handleSpecChange(index, e.target.value)}
-                            style={{ flex: 1 }}
-                          />
-                          {!isDefaultField && (
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              onClick={() => handleRemoveSpec(index)}
-                              title="Remove field"
-                            >
-                              <X size={16} />
-                            </button>
-                          )}
-                        </div>
-                      );
-                    })}
-
-                    {/* Add custom field */}
-                    <div style={{ marginTop: '8px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                        Add Custom Field
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Field name (e.g., Material)"
-                          value={customFieldName}
-                          onChange={(e) => setCustomFieldName(e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        <input
-                          type="text"
-                          className="form-input"
-                          placeholder="Value (e.g., Aluminum)"
-                          value={customFieldValue}
-                          onChange={(e) => setCustomFieldValue(e.target.value)}
-                          style={{ flex: 1 }}
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-secondary"
-                          onClick={handleAddCustomField}
-                          style={{ padding: '0 16px' }}
-                        >
-                          <Plus size={14} /> Add
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={handleCloseModal} disabled={isSubmitting}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave} disabled={isSubmitting}><Check size={16} /> {editingProduct ? 'Update' : 'Save'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      <EditBuyingIntentModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSave}
+        editingProduct={editingProduct}
+        formData={formData}
+        setFormData={setFormData}
+        imagePreview={imagePreview}
+        setImagePreview={setImagePreview}
+        selectedImage={selectedImage}
+        setSelectedImage={setSelectedImage}
+        isSubmitting={isSubmitting}
+        showCategoryDropdown={showCategoryDropdown}
+        setShowCategoryDropdown={setShowCategoryDropdown}
+        categorySearch={categorySearch}
+        setCategorySearch={setCategorySearch}
+        showCreateCategory={showCreateCategory}
+        setShowCreateCategory={setShowCreateCategory}
+        newCategoryName={newCategoryName}
+        setNewCategoryName={setNewCategoryName}
+        filteredCategories={filteredCategories}
+        handleSelectCategory={handleSelectCategory}
+        handleCreateCategory={handleCreateCategory}
+        handleRemoveImage={handleRemoveImage}
+        customFieldName={customFieldName}
+        setCustomFieldName={setCustomFieldName}
+        customFieldValue={customFieldValue}
+        setCustomFieldValue={setCustomFieldValue}
+        handleAddCustomField={() => {
+          if (customFieldName.trim()) {
+            setFormData({
+              ...formData,
+              specs: [...formData.specs, { key: customFieldName, value: customFieldValue }]
+            });
+            setCustomFieldName('');
+            setCustomFieldValue('');
+          }
+        }}
+        handleRemoveSpec={(index) => {
+          const newSpecs = formData.specs.filter((_, i) => i !== index);
+          setFormData({ ...formData, specs: newSpecs });
+        }}
+        handleUpdateSpecValue={(index, value) => {
+          const newSpecs = [...formData.specs];
+          newSpecs[index] = { ...newSpecs[index], value };
+          setFormData({ ...formData, specs: newSpecs });
+        }}
+      />
       {/* RFQ Theme Selection Modal */}
       {showRFQThemeSelector && (
         <div style={{

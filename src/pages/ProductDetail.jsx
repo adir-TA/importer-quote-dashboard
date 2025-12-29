@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File, FileDown, Copy, Package, ChevronDown, Search, Image as ImageIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
+import { EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import DocumentsTab from '../components/DocumentsTab';
 import UploadDocumentModal from '../components/UploadDocumentModal';
@@ -327,10 +328,25 @@ function ProductDetail() {
   const navigate = useNavigate();
   const { state, actions, computed } = useAppContext();
   const { confirm } = useModal();
+  const { products } = state;
 
   const product = computed.getProductById(id);
   const quotes = computed.getProductQuotes(id); // Old quotes
   const [lineItems, setLineItems] = useState([]); // New line items
+
+  // Categories for edit modal
+  const categories = useMemo(() => {
+    const cats = new Set(products.map(p => p.category).filter(Boolean));
+    return Array.from(cats).sort();
+  }, [products]);
+
+  // Filter categories by search
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim()) return categories;
+    return categories.filter(cat =>
+      cat.toLowerCase().includes(categorySearch.toLowerCase())
+    );
+  }, [categories, categorySearch]);
 
   const [activeTab, setActiveTab] = useState('quotes'); // 'quotes' | 'documents'
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -355,10 +371,16 @@ function ProductDetail() {
 
   // Edit buying intent modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editFormData, setEditFormData] = useState({ name: '', category: '', description: '' });
+  const [editFormData, setEditFormData] = useState({ name: '', category: '', description: '', specs: [] });
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [showCreateCategory, setShowCreateCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [customFieldName, setCustomFieldName] = useState('');
+  const [customFieldValue, setCustomFieldValue] = useState('');
 
   // Fetch exchange rate when modal opens
   useEffect(() => {
@@ -650,10 +672,19 @@ function ProductDetail() {
 
   // Edit buying intent modal handlers
   const openEditModal = () => {
+    const initialSpecs = product.specs && product.specs.length > 0
+      ? product.specs
+      : [
+          { key: 'Weight', value: '' },
+          { key: 'Height', value: '' },
+          { key: 'Length', value: '' },
+          { key: 'Width', value: '' }
+        ];
     setEditFormData({
       name: product.name,
       category: product.category || '',
-      description: product.description || ''
+      description: product.description || '',
+      specs: initialSpecs
     });
     if (product.image_url) {
       setImagePreview(product.image_url);
@@ -663,10 +694,35 @@ function ProductDetail() {
 
   const closeEditModal = () => {
     setIsEditModalOpen(false);
-    setEditFormData({ name: '', category: '', description: '' });
+    setEditFormData({ name: '', category: '', description: '', specs: [] });
     setSelectedImage(null);
     setImagePreview(null);
     setIsSubmitting(false);
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+    setShowCreateCategory(false);
+    setNewCategoryName('');
+    setCustomFieldName('');
+    setCustomFieldValue('');
+  };
+
+  const handleSelectCategory = (category) => {
+    setEditFormData({ ...editFormData, category });
+    setShowCategoryDropdown(false);
+    setCategorySearch('');
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    // Just add it to the form data - category will be saved with product
+    setEditFormData({ ...editFormData, category: newCategoryName.trim() });
+    setShowCreateCategory(false);
+    setNewCategoryName('');
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   const handleSaveEdit = async () => {
@@ -1590,97 +1646,54 @@ function ProductDetail() {
       )}
 
       {/* Edit Buying Intent Modal */}
-      {isEditModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <span className="modal-title">Edit Buying Intent</span>
-              <button className="icon-btn" onClick={closeEditModal}>
-                <X size={20} />
-              </button>
-            </div>
-            <div className="modal-body">
-              <div className="form-section">
-                <div className="form-section-title">
-                  <Package size={18} color="var(--accent)" /> What You Want to Buy
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Intent Name *</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g., Aluminum Container 225×175×42mm"
-                    value={editFormData.name}
-                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Category</label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    placeholder="e.g., Containers"
-                    value={editFormData.category}
-                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Description</label>
-                  <textarea
-                    className="form-input"
-                    placeholder="Optional notes about what you're looking for..."
-                    value={editFormData.description}
-                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
-                    rows={3}
-                  />
-                </div>
-                <div className="form-group">
-                  <label className="form-label">Product Image</label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (file) {
-                          setSelectedImage(file);
-                          setImagePreview(URL.createObjectURL(file));
-                        }
-                      }}
-                      style={{ flex: 1 }}
-                    />
-                    {imagePreview && (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        style={{
-                          width: '60px',
-                          height: '60px',
-                          objectFit: 'cover',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border)'
-                        }}
-                      />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={closeEditModal}>
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleSaveEdit}
-                disabled={isSubmitting}
-              >
-                <Check size={16} /> {isSubmitting ? 'Saving...' : 'Update'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <EditBuyingIntentModal
+        isOpen={isEditModalOpen}
+        onClose={closeEditModal}
+        onSave={handleSaveEdit}
+        editingProduct={product}
+        formData={editFormData}
+        setFormData={setEditFormData}
+        imagePreview={imagePreview}
+        setImagePreview={setImagePreview}
+        selectedImage={selectedImage}
+        setSelectedImage={setSelectedImage}
+        isSubmitting={isSubmitting}
+        showCategoryDropdown={showCategoryDropdown}
+        setShowCategoryDropdown={setShowCategoryDropdown}
+        categorySearch={categorySearch}
+        setCategorySearch={setCategorySearch}
+        showCreateCategory={showCreateCategory}
+        setShowCreateCategory={setShowCreateCategory}
+        newCategoryName={newCategoryName}
+        setNewCategoryName={setNewCategoryName}
+        filteredCategories={filteredCategories}
+        handleSelectCategory={handleSelectCategory}
+        handleCreateCategory={handleCreateCategory}
+        handleRemoveImage={handleRemoveImage}
+        customFieldName={customFieldName}
+        setCustomFieldName={setCustomFieldName}
+        customFieldValue={customFieldValue}
+        setCustomFieldValue={setCustomFieldValue}
+        handleAddCustomField={() => {
+          if (customFieldName.trim()) {
+            setEditFormData({
+              ...editFormData,
+              specs: [...editFormData.specs, { key: customFieldName, value: customFieldValue }]
+            });
+            setCustomFieldName('');
+            setCustomFieldValue('');
+          }
+        }}
+        handleRemoveSpec={(index) => {
+          const newSpecs = editFormData.specs.filter((_, i) => i !== index);
+          setEditFormData({ ...editFormData, specs: newSpecs });
+        }}
+        handleUpdateSpecValue={(index, value) => {
+          const newSpecs = [...editFormData.specs];
+          newSpecs[index] = { ...newSpecs[index], value };
+          setEditFormData({ ...editFormData, specs: newSpecs });
+        }}
+      />
     </div>
   );
 }
