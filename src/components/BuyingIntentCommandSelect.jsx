@@ -47,6 +47,19 @@ function fuzzyMatch(text, search) {
   return searchIndex === searchLower.length;
 }
 
+// Normalize category name from intent (handle multiple field formats)
+function getCategoryName(intent) {
+  // Try category.name (if category is an object)
+  if (intent.category?.name) return intent.category.name.trim();
+  // Try category as string
+  if (typeof intent.category === 'string' && intent.category.trim()) return intent.category.trim();
+  // Try alternate field names
+  if (intent.category_name) return intent.category_name.trim();
+  if (intent.categoryName) return intent.categoryName.trim();
+  // Default to Other
+  return 'Other';
+}
+
 function BuyingIntentCommandSelect({
   buyingIntents,
   value,
@@ -123,7 +136,7 @@ function BuyingIntentCommandSelect({
     const filtered = searchLower
       ? buyingIntents.filter(intent =>
           fuzzyMatch(intent.name, searchLower) ||
-          fuzzyMatch(intent.category || '', searchLower)
+          fuzzyMatch(getCategoryName(intent), searchLower)
         )
       : buyingIntents;
 
@@ -136,14 +149,19 @@ function BuyingIntentCommandSelect({
     // Group by category
     const groups = {};
     filtered.forEach(intent => {
-      const cat = intent.category || 'Other';
+      const cat = getCategoryName(intent);
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(intent);
     });
 
-    // Sort categories and items within
+    // Sort categories (alphabetically, but "Other" always last) and items within
     const sortedGroups = Object.keys(groups)
-      .sort((a, b) => a.localeCompare(b))
+      .sort((a, b) => {
+        // "Other" always goes last
+        if (a === 'Other') return 1;
+        if (b === 'Other') return -1;
+        return a.localeCompare(b);
+      })
       .map(category => ({
         category,
         intents: groups[category].sort((a, b) => a.name.localeCompare(b.name))
