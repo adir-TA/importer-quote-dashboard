@@ -66,6 +66,9 @@ function Products() {
   // Submission guard
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Return URL for edit from detail page
+  const [returnToUrl, setReturnToUrl] = useState(null);
+
   // Load quote counts for all products
   useEffect(() => {
     const loadQuoteCounts = async () => {
@@ -112,6 +115,10 @@ function Products() {
     if (location.state?.editProductId) {
       const productToEdit = products.find(p => p.id === location.state.editProductId);
       if (productToEdit) {
+        // Capture returnTo URL before clearing state
+        if (location.state.returnTo) {
+          setReturnToUrl(location.state.returnTo);
+        }
         handleOpenModal(productToEdit);
       }
       // Clear the state to prevent re-opening on subsequent renders
@@ -232,6 +239,7 @@ function Products() {
     setSelectedImage(null); // Reset image state
     setImagePreview(null);
     setCustomFieldName(''); // Reset custom field state
+    setReturnToUrl(null); // Reset return URL
     setCustomFieldValue('');
   };
 
@@ -359,6 +367,12 @@ function Products() {
 
       if (editingProduct) {
         await actions.updateProduct({ ...editingProduct, ...productData });
+        handleCloseModal();
+        // Navigate back to detail page if editing from detail page
+        if (returnToUrl) {
+          navigate(returnToUrl);
+          setReturnToUrl(null);
+        }
       } else {
         const newProduct = await actions.addProduct(productData);
         if (newProduct?.id) {
@@ -366,8 +380,8 @@ function Products() {
           navigate(`/products/${newProduct.id}`);
           return;
         }
+        handleCloseModal();
       }
-      handleCloseModal();
     } catch (error) {
       console.error('Error saving buying intent:', error);
       alert('Error saving buying intent');
