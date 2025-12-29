@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File, FileDown, Copy } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File, FileDown, Copy, Package, ChevronDown, Search, Image as ImageIcon } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
@@ -8,6 +8,7 @@ import DocumentsTab from '../components/DocumentsTab';
 import UploadDocumentModal from '../components/UploadDocumentModal';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
+import { supabase } from '../lib/supabase';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
@@ -352,6 +353,13 @@ function ProductDetail() {
   const [rmbPrice, setRmbPrice] = useState('');
   const [exchangeRateError, setExchangeRateError] = useState(false);
 
+  // Edit buying intent modal state
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editFormData, setEditFormData] = useState({ name: '', category: '', description: '' });
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Fetch exchange rate when modal opens
   useEffect(() => {
     if (isQuoteModalOpen && !exchangeRate) {
@@ -640,6 +648,69 @@ function ProductDetail() {
     setLineItems(items);
   };
 
+  // Edit buying intent modal handlers
+  const openEditModal = () => {
+    setEditFormData({
+      name: product.name,
+      category: product.category || '',
+      description: product.description || ''
+    });
+    if (product.image_url) {
+      setImagePreview(product.image_url);
+    }
+    setIsEditModalOpen(true);
+  };
+
+  const closeEditModal = () => {
+    setIsEditModalOpen(false);
+    setEditFormData({ name: '', category: '', description: '' });
+    setSelectedImage(null);
+    setImagePreview(null);
+    setIsSubmitting(false);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editFormData.name.trim()) {
+      alert('Please enter an intent name');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      let imageData = {};
+
+      // Handle image upload if changed
+      if (selectedImage) {
+        const fileExt = selectedImage.name.split('.').pop();
+        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const storagePath = `buying-intents/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('business-cards')
+          .upload(storagePath, selectedImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: urlData } = supabase.storage
+          .from('business-cards')
+          .getPublicUrl(storagePath);
+
+        imageData = {
+          image_storage_path: storagePath,
+          image_url: urlData?.publicUrl || null
+        };
+      }
+
+      await actions.updateProduct({ ...product, ...editFormData, ...imageData });
+      closeEditModal();
+    } catch (error) {
+      console.error('Error saving buying intent:', error);
+      alert('Error saving buying intent');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   if (!product) {
     return (
       <div className="page">
@@ -672,7 +743,15 @@ function ProductDetail() {
           </div>
         </div>
         <div className="header-actions">
-          <button className="btn btn-secondary" onClick={() => navigate('/products', { state: { editProductId: product.id, returnTo: `/products/${product.id}` } })}>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openEditModal();
+            }}
+          >
             <Edit2 size={16} /> Edit
           </button>
           {(quotes.length + lineItems.length) >= 2 && (
@@ -1504,6 +1583,99 @@ function ProductDetail() {
               >
                 <FileDown size={18} />
                 Export with {EXPORT_THEMES[selectedRFQTheme].name}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Buying Intent Modal */}
+      {isEditModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <span className="modal-title">Edit Buying Intent</span>
+              <button className="icon-btn" onClick={closeEditModal}>
+                <X size={20} />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="form-section">
+                <div className="form-section-title">
+                  <Package size={18} color="var(--accent)" /> What You Want to Buy
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Intent Name *</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., Aluminum Container 225×175×42mm"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Category</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="e.g., Containers"
+                    value={editFormData.category}
+                    onChange={(e) => setEditFormData({ ...editFormData, category: e.target.value })}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Description</label>
+                  <textarea
+                    className="form-input"
+                    placeholder="Optional notes about what you're looking for..."
+                    value={editFormData.description}
+                    onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                    rows={3}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Product Image</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) {
+                          setSelectedImage(file);
+                          setImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      style={{ flex: 1 }}
+                    />
+                    {imagePreview && (
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        style={{
+                          width: '60px',
+                          height: '60px',
+                          objectFit: 'cover',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border)'
+                        }}
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={closeEditModal}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleSaveEdit}
+                disabled={isSubmitting}
+              >
+                <Check size={16} /> {isSubmitting ? 'Saving...' : 'Update'}
               </button>
             </div>
           </div>

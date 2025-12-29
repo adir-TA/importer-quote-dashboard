@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
@@ -12,7 +12,6 @@ import { generateRFQExcel } from './ProductDetail';
 
 function Products() {
   const navigate = useNavigate();
-  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, actions, computed } = useAppContext();
   const { confirm } = useModal();
@@ -66,9 +65,6 @@ function Products() {
   // Submission guard
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Return URL for edit from detail page
-  const [returnToUrl, setReturnToUrl] = useState(null);
-
   // Load quote counts for all products
   useEffect(() => {
     const loadQuoteCounts = async () => {
@@ -109,22 +105,6 @@ function Products() {
       setViewMode('grid');
     }
   }, [products.length, viewModeManuallySet]);
-
-  // Handle navigation from detail page with edit intent
-  useEffect(() => {
-    if (location.state?.editProductId) {
-      const productToEdit = products.find(p => p.id === location.state.editProductId);
-      if (productToEdit) {
-        // Capture returnTo URL before clearing state
-        if (location.state.returnTo) {
-          setReturnToUrl(location.state.returnTo);
-        }
-        handleOpenModal(productToEdit);
-      }
-      // Clear the state to prevent re-opening on subsequent renders
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-  }, [location.state, products, navigate, location.pathname]);
 
   const filteredProducts = useMemo(() => {
     let result = filterBySearch(products, search, ['name', 'category', 'description']);
@@ -239,7 +219,6 @@ function Products() {
     setSelectedImage(null); // Reset image state
     setImagePreview(null);
     setCustomFieldName(''); // Reset custom field state
-    setReturnToUrl(null); // Reset return URL
     setCustomFieldValue('');
   };
 
@@ -367,12 +346,6 @@ function Products() {
 
       if (editingProduct) {
         await actions.updateProduct({ ...editingProduct, ...productData });
-        handleCloseModal();
-        // Navigate back to detail page if editing from detail page
-        if (returnToUrl) {
-          navigate(returnToUrl);
-          setReturnToUrl(null);
-        }
       } else {
         const newProduct = await actions.addProduct(productData);
         if (newProduct?.id) {
@@ -380,8 +353,8 @@ function Products() {
           navigate(`/products/${newProduct.id}`);
           return;
         }
-        handleCloseModal();
       }
+      handleCloseModal();
     } catch (error) {
       console.error('Error saving buying intent:', error);
       alert('Error saving buying intent');
