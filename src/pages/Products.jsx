@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput } from '../components';
@@ -583,16 +583,68 @@ function Products() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 Sort By
               </label>
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="form-input"
-                style={{ fontSize: '0.875rem' }}
-              >
-                <option value="name">Name (A-Z)</option>
-                <option value="quotes">Quotes (High-Low)</option>
-                <option value="recent">Recently Added</option>
-              </select>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <button
+                  onClick={() => setSortBy('name')}
+                  style={{
+                    padding: '10px 12px',
+                    background: sortBy === 'name' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: sortBy === 'name' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Type size={16} />
+                  Name (A-Z)
+                </button>
+                <button
+                  onClick={() => setSortBy('quotes')}
+                  style={{
+                    padding: '10px 12px',
+                    background: sortBy === 'quotes' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: sortBy === 'quotes' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <TrendingDown size={16} />
+                  Quotes (High-Low)
+                </button>
+                <button
+                  onClick={() => setSortBy('recent')}
+                  style={{
+                    padding: '10px 12px',
+                    background: sortBy === 'recent' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: sortBy === 'recent' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Clock size={16} />
+                  Recently Added
+                </button>
+              </div>
             </div>
 
             {/* Category Filters */}

@@ -82,7 +82,11 @@ function BuyingIntentCommandSelect({
     if (!isOpen) return;
 
     const handleClickOutside = (e) => {
-      if (containerRef.current && !containerRef.current.contains(e.target)) {
+      // Check if click is outside BOTH the trigger button AND the dropdown content
+      const isOutsideTrigger = containerRef.current && !containerRef.current.contains(e.target);
+      const isOutsideDropdown = dropdownRef.current && !dropdownRef.current.contains(e.target);
+
+      if (isOutsideTrigger && isOutsideDropdown) {
         setIsOpen(false);
         setSearch('');
         setSelectedIndex(0);

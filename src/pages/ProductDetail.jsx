@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File, FileDown } from 'lucide-react';
+import { ArrowLeft, Plus, FileText, Check, X, Trash2, Edit2, DollarSign, Upload, File, FileDown, Copy } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
@@ -347,6 +347,34 @@ function ProductDetail() {
     incoterm: 'FOB',
   });
 
+  // RMB/USD conversion state
+  const [exchangeRate, setExchangeRate] = useState(null);
+  const [rmbPrice, setRmbPrice] = useState('');
+  const [exchangeRateError, setExchangeRateError] = useState(false);
+
+  // Fetch exchange rate when modal opens
+  useEffect(() => {
+    if (isQuoteModalOpen && !exchangeRate) {
+      fetchExchangeRate();
+    }
+  }, [isQuoteModalOpen]);
+
+  const fetchExchangeRate = async () => {
+    try {
+      const response = await fetch('https://api.frankfurter.app/latest?from=USD&to=CNY');
+      const data = await response.json();
+      if (data && data.rates && data.rates.CNY) {
+        setExchangeRate(data.rates.CNY);
+        setExchangeRateError(false);
+      } else {
+        throw new Error('Invalid response');
+      }
+    } catch (error) {
+      console.error('Failed to fetch exchange rate:', error);
+      setExchangeRateError(true);
+    }
+  };
+
   // Load line items for this product
   useEffect(() => {
     const loadLineItems = async () => {
@@ -367,19 +395,47 @@ function ProductDetail() {
       moq: '',
       incoterm: 'FOB',
     });
+    setRmbPrice('');
     setEditingQuote(null);
+  };
+
+  // Handle USD price change (update RMB)
+  const handleUsdChange = (value) => {
+    setFormData({ ...formData, unitPrice: value });
+    if (exchangeRate && value) {
+      const rmbValue = (parseFloat(value) * exchangeRate).toFixed(2);
+      setRmbPrice(rmbValue);
+    } else {
+      setRmbPrice('');
+    }
+  };
+
+  // Handle RMB price change (update USD)
+  const handleRmbChange = (value) => {
+    setRmbPrice(value);
+    if (exchangeRate && value) {
+      const usdValue = (parseFloat(value) / exchangeRate).toFixed(2);
+      setFormData({ ...formData, unitPrice: usdValue });
+    } else {
+      setFormData({ ...formData, unitPrice: '' });
+    }
   };
 
   const handleOpenQuoteModal = (quote = null) => {
     if (quote) {
       setEditingQuote(quote);
+      const usdPrice = quote.unitPrice || '';
       setFormData({
         supplierName: quote.supplierName || quote.supplier_name || '',
-        unitPrice: quote.unitPrice || '',
+        unitPrice: usdPrice,
         currency: quote.currency || 'USD',
         moq: quote.moq || '',
         incoterm: quote.incoterm || 'FOB',
       });
+      // Calculate RMB if rate available
+      if (exchangeRate && usdPrice) {
+        setRmbPrice((parseFloat(usdPrice) * exchangeRate).toFixed(2));
+      }
     } else {
       resetForm();
     }
@@ -389,6 +445,26 @@ function ProductDetail() {
   const handleCloseQuoteModal = () => {
     setIsQuoteModalOpen(false);
     resetForm();
+  };
+
+  const copyImageToClipboard = async () => {
+    if (!product?.image_url) return;
+
+    try {
+      const response = await fetch(product.image_url);
+      const blob = await response.blob();
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob
+        })
+      ]);
+
+      alert('Image copied to clipboard!');
+    } catch (error) {
+      console.error('Failed to copy image:', error);
+      alert('Failed to copy image to clipboard. Your browser may not support this feature.');
+    }
   };
 
   const handleSaveQuote = async () => {
@@ -574,9 +650,25 @@ function ProductDetail() {
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius-md)',
                     objectFit: 'contain',
-                    background: 'white'
+                    background: 'white',
+                    display: 'block',
+                    marginBottom: '8px'
                   }}
                 />
+                <button
+                  onClick={copyImageToClipboard}
+                  className="btn-secondary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.8rem',
+                    padding: '6px 12px'
+                  }}
+                >
+                  <Copy size={14} />
+                  Copy Image
+                </button>
               </div>
             )}
 
@@ -841,9 +933,10 @@ function ProductDetail() {
                   />
                 </div>
 
+                {/* USD/RMB Price Conversion */}
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Unit Price *</label>
+                    <label className="form-label">Unit Price (USD) *</label>
                     <input
                       type="number"
                       className="form-input"
@@ -851,11 +944,42 @@ function ProductDetail() {
                       step="0.01"
                       min="0"
                       value={formData.unitPrice}
-                      onChange={(e) =>
-                        setFormData({ ...formData, unitPrice: e.target.value })
-                      }
+                      onChange={(e) => handleUsdChange(e.target.value)}
                     />
                   </div>
+                  <div className="form-group">
+                    <label className="form-label">
+                      Unit Price (RMB/CNY)
+                      {exchangeRate && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                          (Rate: {exchangeRate.toFixed(4)})
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      className="form-input"
+                      placeholder="0.00"
+                      step="0.01"
+                      min="0"
+                      value={rmbPrice}
+                      onChange={(e) => handleRmbChange(e.target.value)}
+                      disabled={!exchangeRate}
+                      style={{
+                        background: !exchangeRate ? '#f1f5f9' : 'white',
+                        fontStyle: 'italic',
+                        color: '#64748b'
+                      }}
+                    />
+                    {exchangeRateError && (
+                      <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px' }}>
+                        Rate unavailable - conversion disabled
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-row">
                   <div className="form-group">
                     <label className="form-label">Currency</label>
                     <select

@@ -246,7 +246,7 @@ function QuoteComparison() {
     // Row 1: Title
     worksheet.mergeCells('A1:H1');
     const titleCell = worksheet.getCell('A1');
-    titleCell.value = 'QUOTE COMPARISON REPORT';
+    titleCell.value = 'QUOTE COMPARISON';
     titleCell.font = { name: 'Calibri', size: 20, bold: true, color: { argb: theme.colors.title.text } };
     titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.title.bg } };
     titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -258,13 +258,62 @@ function QuoteComparison() {
     // Row 2: Empty
     worksheet.getRow(2).height = 8;
 
-    // Rows 3-6: Product Image Placeholder (left) and Product Info (right)
+    // Rows 3-6: Product Image (left) and Product Info (right)
     worksheet.mergeCells('A3:C6');
     const imageCell = worksheet.getCell('A3');
-    imageCell.value = 'PRODUCT IMAGE\n[Insert Product Image Here]';
-    imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
+
+    // Try to embed actual product image
+    if (selectedProduct.image_url) {
+      try {
+        const response = await fetch(selectedProduct.image_url);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+
+          // Determine image format
+          let extension = 'png';
+          if (selectedProduct.image_url.toLowerCase().includes('.jpg') ||
+              selectedProduct.image_url.toLowerCase().includes('.jpeg')) {
+            extension = 'jpeg';
+          }
+
+          const imageId = workbook.addImage({
+            buffer: arrayBuffer,
+            extension: extension,
+          });
+
+          // Calculate image size to fit within cell (preserve aspect ratio)
+          // Cell spans columns A-C (width ~55) and rows 3-6 (height ~90)
+          const maxWidth = 200;
+          const maxHeight = 100;
+
+          // Add image with positioning
+          worksheet.addImage(imageId, {
+            tl: { col: 0, row: 2 },
+            ext: { width: maxWidth, height: maxHeight },
+            editAs: 'oneCell'
+          });
+
+          // Clear the placeholder text
+          imageCell.value = '';
+        } else {
+          throw new Error('Failed to fetch image');
+        }
+      } catch (error) {
+        console.error('Failed to embed product image:', error);
+        // Fall back to placeholder
+        imageCell.value = 'PRODUCT IMAGE\n[Not Available]';
+        imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
+        imageCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+      }
+    } else {
+      // No image URL - show placeholder
+      imageCell.value = 'PRODUCT IMAGE\n[Not Available]';
+      imageCell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.imagePlaceholder.text } };
+      imageCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    }
+
+    // Border for image cell
     imageCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: theme.colors.imagePlaceholder.bg } };
-    imageCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     imageCell.border = {
       top: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
       bottom: { style: 'medium', color: { argb: theme.colors.imagePlaceholder.border } },
@@ -1262,7 +1311,7 @@ function QuoteComparison() {
                           fontSize: '1.2rem',
                           borderBottom: '2px solid #000',
                         }}>
-                          QUOTE COMPARISON REPORT
+                          QUOTE COMPARISON
                         </div>
 
                         {/* Info Section - Excel Grid Style */}
