@@ -49,15 +49,23 @@ function fuzzyMatch(text, search) {
 
 // Normalize category name from intent (handle multiple field formats)
 function getCategoryName(intent) {
-  // Try category.name (if category is an object)
-  if (intent.category?.name) return intent.category.name.trim();
-  // Try category as string
-  if (typeof intent.category === 'string' && intent.category.trim()) return intent.category.trim();
-  // Try alternate field names
-  if (intent.category_name) return intent.category_name.trim();
-  if (intent.categoryName) return intent.categoryName.trim();
-  // Default to Other
-  return 'Other';
+  // Try category as string (primary field based on Products.jsx)
+  if (typeof intent.category === 'string' && intent.category.trim()) {
+    return intent.category.trim();
+  }
+  // Try category.name (if category is an object - defensive)
+  if (intent.category?.name && typeof intent.category.name === 'string') {
+    return intent.category.name.trim();
+  }
+  // Try alternate field names (defensive)
+  if (intent.category_name && typeof intent.category_name === 'string') {
+    return intent.category_name.trim();
+  }
+  if (intent.categoryName && typeof intent.categoryName === 'string') {
+    return intent.categoryName.trim();
+  }
+  // Default to Uncategorized (matching Products.jsx convention)
+  return 'Uncategorized';
 }
 
 function BuyingIntentCommandSelect({
@@ -154,12 +162,12 @@ function BuyingIntentCommandSelect({
       groups[cat].push(intent);
     });
 
-    // Sort categories (alphabetically, but "Other" always last) and items within
+    // Sort categories (alphabetically, but "Uncategorized" always last) and items within
     const sortedGroups = Object.keys(groups)
       .sort((a, b) => {
-        // "Other" always goes last
-        if (a === 'Other') return 1;
-        if (b === 'Other') return -1;
+        // "Uncategorized" always goes last
+        if (a === 'Uncategorized') return 1;
+        if (b === 'Uncategorized') return -1;
         return a.localeCompare(b);
       })
       .map(category => ({
@@ -388,6 +396,12 @@ function BuyingIntentCommandSelect({
 
             {/* Grouped by category */}
             {groupedIntents.map(group => {
+              // Filter out intents that are already in recent
+              const nonRecentIntents = group.intents.filter(i => !recentIntents.find(r => r.id === i.id));
+
+              // Skip this category if all its intents are in recent
+              if (nonRecentIntents.length === 0) return null;
+
               const startIndex = recentIntents.length +
                 groupedIntents
                   .slice(0, groupedIntents.indexOf(group))
@@ -406,11 +420,8 @@ function BuyingIntentCommandSelect({
                   }}>
                     {group.category}
                   </div>
-                  {group.intents.map((intent, localIdx) => {
-                    // Skip if already in recent
-                    if (recentIntents.find(r => r.id === intent.id)) return null;
-
-                    const globalIdx = startIndex + group.intents.slice(0, localIdx).filter(i => !recentIntents.find(r => r.id === i.id)).length;
+                  {nonRecentIntents.map((intent, localIdx) => {
+                    const globalIdx = startIndex + localIdx;
                     return renderIntentRow(intent, globalIdx);
                   })}
                 </div>
