@@ -450,20 +450,58 @@ function ProductDetail() {
   const copyImageToClipboard = async () => {
     if (!product?.image_url) return;
 
+    // Check if Clipboard API is available
+    if (!navigator.clipboard) {
+      alert('Clipboard API is not supported in your browser. Please use HTTPS or a modern browser.');
+      return;
+    }
+
     try {
-      const response = await fetch(product.image_url);
+      // Attempt to fetch and copy image as blob
+      const response = await fetch(product.image_url, {
+        mode: 'cors',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.status}`);
+      }
+
       const blob = await response.blob();
 
+      // Ensure blob type is valid for clipboard
+      const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
+      const blobType = blob.type || 'image/png';
+
+      if (!validTypes.includes(blobType)) {
+        throw new Error(`Unsupported image type: ${blobType}`);
+      }
+
+      // Try to write image to clipboard
       await navigator.clipboard.write([
         new ClipboardItem({
-          [blob.type]: blob
+          [blobType]: blob
         })
       ]);
 
       alert('Image copied to clipboard!');
-    } catch (error) {
-      console.error('Failed to copy image:', error);
-      alert('Failed to copy image to clipboard. Your browser may not support this feature.');
+    } catch (blobError) {
+      console.error('Failed to copy image as blob:', blobError);
+
+      // Fallback 1: Try copying image URL as text
+      try {
+        await navigator.clipboard.writeText(product.image_url);
+        alert('Could not copy image, but image URL was copied to clipboard instead.');
+      } catch (urlError) {
+        console.error('Failed to copy URL:', urlError);
+
+        // Fallback 2: Show helpful error message
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+          alert('Failed to copy image. Clipboard API requires HTTPS. Please access this page over HTTPS.');
+        } else {
+          alert('Failed to copy image to clipboard. Your browser may not support this feature or the image format is incompatible. Error: ' + blobError.message);
+        }
+      }
     }
   };
 
@@ -936,7 +974,7 @@ function ProductDetail() {
                 {/* USD/RMB Price Conversion */}
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">Unit Price (USD) *</label>
+                    <label className="form-label" style={{ minHeight: '16px' }}>Unit Price (USD) *</label>
                     <input
                       type="number"
                       className="form-input"
@@ -948,10 +986,10 @@ function ProductDetail() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">
-                      Unit Price (RMB/CNY)
+                    <label className="form-label" style={{ minHeight: '16px', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '4px' }}>
+                      <span>Unit Price (RMB/CNY)</span>
                       {exchangeRate && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 'normal' }}>
                           (Rate: {exchangeRate.toFixed(4)})
                         </span>
                       )}
@@ -979,28 +1017,26 @@ function ProductDetail() {
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">Currency</label>
-                    <select
-                      className="form-select"
-                      value={formData.currency}
-                      onChange={(e) =>
-                        setFormData({ ...formData, currency: e.target.value })
-                      }
-                    >
-                      {CURRENCIES.map((c) => (
-                        <option key={c} value={c}>
-                          {c}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="form-group">
+                  <label className="form-label" style={{ minHeight: '16px' }}>Currency</label>
+                  <select
+                    className="form-select"
+                    value={formData.currency}
+                    onChange={(e) =>
+                      setFormData({ ...formData, currency: e.target.value })
+                    }
+                  >
+                    {CURRENCIES.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label className="form-label">MOQ (Minimum Order Qty)</label>
+                    <label className="form-label" style={{ minHeight: '16px' }}>MOQ (Minimum Order Qty)</label>
                     <input
                       type="number"
                       className="form-input"
@@ -1013,7 +1049,7 @@ function ProductDetail() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">Incoterm</label>
+                    <label className="form-label" style={{ minHeight: '16px' }}>Incoterm</label>
                     <select
                       className="form-select"
                       value={formData.incoterm}

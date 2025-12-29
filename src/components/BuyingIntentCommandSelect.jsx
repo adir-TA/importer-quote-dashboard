@@ -268,16 +268,10 @@ function BuyingIntentCommandSelect({
     <div
       ref={dropdownRef}
       style={{
-        position: 'absolute',
-        top: '100%',
-        left: 0,
-        right: 0,
-        marginTop: '4px',
         background: 'white',
         border: '1px solid #e2e8f0',
         borderRadius: '8px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-        zIndex: 9999,
         maxHeight: `${maxHeight}px`,
         overflow: 'hidden',
         display: 'flex',
@@ -439,8 +433,8 @@ function BuyingIntentCommandSelect({
         <div
           style={{
             position: 'fixed',
-            top: containerRef.current?.getBoundingClientRect().bottom + window.scrollY,
-            left: containerRef.current?.getBoundingClientRect().left + window.scrollX,
+            top: containerRef.current?.getBoundingClientRect().bottom + 4,
+            left: containerRef.current?.getBoundingClientRect().left,
             width: containerRef.current?.offsetWidth,
             zIndex: 9999,
           }}
