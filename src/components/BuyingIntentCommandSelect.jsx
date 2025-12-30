@@ -97,32 +97,27 @@ function BuyingIntentCommandSelect({
     if (isOpen && containerRef.current) {
       const updatePosition = () => {
         const rect = containerRef.current.getBoundingClientRect();
-        const viewportHeight = window.innerHeight;
         const viewportWidth = window.innerWidth;
-        const dropdownHeight = Math.min(maxHeight + 80, 440); // Estimated dropdown height with search
+        const isMobile = viewportWidth < 768;
 
-        // Check if there's enough space below
-        const spaceBelow = viewportHeight - rect.bottom;
-        const spaceAbove = rect.top;
-        const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
-
-        // Calculate left position, ensuring it doesn't go off-screen
         let left = rect.left;
         let width = rect.width;
 
-        // On mobile, use full width with padding if dropdown would be too narrow
-        if (viewportWidth < 768) {
+        // On mobile: simplified positioning with padding
+        if (isMobile) {
           const padding = 16;
+          // Ensure dropdown stays within viewport with padding
           left = Math.max(padding, Math.min(left, viewportWidth - width - padding));
         } else {
-          // Ensure dropdown doesn't go off right edge
-          if (left + width > viewportWidth) {
+          // Desktop: Ensure dropdown doesn't go off right edge
+          if (left + width > viewportWidth - 8) {
             left = viewportWidth - width - 8;
           }
         }
 
+        // Always open downward for stability (no upward logic)
         setDropdownPosition({
-          top: shouldOpenUpward ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+          top: rect.bottom + 4,
           left,
           width
         });
@@ -133,12 +128,16 @@ function BuyingIntentCommandSelect({
       window.addEventListener('resize', updatePosition);
       return () => window.removeEventListener('resize', updatePosition);
     }
-  }, [isOpen, maxHeight]);
+  }, [isOpen]);
 
-  // Focus search input when opened
+  // Focus search input when opened (desktop only - avoid keyboard popup on mobile)
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+      // Only auto-focus on desktop to avoid mobile keyboard issues
+      const isMobile = window.innerWidth < 768;
+      if (!isMobile) {
+        searchInputRef.current.focus();
+      }
     }
   }, [isOpen]);
 
@@ -361,8 +360,20 @@ function BuyingIntentCommandSelect({
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        touchAction: 'manipulation',
       }}
       onClick={(e) => e.stopPropagation()}
+      onTouchStart={(e) => e.stopPropagation()}
+      onTouchMove={(e) => {
+        // Allow scrolling inside dropdown, prevent parent scroll
+        const target = e.currentTarget;
+        const scrollElement = target.querySelector('[style*="overflowY"]');
+        if (scrollElement && scrollElement.scrollHeight > scrollElement.clientHeight) {
+          // Let the scroll happen inside
+          return;
+        }
+        e.stopPropagation();
+      }}
     >
       {/* Search input */}
       <div style={{
