@@ -95,6 +95,8 @@ function BuyingIntentCommandSelect({
   // Calculate dropdown position when opened
   useEffect(() => {
     if (isOpen && containerRef.current) {
+      let rafId = null;
+
       const updatePosition = () => {
         const rect = containerRef.current.getBoundingClientRect();
         const viewportWidth = window.innerWidth;
@@ -122,11 +124,28 @@ function BuyingIntentCommandSelect({
           width
         });
       };
+
+      // Throttled update for scroll events using RAF
+      const handleScrollOrResize = () => {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(updatePosition);
+      };
+
       updatePosition();
 
-      // Update position on window resize
-      window.addEventListener('resize', updatePosition);
-      return () => window.removeEventListener('resize', updatePosition);
+      // Update position on scroll and resize
+      window.addEventListener('scroll', handleScrollOrResize, true); // Use capture for all scrolls
+      window.addEventListener('resize', handleScrollOrResize);
+
+      return () => {
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+        window.removeEventListener('resize', handleScrollOrResize);
+      };
     }
   }, [isOpen]);
 

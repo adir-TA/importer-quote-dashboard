@@ -330,7 +330,7 @@
   }
 
   .global-search-container {
-    max-width: calc(100vw - 32px);
+    max-width: calc(100% - 32px);
     max-height: 80vh;
   }
 

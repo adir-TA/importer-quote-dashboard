@@ -2784,3 +2784,73 @@ textarea.form-input { resize: none; min-height: 100px; }
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ====================================================================
+   COMPREHENSIVE HORIZONTAL OVERFLOW FIX
+   ==================================================================== */
+
+/* Safety net: Prevent horizontal overflow at root level */
+html {
+  overflow-x: hidden;
+  max-width: 100%;
+}
+
+/* Products.jsx and QuoteComparison.jsx - Two-column layouts with fixed sidebars */
+@media (max-width: 968px) {
+  /* Stack 280px and 320px sidebar layouts */
+  div[style*="gridTemplateColumns: '280px 1fr'"],
+  div[style*='gridTemplateColumns: 280px 1fr'],
+  div[style*="gridTemplateColumns: '320px 1fr'"],
+  div[style*='gridTemplateColumns: 320px 1fr'] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  /* Ensure sidebar sections take full width when stacked */
+  div[style*="gridTemplateColumns: '280px 1fr'"] > div:first-child,
+  div[style*='gridTemplateColumns: 280px 1fr'] > div:first-child,
+  div[style*="gridTemplateColumns: '320px 1fr'"] > div:first-child,
+  div[style*='gridTemplateColumns: 320px 1fr'] > div:first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid var(--border) !important;
+    margin-bottom: 16px !important;
+  }
+
+  /* Fix RFQ theme selector 280px sidebar */
+  div[style*='width: 280px'][style*='borderRight'] {
+    width: 100% !important;
+    max-width: 100% !important;
+    border-right: none !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    padding-bottom: 16px !important;
+  }
+}
+
+/* Ensure all grid layouts with px columns stack on mobile */
+@media (max-width: 768px) {
+  /* Stack any grid with fixed px column widths */
+  div[style*='gridTemplateColumns'][style*='px'] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ensure no element can exceed viewport width */
+  * {
+    max-width: 100% !important;
+  }
+
+  /* Tables: ensure they scroll horizontally within viewport */
+  table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Fix table grids with multiple px columns */
+  div[style*='gridTemplateColumns'][style*='60px'][style*='100px'] {
+    overflow-x: auto !important;
+    max-width: 100% !important;
+  }
+}
