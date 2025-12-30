@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft, FileSpreadsheet, FileText, Sparkles,
   TrendingDown, MessageSquare, Trophy, X, Check, CheckCircle2,
-  FileDown, Calculator, Package, AlertCircle, AlertTriangle
+  FileDown, Calculator, Package, AlertCircle, AlertTriangle, Filter
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { BuyingIntentCommandSelect } from '../components';
@@ -91,6 +91,7 @@ function QuoteComparison() {
   const [loadingCounts, setLoadingCounts] = React.useState(true); // track loading state
   const [showThemeSelector, setShowThemeSelector] = useState(false);
   const [selectedTheme, setSelectedTheme] = useState('vibrant');
+  const [isMobileSelectorOpen, setIsMobileSelectorOpen] = useState(false);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -590,10 +591,33 @@ function QuoteComparison() {
           </div>
         )}
 
+        {/* Mobile Selector Button */}
+        <button
+          className="mobile-filters-btn"
+          onClick={() => setIsMobileSelectorOpen(true)}
+          style={{
+            display: 'none',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            background: 'var(--accent)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            alignItems: 'center',
+            gap: '8px',
+            width: '100%',
+          }}
+        >
+          <Filter size={16} /> Select Buying Intent
+        </button>
+
         {/* Two-column layout: Product selector sidebar + Main content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="products-layout" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Left Sidebar: Product Selector */}
-          <div style={{
+          <div className="filters-sidebar" style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
@@ -1532,6 +1556,129 @@ function QuoteComparison() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Mobile Selector Drawer */}
+      {isMobileSelectorOpen && (
+        <>
+          <div
+            className="mobile-filters-overlay"
+            onClick={() => setIsMobileSelectorOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(2px)',
+              zIndex: 999,
+            }}
+          />
+          <div className="mobile-filters-drawer" style={{
+            position: 'fixed',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '85%',
+            maxWidth: '320px',
+            background: 'white',
+            zIndex: 1000,
+            overflowY: 'auto',
+            padding: '24px',
+            boxShadow: '-4px 0 12px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Select Buying Intent</h3>
+              <button
+                onClick={() => setIsMobileSelectorOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <BuyingIntentCommandSelect
+              buyingIntents={products}
+              value={selectedProductId}
+              onChange={(id) => {
+                handleProductChange(id);
+                setIsMobileSelectorOpen(false);
+              }}
+              quoteCounts={quoteCounts}
+              placeholder="Select a buying intent to compare..."
+            />
+
+            {!selectedProductId && (
+              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                <AlertCircle size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
+                Select a buying intent to compare quotes
+              </div>
+            )}
+
+            {/* Recently Used */}
+            {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
+              <div style={{ marginTop: '24px' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  Recently Used
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (
+                    <button
+                      key={product.id}
+                      onClick={() => {
+                        handleProductChange(product.id);
+                        setIsMobileSelectorOpen(false);
+                      }}
+                      style={{
+                        padding: '12px',
+                        background: 'var(--bg-secondary)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        textAlign: 'left'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'var(--accent-light)';
+                        e.currentTarget.style.borderColor = 'var(--accent)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'var(--bg-secondary)';
+                        e.currentTarget.style.borderColor = 'var(--border)';
+                      }}
+                    >
+                      <Package size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.name}</span>
+                      <span style={{
+                        padding: '2px 8px',
+                        background: 'var(--success-light)',
+                        color: 'var(--success)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        flexShrink: 0
+                      }}>
+                        {quoteCounts[product.id]}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </>
       )}
     </div>
   );

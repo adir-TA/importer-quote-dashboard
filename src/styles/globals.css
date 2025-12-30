@@ -2645,6 +2645,19 @@ textarea.form-input { resize: none; min-height: 100px; }
     display: flex;
   }
 
+  /* Mobile Filters Drawer Pattern */
+  .mobile-filters-btn {
+    display: flex !important;
+  }
+
+  .filters-sidebar {
+    display: none !important;
+  }
+
+  .products-layout {
+    grid-template-columns: 1fr !important;
+  }
+
   /* Show mobile overlay when sidebar is open */
   .mobile-sidebar-overlay {
     display: block;

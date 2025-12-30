@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
@@ -23,6 +23,9 @@ function Products() {
   const [formData, setFormData] = useState({ name: '', category: '', description: '', specs: [] });
   const [quoteCounts, setQuoteCounts] = useState({});
   const [isUploadQuoteModalOpen, setIsUploadQuoteModalOpen] = useState(false);
+
+  // Mobile filters drawer state
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   // Image upload state
   const [selectedImage, setSelectedImage] = useState(null);
@@ -498,10 +501,33 @@ function Products() {
           </div>
         )}
 
+        {/* Mobile Filters Button */}
+        <button
+          className="mobile-filters-btn"
+          onClick={() => setIsMobileFiltersOpen(true)}
+          style={{
+            display: 'none',
+            marginBottom: '16px',
+            padding: '12px 16px',
+            background: 'var(--accent)',
+            color: 'white',
+            border: 'none',
+            borderRadius: 'var(--radius-md)',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: 600,
+            alignItems: 'center',
+            gap: '8px',
+            width: '100%',
+          }}
+        >
+          <Filter size={16} /> Filters & Options
+        </button>
+
         {/* Two-column layout: Filters sidebar + Main content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="products-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Left Sidebar: Filters & Options */}
-          <div style={{
+          <div className="filters-sidebar" style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
@@ -1038,6 +1064,333 @@ function Products() {
         </>
         )}
       </div>
+
+      {/* Mobile Filters Drawer */}
+      {isMobileFiltersOpen && (
+        <>
+          <div
+            className="mobile-filters-overlay"
+            onClick={() => setIsMobileFiltersOpen(false)}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              background: 'rgba(0, 0, 0, 0.5)',
+              backdropFilter: 'blur(2px)',
+              zIndex: 999,
+            }}
+          />
+          <div className="mobile-filters-drawer" style={{
+            position: 'fixed',
+            right: 0,
+            top: 0,
+            bottom: 0,
+            width: '85%',
+            maxWidth: '320px',
+            background: 'white',
+            zIndex: 1000,
+            overflowY: 'auto',
+            padding: '24px',
+            boxShadow: '-4px 0 12px rgba(0,0,0,0.15)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Filters & View</h3>
+              <button
+                onClick={() => setIsMobileFiltersOpen(false)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: '8px',
+                  borderRadius: 'var(--radius-md)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* View Mode */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                View Mode
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button
+                  onClick={() => {
+                    setViewMode('grid');
+                    localStorage.setItem('buyingIntentsViewMode', 'grid');
+                    setViewModeManuallySet(true);
+                  }}
+                  style={{
+                    padding: '12px',
+                    background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Grid size={18} />
+                  Grid
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode('list');
+                    localStorage.setItem('buyingIntentsViewMode', 'list');
+                    setViewModeManuallySet(true);
+                  }}
+                  style={{
+                    padding: '12px',
+                    background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <List size={18} />
+                  List
+                </button>
+              </div>
+            </div>
+
+            {/* Sort By */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+                Sort By
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <button
+                  onClick={() => setSortBy('name')}
+                  style={{
+                    padding: '10px 12px',
+                    background: sortBy === 'name' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: sortBy === 'name' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Type size={16} />
+                  Name (A-Z)
+                </button>
+                <button
+                  onClick={() => setSortBy('quotes')}
+                  style={{
+                    padding: '10px 12px',
+                    background: sortBy === 'quotes' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: sortBy === 'quotes' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <TrendingDown size={16} />
+                  Quotes (High-Low)
+                </button>
+                <button
+                  onClick={() => setSortBy('recent')}
+                  style={{
+                    padding: '10px 12px',
+                    background: sortBy === 'recent' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: sortBy === 'recent' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <Clock size={16} />
+                  Recently Added
+                </button>
+              </div>
+            </div>
+
+            {/* Category Filters */}
+            {categories.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Categories
+                  </label>
+                  {selectedCategoryFilters.length > 0 && (
+                    <button
+                      onClick={() => setSelectedCategoryFilters([])}
+                      style={{
+                        fontSize: '0.7rem',
+                        color: 'var(--error)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {categories.map(category => (
+                    <label
+                      key={category}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        padding: '10px 12px',
+                        background: selectedCategoryFilters.includes(category) ? 'var(--accent-light)' : 'var(--bg-secondary)',
+                        border: selectedCategoryFilters.includes(category) ? '1px solid var(--accent)' : '1px solid transparent',
+                        borderRadius: 'var(--radius-md)',
+                        cursor: 'pointer',
+                        fontSize: '0.875rem',
+                        fontWeight: 500,
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedCategoryFilters.includes(category)}
+                        onChange={() => {
+                          setSelectedCategoryFilters(prev =>
+                            prev.includes(category)
+                              ? prev.filter(c => c !== category)
+                              : [...prev, category]
+                          );
+                        }}
+                        style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                      />
+                      <span style={{ flex: 1, color: 'var(--text-primary)' }}>{category}</span>
+                      <span style={{
+                        fontSize: '0.7rem',
+                        padding: '2px 8px',
+                        background: 'white',
+                        borderRadius: 'var(--radius-sm)',
+                        color: 'var(--text-muted)',
+                        fontWeight: 600,
+                      }}>
+                        {stats.categoryBreakdown[category] || 0}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bulk Actions */}
+            {selectedProducts.size > 0 && (
+              <div style={{
+                padding: '16px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--error)',
+              }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {selectedProducts.size} Selected
+                </div>
+                <button
+                  onClick={() => {
+                    setShowRFQThemeSelector(true);
+                    setIsMobileFiltersOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <FileDown size={16} />
+                  Generate RFQ ({selectedProducts.size})
+                </button>
+                <button
+                  onClick={() => {
+                    handleBulkDelete();
+                    setIsMobileFiltersOpen(false);
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: 'var(--error)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginTop: '8px',
+                  }}
+                >
+                  <Trash2 size={16} />
+                  Delete Selected
+                </button>
+                <button
+                  onClick={deselectAll}
+                  style={{
+                    width: '100%',
+                    padding: '8px',
+                    background: 'transparent',
+                    color: 'var(--error)',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    marginTop: '8px',
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Deselect All
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       <EditBuyingIntentModal
         isOpen={isModalOpen}
