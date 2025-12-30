@@ -97,15 +97,43 @@ function BuyingIntentCommandSelect({
     if (isOpen && containerRef.current) {
       const updatePosition = () => {
         const rect = containerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const dropdownHeight = Math.min(maxHeight + 80, 440); // Estimated dropdown height with search
+
+        // Check if there's enough space below
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+        const shouldOpenUpward = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
+
+        // Calculate left position, ensuring it doesn't go off-screen
+        let left = rect.left;
+        let width = rect.width;
+
+        // On mobile, use full width with padding if dropdown would be too narrow
+        if (viewportWidth < 768) {
+          const padding = 16;
+          left = Math.max(padding, Math.min(left, viewportWidth - width - padding));
+        } else {
+          // Ensure dropdown doesn't go off right edge
+          if (left + width > viewportWidth) {
+            left = viewportWidth - width - 8;
+          }
+        }
+
         setDropdownPosition({
-          top: rect.bottom + 4,
-          left: rect.left,
-          width: rect.width
+          top: shouldOpenUpward ? rect.top - dropdownHeight - 4 : rect.bottom + 4,
+          left,
+          width
         });
       };
       updatePosition();
+
+      // Update position on window resize
+      window.addEventListener('resize', updatePosition);
+      return () => window.removeEventListener('resize', updatePosition);
     }
-  }, [isOpen]);
+  }, [isOpen, maxHeight]);
 
   // Focus search input when opened
   useEffect(() => {
@@ -305,6 +333,21 @@ function BuyingIntentCommandSelect({
     );
   };
 
+  // Responsive max height for mobile
+  const getResponsiveMaxHeight = () => {
+    if (typeof window === 'undefined') return maxHeight;
+    const viewportHeight = window.innerHeight;
+    const isMobile = window.innerWidth < 768;
+
+    if (isMobile) {
+      // On mobile, use up to 60% of viewport height
+      return Math.min(maxHeight, viewportHeight * 0.6);
+    }
+    return maxHeight;
+  };
+
+  const responsiveMaxHeight = getResponsiveMaxHeight();
+
   // Dropdown content
   const dropdownContent = (
     <div
@@ -314,7 +357,7 @@ function BuyingIntentCommandSelect({
         border: '1px solid #e2e8f0',
         borderRadius: '8px',
         boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
-        maxHeight: `${maxHeight}px`,
+        maxHeight: `${responsiveMaxHeight}px`,
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
@@ -359,7 +402,7 @@ function BuyingIntentCommandSelect({
       {/* Results */}
       <div style={{
         overflowY: 'auto',
-        maxHeight: `${maxHeight - 80}px`,
+        maxHeight: `${responsiveMaxHeight - 80}px`,
       }}>
         {flatList.length === 0 ? (
           <div style={{

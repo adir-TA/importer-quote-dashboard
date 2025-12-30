@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Menu } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { Sidebar, GlobalSearch } from './components';
 import {
@@ -61,6 +62,13 @@ function AuthRoute({ children }) {
 
 function AppLayout() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const location = useLocation();
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [location.pathname]);
 
   // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
   useEffect(() => {
@@ -77,7 +85,30 @@ function AppLayout() {
 
   return (
     <div className="app-container">
-      <Sidebar onSearchOpen={() => setIsSearchOpen(true)} />
+      {/* Mobile hamburger button */}
+      <button
+        className="mobile-menu-btn"
+        onClick={() => setIsMobileSidebarOpen(true)}
+        aria-label="Open menu"
+      >
+        <Menu size={24} />
+      </button>
+
+      {/* Sidebar with mobile drawer support */}
+      <Sidebar
+        onSearchOpen={() => setIsSearchOpen(true)}
+        isMobileOpen={isMobileSidebarOpen}
+        onMobileClose={() => setIsMobileSidebarOpen(false)}
+      />
+
+      {/* Mobile overlay backdrop */}
+      {isMobileSidebarOpen && (
+        <div
+          className="mobile-sidebar-overlay"
+          onClick={() => setIsMobileSidebarOpen(false)}
+        />
+      )}
+
       <main className="main-content">
         <Routes>
           <Route path="/" element={<Dashboard />} />

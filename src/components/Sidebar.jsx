@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import '../styles/sidebar.css';
 
-function Sidebar({ onSearchOpen }) {
+function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -41,7 +41,7 @@ function Sidebar({ onSearchOpen }) {
   ];
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isMobileOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
           <div className="sidebar-logo-icon">📦</div>
