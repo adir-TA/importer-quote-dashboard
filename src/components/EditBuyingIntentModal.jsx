@@ -34,6 +34,8 @@ function EditBuyingIntentModal({
   handleUpdateSpecValue
 }) {
   const modalRef = useRef(null);
+  const nameInputRef = useRef(null);
+  const categorySearchRef = useRef(null);
 
   // Handle paste events for image upload
   const handlePaste = (e) => {
@@ -76,6 +78,41 @@ function EditBuyingIntentModal({
     };
   }, [isOpen]);
 
+  // Auto-focus Name field when creating new (not editing)
+  useEffect(() => {
+    if (isOpen && !editingProduct && nameInputRef.current) {
+      // Small delay to ensure modal is rendered
+      setTimeout(() => {
+        nameInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isOpen, editingProduct]);
+
+  // Auto-focus category search when dropdown opens
+  useEffect(() => {
+    if (showCategoryDropdown && categorySearchRef.current) {
+      setTimeout(() => {
+        categorySearchRef.current?.focus();
+      }, 50);
+    }
+  }, [showCategoryDropdown]);
+
+  // Handle Enter key in Name field to open category dropdown
+  const handleNameKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault(); // Prevent form submission
+      setShowCategoryDropdown(true);
+    }
+  };
+
+  // Handle Enter key in category search to select first result
+  const handleCategorySearchKeyDown = (e) => {
+    if (e.key === 'Enter' && filteredCategories.length > 0) {
+      e.preventDefault();
+      handleSelectCategory(filteredCategories[0]);
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -90,7 +127,15 @@ function EditBuyingIntentModal({
             <div className="form-section-title"><Package size={18} color="var(--accent)" /> What You Want to Buy</div>
             <div className="form-group">
               <label className="form-label">Intent Name *</label>
-              <input type="text" className="form-input" placeholder="e.g., Aluminum Container 225×175×42mm" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
+              <input
+                ref={nameInputRef}
+                type="text"
+                className="form-input"
+                placeholder="e.g., Aluminum Container 225×175×42mm"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                onKeyDown={handleNameKeyDown}
+              />
               <p className="form-hint">Describe what you're trying to buy (independent of suppliers)</p>
             </div>
             <div className="form-group" style={{ position: 'relative' }}>
@@ -172,10 +217,12 @@ function EditBuyingIntentModal({
                   }}>
                     <Search size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                     <input
+                      ref={categorySearchRef}
                       type="text"
                       className="form-input"
                       value={categorySearch}
                       onChange={e => setCategorySearch(e.target.value)}
+                      onKeyDown={handleCategorySearchKeyDown}
                       placeholder="Search categories..."
                       onClick={e => e.stopPropagation()}
                       style={{ fontSize: '0.875rem', flex: 1, border: 'none', background: 'transparent', padding: 0 }}

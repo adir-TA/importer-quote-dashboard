@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, Table2, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, Table2, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter, Copy } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
@@ -207,6 +207,36 @@ function Products() {
         ]
       });
     }
+    setIsModalOpen(true);
+  };
+
+  const handleDuplicate = (product) => {
+    // Duplicate opens Create flow (not Edit) with pre-filled data
+    setEditingProduct(null); // Important: null means Create, not Edit
+
+    // Copy all fields from source product
+    const initialSpecs = product.specs && product.specs.length > 0
+      ? product.specs.map(spec => ({ ...spec })) // Deep copy specs
+      : [
+          { key: 'Weight', value: '' },
+          { key: 'Height', value: '' },
+          { key: 'Length', value: '' },
+          { key: 'Width', value: '' }
+        ];
+
+    setFormData({
+      name: product.name, // Pre-filled, user can edit
+      category: product.category || '',
+      description: product.description || '',
+      specs: initialSpecs
+    });
+
+    // Copy image preview if exists (but as preview only, will need to re-upload)
+    if (product.image_url) {
+      setImagePreview(product.image_url);
+      // Note: selectedImage stays null - user will need to re-upload or we fetch it
+    }
+
     setIsModalOpen(true);
   };
 
@@ -892,6 +922,7 @@ function Products() {
                           quoteCount={quoteCounts[product.id] || 0}
                           onClick={() => navigate(`/products/${product.id}`)}
                           onEdit={() => handleOpenModal(product)}
+                          onDuplicate={() => handleDuplicate(product)}
                           onDelete={() => handleDelete(product.id)}
                           isSelected={selectedProducts.has(product.id)}
                           onToggleSelect={toggleSelection}
@@ -1070,6 +1101,34 @@ function Products() {
                                 title="Edit"
                               >
                                 <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDuplicate(product);
+                                }}
+                                style={{
+                                  padding: '6px',
+                                  background: 'transparent',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  color: 'var(--text-secondary)',
+                                  transition: 'all 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'var(--bg-secondary)';
+                                  e.currentTarget.style.color = 'var(--accent)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'transparent';
+                                  e.currentTarget.style.color = 'var(--text-secondary)';
+                                }}
+                                title="Duplicate"
+                              >
+                                <Copy size={14} />
                               </button>
                               <button
                                 onClick={(e) => {

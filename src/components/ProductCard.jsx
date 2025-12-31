@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Edit2, Trash2, Package } from 'lucide-react';
+import { FileText, Edit2, Trash2, Package, Copy } from 'lucide-react';
 
 // Helper to get primary specs for grid view (max 2: Weight + one dimension)
 function getPrimarySpecs(specs) {
@@ -32,10 +32,15 @@ function getPrimarySpecs(specs) {
   return { primary, remaining };
 }
 
-function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSelected, onToggleSelect }) {
+function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, onDelete, isSelected, onToggleSelect }) {
   const handleEdit = (e) => {
     e.stopPropagation();
     onEdit?.(product);
+  };
+
+  const handleDuplicate = (e) => {
+    e.stopPropagation();
+    onDuplicate?.(product);
   };
 
   const handleDelete = (e) => {
@@ -153,12 +158,17 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
 
         <div style={{ display: 'flex', gap: '2px', flexShrink: 0, opacity: 0.6 }}>
           {onEdit && (
-            <button className="icon-btn" onClick={handleEdit} style={{ padding: '4px' }}>
+            <button className="icon-btn" onClick={handleEdit} style={{ padding: '4px' }} title="Edit">
               <Edit2 size={12} />
             </button>
           )}
+          {onDuplicate && (
+            <button className="icon-btn" onClick={handleDuplicate} style={{ padding: '4px' }} title="Duplicate">
+              <Copy size={12} />
+            </button>
+          )}
           {onDelete && (
-            <button className="icon-btn" onClick={handleDelete} style={{ padding: '4px' }}>
+            <button className="icon-btn" onClick={handleDelete} style={{ padding: '4px' }} title="Delete">
               <Trash2 size={12} />
             </button>
           )}
