@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, Table2, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter, Copy } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
@@ -12,6 +12,7 @@ import { generateRFQExcel } from './ProductDetail';
 
 function Products() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, actions, computed } = useAppContext();
   const { confirm } = useModal();
@@ -99,6 +100,16 @@ function Products() {
       setSearchParams({});
     }
   }, [searchParams, setSearchParams]);
+
+  // Handle duplicate from ProductDetail page
+  useEffect(() => {
+    if (location.state?.duplicateProduct) {
+      const product = location.state.duplicateProduct;
+      handleDuplicate(product);
+      // Clear the navigation state to prevent duplicate on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
 
   // Auto-default to compact view when many intents exist (if user hasn't manually set preference)
   useEffect(() => {

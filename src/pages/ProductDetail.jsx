@@ -692,6 +692,15 @@ function ProductDetail() {
     setIsEditModalOpen(true);
   };
 
+  // Duplicate handler - navigate to Products page with duplicate state
+  const handleDuplicate = () => {
+    navigate('/products', {
+      state: {
+        duplicateProduct: product
+      }
+    });
+  };
+
   const closeEditModal = () => {
     setIsEditModalOpen(false);
     setEditFormData({ name: '', category: '', description: '', specs: [] });
@@ -809,6 +818,18 @@ function ProductDetail() {
             }}
           >
             <Edit2 size={16} /> Edit
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDuplicate();
+            }}
+            title="Duplicate this buying intent"
+          >
+            <Copy size={16} /> Duplicate
           </button>
           {(quotes.length + lineItems.length) >= 2 && (
             <button className="btn btn-secondary" onClick={handleCompare}>
