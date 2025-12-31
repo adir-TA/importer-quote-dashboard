@@ -55,6 +55,8 @@ async function extractFromImage(file, apiKey) {
   // Call BACKEND API (which proxies to Claude to avoid CORS)
   const API_URL = `${API_BASE_URL}/api/extract-quote`;
 
+  console.log('[IMAGE] Calling extraction API...');
+
   const result = await fetchJson(API_URL, {
     method: 'POST',
     headers: {
@@ -67,12 +69,21 @@ async function extractFromImage(file, apiKey) {
     }),
   });
 
+  console.log('[IMAGE] API response:', { ok: result.ok, hasData: !!result.data, hasError: !!result.error });
+
   if (!result.ok) {
-    const errorMessage = formatApiError(result.error);
+    console.error('[IMAGE] Extraction failed:', {
+      error: result.error,
+      httpStatus: result.error?.httpStatus,
+      code: result.error?.code,
+      message: result.error?.message,
+    });
+    const errorMessage = formatApiError(result.error, result.error?.httpStatus);
     throw new Error(errorMessage);
   }
 
   if (!result.data) {
+    console.error('[IMAGE] No data in successful response');
     throw new Error('No data returned from extraction API');
   }
 
@@ -322,6 +333,8 @@ async function processPdf(file, apiKey) {
   // Call backend API with PDF
   const API_URL = `${API_BASE_URL}/api/extract-quote`;
 
+  console.log('[PDF] Calling extraction API...');
+
   const result = await fetchJson(API_URL, {
     method: 'POST',
     headers: {
@@ -334,12 +347,21 @@ async function processPdf(file, apiKey) {
     }),
   });
 
+  console.log('[PDF] API response:', { ok: result.ok, hasData: !!result.data, hasError: !!result.error });
+
   if (!result.ok) {
-    const errorMessage = formatApiError(result.error);
+    console.error('[PDF] Extraction failed:', {
+      error: result.error,
+      httpStatus: result.error?.httpStatus,
+      code: result.error?.code,
+      message: result.error?.message,
+    });
+    const errorMessage = formatApiError(result.error, result.error?.httpStatus);
     throw new Error(errorMessage);
   }
 
   if (!result.data) {
+    console.error('[PDF] No data in successful response');
     throw new Error('No data returned from PDF extraction');
   }
 
@@ -453,7 +475,8 @@ async function processExcel(file, apiKey) {
     .map(row => row.join('\t'))
     .join('\n');
 
-  console.log('📊 [EXCEL] Parsed spreadsheet, sending to Claude...');
+  console.log('📊 [EXCEL:STEP-1] Parsed spreadsheet successfully, rows:', jsonData.length);
+  console.log('📊 [EXCEL:STEP-2] Converting to text and sending to Claude...');
 
   // Send structured data to text extraction API
   const result = await extractFromText(
@@ -461,7 +484,7 @@ async function processExcel(file, apiKey) {
     apiKey
   );
 
-  console.log('✅ [EXCEL] Successfully extracted from Excel');
+  console.log('✅ [EXCEL:STEP-3] Successfully extracted from Excel');
   return result;
 }
 
@@ -472,18 +495,22 @@ async function processExcel(file, apiKey) {
  * @returns {Promise<ExtractionResult>}
  */
 async function extractFromText(text, apiKey) {
-  console.log('📝 [TEXT EXTRACTION] Starting extraction from text');
+  console.log('📝 [TEXT:STEP-1] Starting extraction from text, length:', text.length);
 
   if (!apiKey) {
+    console.error('[TEXT:ERROR] Missing API key');
     throw new Error('Anthropic API key required. Add it in Settings.');
   }
 
   if (!text || text.trim().length === 0) {
+    console.error('[TEXT:ERROR] Empty text');
     throw new Error('Text content is empty');
   }
 
   // Call BACKEND API
   const API_URL = `${API_BASE_URL}/api/extract-quote-from-text`;
+
+  console.log('[TEXT:STEP-2] Calling extraction API:', API_URL);
 
   const result = await fetchJson(API_URL, {
     method: 'POST',
@@ -496,15 +523,26 @@ async function extractFromText(text, apiKey) {
     }),
   });
 
+  console.log('[TEXT:STEP-3] API response received:', { ok: result.ok, hasData: !!result.data, hasError: !!result.error });
+
   if (!result.ok) {
-    const errorMessage = formatApiError(result.error);
+    console.error('[TEXT:ERROR] Extraction API failed:', {
+      error: result.error,
+      httpStatus: result.error?.httpStatus,
+      code: result.error?.code,
+      message: result.error?.message,
+      fullError: result.error,
+    });
+    const errorMessage = formatApiError(result.error, result.error?.httpStatus);
     throw new Error(errorMessage);
   }
 
   if (!result.data) {
+    console.error('[TEXT:ERROR] No data in successful response');
     throw new Error('No data returned from text extraction API');
   }
 
+  console.log('[TEXT:STEP-4] Converting raw data to extraction result');
   const rawData = result.data;
 
   // Convert to same structure as image extraction
@@ -584,7 +622,7 @@ async function extractFromText(text, apiKey) {
     extractionResult.hasMultipleItems = extractionResult.lineItems.length > 1;
   }
 
-  console.log('✅ [TEXT EXTRACTION] Successfully extracted data');
+  console.log('✅ [TEXT:STEP-5] Successfully extracted data, line items:', extractionResult.lineItems?.length || 0);
 
   return extractionResult;
 }

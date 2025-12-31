@@ -65,6 +65,14 @@ export async function fetchJson(url, options = {}) {
       };
     }
 
+    // If backend returned error response, ensure httpStatus is included
+    if (!parsed.ok && parsed.error) {
+      // Add HTTP status to error object if not already present
+      if (!parsed.error.httpStatus) {
+        parsed.error.httpStatus = response.status;
+      }
+    }
+
     // Return parsed response (already has ok: true/false from backend)
     return parsed;
 
@@ -85,12 +93,38 @@ export async function fetchJson(url, options = {}) {
 /**
  * Display user-friendly error message from API error object
  * @param {Object} error - Error object from API response
+ * @param {number} httpStatus - HTTP status code (if available)
  * @returns {string} - User-friendly error message
  */
-export function formatApiError(error) {
-  if (!error) return 'An unknown error occurred';
+export function formatApiError(error, httpStatus = null) {
+  // Handle case where error object is missing entirely
+  if (!error) {
+    if (httpStatus) {
+      // Map HTTP status to user-friendly message
+      const statusMessages = {
+        400: 'Invalid request - please check your input',
+        401: 'Missing or invalid API key - add your Anthropic API key in Settings',
+        403: 'Not authorized - check your API key permissions',
+        404: 'API endpoint not found - check server configuration',
+        413: 'File too large - reduce file size or number of rows',
+        429: 'Rate limited - please wait a moment and try again',
+        500: 'Server error - please try again',
+        502: 'Server unavailable - please try again',
+        503: 'Service temporarily unavailable - please try again',
+        504: 'Request timed out - please try again',
+      };
 
-  const { message, code, requestId, step } = error;
+      const statusMessage = statusMessages[httpStatus] || `Server error (HTTP ${httpStatus})`;
+      console.error(`[formatApiError] No error object but HTTP ${httpStatus}`);
+      return statusMessage;
+    }
+
+    console.error('[formatApiError] No error object and no HTTP status');
+    return 'An unknown error occurred - check console for details';
+  }
+
+  const { message, code, requestId, step, httpStatus: errorHttpStatus } = error;
+  const status = httpStatus || errorHttpStatus;
 
   // Provide helpful context based on error code
   const codeMessages = {
@@ -98,7 +132,7 @@ export function formatApiError(error) {
     'MISSING_API_KEY': 'Please add your Anthropic API key in Settings',
     'MISSING_BODY': 'Request error - please try again',
     'MISSING_ENV': 'Server configuration error',
-    'PAYLOAD_TOO_LARGE': 'File is too large',
+    'PAYLOAD_TOO_LARGE': 'File is too large - reduce file size or number of rows',
     'ANTHROPIC_API_ERROR': 'AI service error',
     'EMPTY_RESPONSE': 'No response from AI',
     'EMPTY_EXTRACTION': 'No data extracted from document',
@@ -106,30 +140,48 @@ export function formatApiError(error) {
     'PARSE_MODEL_OUTPUT': 'Could not parse model response',
     'PARSE_ERROR': 'Could not parse extracted data',
     'EXTRACTION_FAILED': 'Extraction failed',
-    'TIMEOUT': 'Request timed out',
-    'INVALID_JSON': 'Invalid server response',
-    'INVALID_RESPONSE': 'Invalid server response',
-    'NETWORK_ERROR': 'Network connection failed',
+    'TIMEOUT': 'Request timed out - please try again',
+    'INVALID_JSON': 'Invalid server response format',
+    'INVALID_RESPONSE': 'Invalid server response format',
+    'NETWORK_ERROR': 'Network connection failed - check your connection',
   };
 
-  const contextMessage = codeMessages[code] || 'An error occurred';
+  let contextMessage = codeMessages[code] || 'An error occurred';
+
+  // Add HTTP status context if available
+  if (status) {
+    if (status === 401 || status === 403) {
+      contextMessage = 'Missing or invalid API key - add your Anthropic API key in Settings';
+    } else if (status === 429) {
+      contextMessage = 'Rate limited by API - please wait a moment and try again';
+    } else if (status === 413) {
+      contextMessage = 'Request too large - reduce file size or number of rows';
+    } else if (status >= 500) {
+      contextMessage = 'Server error - please try again';
+    }
+  }
 
   // Build concise user-friendly message
   let fullMessage = `${contextMessage}`;
 
   // Add step information if available (helps with debugging)
   if (step && step !== 'unknown' && step !== 'start') {
-    fullMessage += ` at step: ${step}`;
+    fullMessage += ` (step: ${step})`;
   }
 
   // Only add details if they provide value
   if (message && message !== contextMessage) {
-    fullMessage += `\n${message}`;
+    fullMessage += `\n\nDetails: ${message}`;
+  }
+
+  // Add HTTP status for debugging
+  if (status && status !== 200) {
+    fullMessage += `\n\nHTTP Status: ${status}`;
   }
 
   // Add request ID for support (if from server)
   if (requestId && requestId.startsWith('req_')) {
-    fullMessage += `\n\nRequest ID: ${requestId}`;
+    fullMessage += `\nRequest ID: ${requestId}`;
   }
 
   return fullMessage;
