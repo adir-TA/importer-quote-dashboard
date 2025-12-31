@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Package, X, Check, ChevronDown, Search, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 
 function EditBuyingIntentModal({
@@ -33,11 +33,54 @@ function EditBuyingIntentModal({
   handleRemoveSpec,
   handleUpdateSpecValue
 }) {
+  const modalRef = useRef(null);
+
+  // Handle paste events for image upload
+  const handlePaste = (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    const imageItems = Array.from(items).filter(item => item.type.startsWith('image/'));
+    if (imageItems.length === 0) return;
+
+    e.preventDefault();
+
+    // Get the first image from clipboard
+    const blob = imageItems[0].getAsFile();
+    if (!blob) return;
+
+    // Create a proper File object with a name
+    const extension = blob.type.split('/')[1] || 'png';
+    const fileName = `pasted-image-${Date.now()}.${extension}`;
+    const file = new File([blob], fileName, { type: blob.type });
+
+    // Set the selected image and preview (same as file input)
+    setSelectedImage(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  // Listen for paste events when modal is open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleDocumentPaste = (e) => {
+      // Only handle paste if modal is open
+      if (modalRef.current) {
+        handlePaste(e);
+      }
+    };
+
+    document.addEventListener('paste', handleDocumentPaste);
+    return () => {
+      document.removeEventListener('paste', handleDocumentPaste);
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay">
-      <div className="modal">
+      <div className="modal" ref={modalRef}>
         <div className="modal-header">
           <span className="modal-title">🎯 {editingProduct ? 'Edit Buying Intent' : 'New Buying Intent'}</span>
           <button className="icon-btn" onClick={onClose}><X size={20} /></button>
@@ -253,6 +296,9 @@ function EditBuyingIntentModal({
                   >
                     <ImageIcon size={16} /> Choose Image
                   </label>
+                  <p className="form-hint" style={{ marginTop: '8px', marginBottom: 0 }}>
+                    Tip: Paste an image (Ctrl+V)
+                  </p>
                 </div>
               )}
             </div>
