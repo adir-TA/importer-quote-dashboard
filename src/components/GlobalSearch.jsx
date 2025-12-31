@@ -245,6 +245,8 @@ export default function GlobalSearch({ isOpen, onClose }) {
                   </div>
                   {results.products.map((result) => {
                     const globalIndex = flatResults.findIndex(r => r.type === result.type && r.id === result.id);
+                    const hasImage = result.data?.image_url;
+
                     return (
                       <button
                         key={`product-${result.id}`}
@@ -253,7 +255,30 @@ export default function GlobalSearch({ isOpen, onClose }) {
                         onClick={() => handleSelect(result)}
                         onMouseEnter={() => setSelectedIndex(globalIndex)}
                       >
-                        <div className="result-icon">{getIcon(result.type)}</div>
+                        {hasImage ? (
+                          <div className="result-icon result-image">
+                            <img
+                              src={result.data.image_url}
+                              alt={result.title}
+                              onError={(e) => {
+                                // Fallback to icon if image fails to load
+                                e.target.style.display = 'none';
+                                e.target.nextElementSibling.style.display = 'flex';
+                              }}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: 'var(--radius-md)',
+                              }}
+                            />
+                            <div style={{ display: 'none' }}>
+                              {getIcon(result.type)}
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="result-icon">{getIcon(result.type)}</div>
+                        )}
                         <div className="result-content">
                           <div className="result-title">{highlightMatch(result.title, query)}</div>
                           <div className="result-subtitle">{result.subtitle}</div>
