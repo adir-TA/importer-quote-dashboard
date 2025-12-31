@@ -100,10 +100,10 @@ function Products() {
     }
   }, [searchParams, setSearchParams]);
 
-  // Auto-default to list view when many intents exist (if user hasn't manually set preference)
+  // Auto-default to compact view when many intents exist (if user hasn't manually set preference)
   useEffect(() => {
     if (!viewModeManuallySet && products.length > 15) {
-      setViewMode('list');
+      setViewMode('compact');
     } else if (!viewModeManuallySet && products.length <= 15) {
       setViewMode('grid');
     }
@@ -552,7 +552,7 @@ function Products() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 View Mode
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
                   onClick={() => {
                     setViewMode('grid');
@@ -570,36 +570,12 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                   }}
                 >
                   <Grid size={16} />
-                  Grid
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode('list');
-                    localStorage.setItem('buyingIntentsViewMode', 'list');
-                    setViewModeManuallySet(true);
-                  }}
-                  style={{
-                    padding: '12px 8px',
-                    background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  <List size={16} />
-                  List
+                  Cards
                 </button>
                 <button
                   onClick={() => {
@@ -618,7 +594,7 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                   }}
                 >
@@ -927,7 +903,7 @@ function Products() {
                       {/* Table Header */}
                       <div style={{
                         display: 'grid',
-                        gridTemplateColumns: '32px minmax(200px, 1fr) 140px 90px 90px 100px',
+                        gridTemplateColumns: '44px minmax(200px, 1fr) 140px 90px 90px 100px',
                         gap: '12px',
                         padding: '10px 16px',
                         background: 'var(--bg-secondary)',
@@ -957,7 +933,7 @@ function Products() {
                             onClick={() => navigate(`/products/${product.id}`)}
                             style={{
                               display: 'grid',
-                              gridTemplateColumns: '32px minmax(200px, 1fr) 140px 90px 90px 100px',
+                              gridTemplateColumns: '44px minmax(200px, 1fr) 140px 90px 90px 100px',
                               gap: '12px',
                               padding: '8px 16px',
                               alignItems: 'center',
@@ -978,18 +954,32 @@ function Products() {
                               }
                             }}
                           >
-                            {/* Checkbox */}
-                            <input
-                              type="checkbox"
-                              checked={selectedProducts.has(product.id)}
-                              onChange={() => toggleSelection(product.id)}
-                              onClick={(e) => e.stopPropagation()}
+                            {/* Forgiving checkbox click area */}
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                e.preventDefault();
+                                toggleSelection(product.id);
+                              }}
                               style={{
-                                width: '16px',
-                                height: '16px',
+                                display: 'flex',
+                                alignItems: 'center',
                                 cursor: 'pointer',
                               }}
-                            />
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.has(product.id)}
+                                onChange={() => toggleSelection(product.id)}
+                                onClick={(e) => e.stopPropagation()}
+                                style={{
+                                  width: '16px',
+                                  height: '16px',
+                                  cursor: 'pointer',
+                                  pointerEvents: 'none',
+                                }}
+                              />
+                            </div>
 
                             {/* Name */}
                             <div style={{
@@ -1116,159 +1106,6 @@ function Products() {
                         );
                       })}
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      {products.map(product => {
-                        // Helper to get spec value
-                        const getSpec = (key) => {
-                          const spec = product.specs?.find(s => s.key.toLowerCase() === key.toLowerCase());
-                          return spec?.value || '-';
-                        };
-                        const weight = getSpec('weight');
-                        const length = getSpec('length');
-                        const hasQuotes = (quoteCounts[product.id] || 0) > 0;
-                        const isDraft = product.status === 'draft';
-
-                        return (
-                          <div
-                            key={product.id}
-                            onClick={() => navigate(`/products/${product.id}`)}
-                            style={{
-                              display: 'grid',
-                              gridTemplateColumns: '32px 1fr 80px 80px 80px 100px 60px',
-                              alignItems: 'center',
-                              gap: '12px',
-                              padding: '8px 12px',
-                              background: selectedProducts.has(product.id) ? '#eff6ff' : 'white',
-                              borderRadius: '6px',
-                              border: selectedProducts.has(product.id)
-                                ? '1px solid #3b82f6'
-                                : `1px solid ${hasQuotes ? '#10b981' : '#ef4444'}`,
-                              cursor: 'pointer',
-                              transition: 'all 0.15s',
-                              fontSize: '0.8rem',
-                            }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.boxShadow = 'none';
-                            }}
-                          >
-                            {/* Checkbox */}
-                            <input
-                              type="checkbox"
-                              checked={selectedProducts.has(product.id)}
-                              onChange={() => toggleSelection(product.id)}
-                              onClick={(e) => e.stopPropagation()}
-                              style={{
-                                width: '16px',
-                                height: '16px',
-                                cursor: 'pointer',
-                              }}
-                            />
-
-                            {/* Item Name */}
-                            <div style={{
-                              fontWeight: 600,
-                              color: '#1e293b',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '6px',
-                            }}>
-                              <span style={{
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}>
-                                {product.name}
-                              </span>
-                              {isDraft && (
-                                <span style={{
-                                  padding: '2px 4px',
-                                  background: '#fef3c7',
-                                  color: '#92400e',
-                                  borderRadius: '3px',
-                                  fontSize: '0.6rem',
-                                  fontWeight: 600,
-                                  textTransform: 'uppercase',
-                                  whiteSpace: 'nowrap',
-                                }}>
-                                  Draft
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Quotes Count */}
-                            <div style={{
-                              fontSize: '0.75rem',
-                              fontWeight: 600,
-                              color: hasQuotes ? '#065f46' : '#991b1b',
-                              textAlign: 'center',
-                            }}>
-                              {quoteCounts[product.id] || 0}
-                            </div>
-
-                            {/* Weight */}
-                            <div style={{
-                              fontSize: '0.75rem',
-                              color: '#64748b',
-                              textAlign: 'center',
-                            }}>
-                              {weight}
-                            </div>
-
-                            {/* Length */}
-                            <div style={{
-                              fontSize: '0.75rem',
-                              color: '#64748b',
-                              textAlign: 'center',
-                            }}>
-                              {length}
-                            </div>
-
-                            {/* Status */}
-                            <div style={{
-                              fontSize: '0.7rem',
-                              fontWeight: 600,
-                              padding: '4px 6px',
-                              background: hasQuotes ? '#d1fae5' : '#fee2e2',
-                              color: hasQuotes ? '#065f46' : '#991b1b',
-                              borderRadius: '4px',
-                              textAlign: 'center',
-                            }}>
-                              {hasQuotes ? 'Has Quotes' : 'No Quotes'}
-                            </div>
-
-                            {/* Actions */}
-                            <div style={{ display: 'flex', gap: '2px', justifyContent: 'center' }}>
-                              <button
-                                className="icon-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleOpenModal(product);
-                                }}
-                                style={{ padding: '4px' }}
-                              >
-                                <Edit2 size={14} />
-                              </button>
-                              <button
-                                className="icon-btn"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(product.id);
-                                }}
-                                style={{ padding: '4px' }}
-                              >
-                                <Trash2 size={14} />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
                   )
                 )}
               </div>
@@ -1334,7 +1171,7 @@ function Products() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 View Mode
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
                   onClick={() => {
                     setViewMode('grid');
@@ -1352,36 +1189,12 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                   }}
                 >
                   <Grid size={16} />
-                  Grid
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode('list');
-                    localStorage.setItem('buyingIntentsViewMode', 'list');
-                    setViewModeManuallySet(true);
-                  }}
-                  style={{
-                    padding: '12px 8px',
-                    background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '0.7rem',
-                    fontWeight: 600,
-                  }}
-                >
-                  <List size={16} />
-                  List
+                  Cards
                 </button>
                 <button
                   onClick={() => {
@@ -1400,7 +1213,7 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.7rem',
+                    fontSize: '0.75rem',
                     fontWeight: 600,
                   }}
                 >

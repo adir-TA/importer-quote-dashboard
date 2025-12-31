@@ -57,35 +57,62 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDelete, isSel
       onClick={() => onClick?.(product)}
       style={{
         border: isSelected
-          ? '2px solid #3b82f6'
-          : `2px solid ${hasQuotes ? '#10b981' : '#ef4444'}`,
+          ? '1px solid #93c5fd'
+          : '1px solid #e5e7eb',
         background: isSelected
-          ? '#eff6ff'
-          : hasQuotes ? '#f0fdf4' : '#fef2f2',
+          ? '#f0f9ff'
+          : 'white',
         padding: '12px',
-        borderRadius: '8px',
+        borderRadius: '6px',
         cursor: 'pointer',
         transition: 'all 0.2s',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
       }}
+      onMouseEnter={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.background = '#f9fafb';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!isSelected) {
+          e.currentTarget.style.background = 'white';
+        }
+      }}
     >
       {/* Header with checkbox, name, and actions */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-        <input
-          type="checkbox"
-          checked={isSelected || false}
-          onChange={handleCheckbox}
-          onClick={(e) => e.stopPropagation()}
+        {/* Forgiving checkbox click area */}
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onToggleSelect?.(product.id);
+          }}
           style={{
-            width: '16px',
-            height: '16px',
+            width: '36px',
+            height: '24px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            paddingTop: '2px',
             cursor: 'pointer',
-            marginTop: '2px',
             flexShrink: 0,
           }}
-        />
+        >
+          <input
+            type="checkbox"
+            checked={isSelected || false}
+            onChange={handleCheckbox}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              width: '16px',
+              height: '16px',
+              cursor: 'pointer',
+              pointerEvents: 'none',
+            }}
+          />
+        </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
