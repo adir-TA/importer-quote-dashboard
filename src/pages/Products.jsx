@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter } from 'lucide-react';
+import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, Table2, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
@@ -552,7 +552,7 @@ function Products() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 View Mode
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 <button
                   onClick={() => {
                     setViewMode('grid');
@@ -560,7 +560,7 @@ function Products() {
                     setViewModeManuallySet(true);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '12px 8px',
                     background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
                     color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)',
                     border: 'none',
@@ -570,11 +570,11 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     fontWeight: 600,
                   }}
                 >
-                  <Grid size={18} />
+                  <Grid size={16} />
                   Grid
                 </button>
                 <button
@@ -584,7 +584,7 @@ function Products() {
                     setViewModeManuallySet(true);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '12px 8px',
                     background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
                     color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
                     border: 'none',
@@ -594,12 +594,36 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     fontWeight: 600,
                   }}
                 >
-                  <List size={18} />
+                  <List size={16} />
                   List
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode('compact');
+                    localStorage.setItem('buyingIntentsViewMode', 'compact');
+                    setViewModeManuallySet(true);
+                  }}
+                  style={{
+                    padding: '12px 8px',
+                    background: viewMode === 'compact' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'compact' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Table2 size={16} />
+                  Table
                 </button>
               </div>
             </div>
@@ -898,6 +922,200 @@ function Products() {
                         />
                       ))}
                     </div>
+                  ) : viewMode === 'compact' ? (
+                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                      {/* Table Header */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: '32px minmax(200px, 1fr) 140px 90px 90px 100px',
+                        gap: '12px',
+                        padding: '10px 16px',
+                        background: 'var(--bg-secondary)',
+                        borderBottom: '1px solid var(--border)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px',
+                      }}>
+                        <div></div>
+                        <div>Name</div>
+                        <div>Category</div>
+                        <div style={{ textAlign: 'center' }}>Quotes</div>
+                        <div style={{ textAlign: 'center' }}>Status</div>
+                        <div style={{ textAlign: 'right' }}>Actions</div>
+                      </div>
+                      {/* Table Rows */}
+                      {products.map((product, idx) => {
+                        const quoteCount = quoteCounts[product.id] || 0;
+                        const hasQuotes = quoteCount > 0;
+                        const isDraft = product.status === 'draft';
+
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => navigate(`/products/${product.id}`)}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '32px minmax(200px, 1fr) 140px 90px 90px 100px',
+                              gap: '12px',
+                              padding: '8px 16px',
+                              alignItems: 'center',
+                              background: selectedProducts.has(product.id) ? '#eff6ff' : (idx % 2 === 0 ? 'white' : 'var(--bg-primary)'),
+                              borderBottom: idx < products.length - 1 ? '1px solid var(--border-light)' : 'none',
+                              cursor: 'pointer',
+                              transition: 'background 0.15s',
+                              fontSize: '0.875rem',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!selectedProducts.has(product.id)) {
+                                e.currentTarget.style.background = 'var(--bg-hover)';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!selectedProducts.has(product.id)) {
+                                e.currentTarget.style.background = idx % 2 === 0 ? 'white' : 'var(--bg-primary)';
+                              }
+                            }}
+                          >
+                            {/* Checkbox */}
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.has(product.id)}
+                              onChange={() => toggleSelection(product.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{
+                                width: '16px',
+                                height: '16px',
+                                cursor: 'pointer',
+                              }}
+                            />
+
+                            {/* Name */}
+                            <div style={{
+                              fontWeight: 600,
+                              color: 'var(--text-primary)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {product.name}
+                            </div>
+
+                            {/* Category */}
+                            <div style={{
+                              fontSize: '0.8rem',
+                              color: 'var(--text-secondary)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {product.category || '-'}
+                            </div>
+
+                            {/* Quotes Count */}
+                            <div style={{
+                              textAlign: 'center',
+                              fontWeight: 600,
+                              color: hasQuotes ? 'var(--success)' : 'var(--text-muted)',
+                            }}>
+                              {quoteCount}
+                            </div>
+
+                            {/* Status */}
+                            <div style={{ textAlign: 'center' }}>
+                              {isDraft ? (
+                                <span style={{
+                                  padding: '3px 8px',
+                                  background: '#fef3c7',
+                                  color: '#92400e',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                }}>
+                                  Draft
+                                </span>
+                              ) : (
+                                <span style={{
+                                  padding: '3px 8px',
+                                  background: 'var(--success-light)',
+                                  color: 'var(--success)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  fontSize: '0.7rem',
+                                  fontWeight: 600,
+                                  textTransform: 'uppercase',
+                                }}>
+                                  Active
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }}>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleOpenModal(product);
+                                }}
+                                style={{
+                                  padding: '6px',
+                                  background: 'transparent',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  color: 'var(--text-secondary)',
+                                  transition: 'all 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'var(--bg-secondary)';
+                                  e.currentTarget.style.color = 'var(--accent)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'transparent';
+                                  e.currentTarget.style.color = 'var(--text-secondary)';
+                                }}
+                                title="Edit"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDelete(product.id);
+                                }}
+                                style={{
+                                  padding: '6px',
+                                  background: 'transparent',
+                                  border: '1px solid var(--border)',
+                                  borderRadius: 'var(--radius-sm)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  color: 'var(--text-secondary)',
+                                  transition: 'all 0.15s',
+                                }}
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.style.background = 'var(--error-light)';
+                                  e.currentTarget.style.color = 'var(--error)';
+                                  e.currentTarget.style.borderColor = 'var(--error)';
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.style.background = 'transparent';
+                                  e.currentTarget.style.color = 'var(--text-secondary)';
+                                  e.currentTarget.style.borderColor = 'var(--border)';
+                                }}
+                                title="Delete"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {products.map(product => {
@@ -1116,7 +1334,7 @@ function Products() {
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 View Mode
               </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
                 <button
                   onClick={() => {
                     setViewMode('grid');
@@ -1124,7 +1342,7 @@ function Products() {
                     setViewModeManuallySet(true);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '12px 8px',
                     background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
                     color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)',
                     border: 'none',
@@ -1134,11 +1352,11 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     fontWeight: 600,
                   }}
                 >
-                  <Grid size={18} />
+                  <Grid size={16} />
                   Grid
                 </button>
                 <button
@@ -1148,7 +1366,7 @@ function Products() {
                     setViewModeManuallySet(true);
                   }}
                   style={{
-                    padding: '12px',
+                    padding: '12px 8px',
                     background: viewMode === 'list' ? 'var(--accent)' : 'var(--bg-secondary)',
                     color: viewMode === 'list' ? 'white' : 'var(--text-secondary)',
                     border: 'none',
@@ -1158,12 +1376,36 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: '0.7rem',
                     fontWeight: 600,
                   }}
                 >
-                  <List size={18} />
+                  <List size={16} />
                   List
+                </button>
+                <button
+                  onClick={() => {
+                    setViewMode('compact');
+                    localStorage.setItem('buyingIntentsViewMode', 'compact');
+                    setViewModeManuallySet(true);
+                  }}
+                  style={{
+                    padding: '12px 8px',
+                    background: viewMode === 'compact' ? 'var(--accent)' : 'var(--bg-secondary)',
+                    color: viewMode === 'compact' ? 'white' : 'var(--text-secondary)',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  <Table2 size={16} />
+                  Table
                 </button>
               </div>
             </div>
