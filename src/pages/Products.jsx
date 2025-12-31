@@ -898,7 +898,7 @@ function Products() {
                         />
                       ))}
                     </div>
-                  ) : viewMode === 'compact' ? (
+                  ) : (
                     <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                       {/* Table Header */}
                       <div style={{
