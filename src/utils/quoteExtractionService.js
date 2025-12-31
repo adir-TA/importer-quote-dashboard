@@ -72,11 +72,14 @@ async function extractFromImage(file, apiKey) {
   console.log('[IMAGE] API response:', { ok: result.ok, hasData: !!result.data, hasError: !!result.error });
 
   if (!result.ok) {
-    console.error('[IMAGE] Extraction failed:', {
-      error: result.error,
+    console.error('[IMAGE:ERROR] Extraction API failed. Full response details:');
+    console.error('Error object:', result.error);
+    console.error('Full result:', result);
+    console.error('Error breakdown:', {
       httpStatus: result.error?.httpStatus,
       code: result.error?.code,
       message: result.error?.message,
+      hasData: !!result.data,
     });
     const errorMessage = formatApiError(result.error, result.error?.httpStatus);
     throw new Error(errorMessage);
@@ -350,11 +353,14 @@ async function processPdf(file, apiKey) {
   console.log('[PDF] API response:', { ok: result.ok, hasData: !!result.data, hasError: !!result.error });
 
   if (!result.ok) {
-    console.error('[PDF] Extraction failed:', {
-      error: result.error,
+    console.error('[PDF:ERROR] Extraction API failed. Full response details:');
+    console.error('Error object:', result.error);
+    console.error('Full result:', result);
+    console.error('Error breakdown:', {
       httpStatus: result.error?.httpStatus,
       code: result.error?.code,
       message: result.error?.message,
+      hasData: !!result.data,
     });
     const errorMessage = formatApiError(result.error, result.error?.httpStatus);
     throw new Error(errorMessage);
@@ -526,12 +532,14 @@ async function extractFromText(text, apiKey) {
   console.log('[TEXT:STEP-3] API response received:', { ok: result.ok, hasData: !!result.data, hasError: !!result.error });
 
   if (!result.ok) {
-    console.error('[TEXT:ERROR] Extraction API failed:', {
-      error: result.error,
+    console.error('[TEXT:ERROR] Extraction API failed. Full response details:');
+    console.error('Error object:', result.error);
+    console.error('Full result:', result);
+    console.error('Error breakdown:', {
       httpStatus: result.error?.httpStatus,
       code: result.error?.code,
       message: result.error?.message,
-      fullError: result.error,
+      hasData: !!result.data,
     });
     const errorMessage = formatApiError(result.error, result.error?.httpStatus);
     throw new Error(errorMessage);

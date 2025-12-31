@@ -65,16 +65,81 @@ export async function fetchJson(url, options = {}) {
       };
     }
 
-    // If backend returned error response, ensure httpStatus is included
-    if (!parsed.ok && parsed.error) {
-      // Add HTTP status to error object if not already present
-      if (!parsed.error.httpStatus) {
-        parsed.error.httpStatus = response.status;
+    // Log the actual parsed response for debugging
+    console.log('[fetchJson] Parsed response:', {
+      url: url.split('/').slice(-2).join('/'), // Last 2 segments
+      status: response.status,
+      hasOk: 'ok' in parsed,
+      hasSuccess: 'success' in parsed,
+      hasData: 'data' in parsed,
+      hasError: 'error' in parsed,
+      okValue: parsed.ok,
+      successValue: parsed.success,
+      keys: Object.keys(parsed).slice(0, 10), // First 10 keys
+    });
+
+    // NORMALIZE RESPONSE FORMAT - Handle both formats:
+    // Format 1: { ok: true/false, data: {...}, error: {...} }
+    // Format 2: { success: true/false, data: {...}, error: {...} }
+    let normalizedResponse;
+
+    if ('success' in parsed) {
+      // Backend uses 'success' field - normalize to 'ok'
+      console.log('[fetchJson] Normalizing response with "success" field to "ok" format');
+      normalizedResponse = {
+        ok: parsed.success === true,
+        data: parsed.data || null,
+        error: parsed.error || null,
+      };
+    } else if ('ok' in parsed) {
+      // Already in expected format
+      normalizedResponse = parsed;
+    } else {
+      // Unexpected format - treat entire response as data if HTTP 200, else error
+      console.warn('[fetchJson] Response has no "ok" or "success" field, response:', parsed);
+
+      if (response.status >= 200 && response.status < 300) {
+        // Treat as successful response with data
+        normalizedResponse = {
+          ok: true,
+          data: parsed,
+          error: null,
+        };
+      } else {
+        // Treat as error response
+        normalizedResponse = {
+          ok: false,
+          data: null,
+          error: {
+            message: parsed.message || parsed.error || 'API returned error',
+            code: parsed.code || 'UNKNOWN_ERROR',
+            httpStatus: response.status,
+          },
+        };
       }
     }
 
-    // Return parsed response (already has ok: true/false from backend)
-    return parsed;
+    // Add HTTP status to error object if present
+    if (!normalizedResponse.ok && normalizedResponse.error) {
+      if (!normalizedResponse.error.httpStatus) {
+        normalizedResponse.error.httpStatus = response.status;
+      }
+    }
+
+    // Final validation - ensure we have the right structure
+    if (normalizedResponse.ok === undefined) {
+      console.error('[fetchJson] Failed to normalize response:', parsed);
+      return {
+        ok: false,
+        error: {
+          message: 'Invalid API response format',
+          code: 'INVALID_RESPONSE_FORMAT',
+          httpStatus: response.status,
+        },
+      };
+    }
+
+    return normalizedResponse;
 
   } catch (error) {
     console.error('[fetchJson] Fetch failed:', error);
@@ -119,8 +184,13 @@ export function formatApiError(error, httpStatus = null) {
       return statusMessage;
     }
 
-    console.error('[formatApiError] No error object and no HTTP status');
-    return 'An unknown error occurred - check console for details';
+    console.error('[formatApiError] No error object and no HTTP status - check browser console for API response details');
+    return 'Quote extraction failed - check browser console (F12) for details';
+  }
+
+  // Handle case where error is a string instead of object
+  if (typeof error === 'string') {
+    return error;
   }
 
   const { message, code, requestId, step, httpStatus: errorHttpStatus } = error;
