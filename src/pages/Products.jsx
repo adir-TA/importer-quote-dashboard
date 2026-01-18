@@ -9,6 +9,184 @@ import { filterBySearch } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { generateRFQExcel } from './ProductDetail';
+import ExcelJS from 'exceljs';
+
+// Helper to get image dimensions
+async function getImageDimensions(buffer) {
+  return new Promise((resolve, reject) => {
+    const blob = new Blob([buffer]);
+    const img = new Image();
+    img.onload = () => {
+      resolve({ width: img.width, height: img.height });
+    };
+    img.onerror = reject;
+    img.src = URL.createObjectURL(blob);
+  });
+}
+
+// Export Buying Intents to Excel
+async function exportBuyingIntentsToExcel(intents) {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'HA Tools';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('Buying Intents');
+
+  // Group intents by category
+  const grouped = {};
+  intents.forEach(intent => {
+    const category = intent.category || 'Uncategorized';
+    if (!grouped[category]) grouped[category] = [];
+    grouped[category].push(intent);
+  });
+
+  // Define fixed image size (in pixels)
+  const IMAGE_WIDTH = 80;
+  const IMAGE_HEIGHT = 80;
+
+  // Set column widths
+  worksheet.columns = [
+    { key: 'image', width: 12 }, // Image column
+    { key: 'name', width: 35 },  // Name column
+    { key: 'category', width: 20 }, // Category column
+    { key: 'specs', width: 40 }  // Specifications column
+  ];
+
+  let currentRow = 1;
+
+  // Iterate through categories
+  const sortedCategories = Object.keys(grouped).sort();
+
+  for (let catIdx = 0; catIdx < sortedCategories.length; catIdx++) {
+    const category = sortedCategories[catIdx];
+    const categoryIntents = grouped[category];
+
+    // Add header row for this section
+    const headerRow = worksheet.getRow(currentRow);
+    headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Specifications'];
+    headerRow.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF4472C4' }
+    };
+    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+    headerRow.height = 25;
+
+    // Freeze header row (only the first one)
+    if (currentRow === 1) {
+      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
+    }
+
+    currentRow++;
+
+    // Add intents for this category
+    for (const intent of categoryIntents) {
+      const row = worksheet.getRow(currentRow);
+
+      // Format specifications as multi-line text
+      let specsText = '';
+      if (intent.specs && intent.specs.length > 0) {
+        const specsWithValues = intent.specs.filter(s => s.value);
+        if (specsWithValues.length > 0) {
+          specsText = specsWithValues.map(s => `${s.key}: ${s.value}`).join('\n');
+        }
+      }
+
+      // Set row values
+      row.values = [
+        '', // Image will be added separately
+        intent.name,
+        intent.category || 'Uncategorized',
+        specsText || 'No specifications'
+      ];
+
+      // Row styling
+      row.height = 65; // Tall enough for image
+      row.alignment = { vertical: 'top', wrapText: true };
+      row.font = { size: 10 };
+
+      // Add border
+      ['A', 'B', 'C', 'D'].forEach(col => {
+        worksheet.getCell(`${col}${currentRow}`).border = {
+          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+        };
+      });
+
+      // Embed image if exists
+      if (intent.image_url) {
+        try {
+          const response = await fetch(intent.image_url);
+          if (response.ok) {
+            const arrayBuffer = await response.arrayBuffer();
+            const dimensions = await getImageDimensions(arrayBuffer);
+
+            let extension = 'png';
+            if (intent.image_url.toLowerCase().includes('.jpg') || intent.image_url.toLowerCase().includes('.jpeg')) {
+              extension = 'jpeg';
+            }
+
+            const imageId = workbook.addImage({
+              buffer: arrayBuffer,
+              extension: extension
+            });
+
+            // Calculate scaling to fit fixed size while maintaining aspect ratio
+            const widthRatio = IMAGE_WIDTH / dimensions.width;
+            const heightRatio = IMAGE_HEIGHT / dimensions.height;
+            const ratio = Math.min(widthRatio, heightRatio, 1); // Never upscale
+
+            const targetWidth = Math.floor(dimensions.width * ratio);
+            const targetHeight = Math.floor(dimensions.height * ratio);
+
+            // Center image in cell
+            const colOffset = (IMAGE_WIDTH - targetWidth) / 2;
+            const rowOffset = (IMAGE_HEIGHT - targetHeight) / 2;
+
+            worksheet.addImage(imageId, {
+              tl: {
+                col: 0,
+                row: currentRow - 1,
+                colOff: colOffset,
+                rowOff: rowOffset
+              },
+              ext: { width: targetWidth, height: targetHeight },
+              editAs: 'oneCell'
+            });
+          }
+        } catch (error) {
+          console.error(`Failed to embed image for ${intent.name}:`, error);
+          // Continue without image
+        }
+      }
+
+      currentRow++;
+    }
+
+    // Add spacing between categories (except after last category)
+    if (catIdx < sortedCategories.length - 1) {
+      currentRow++; // Extra blank row
+    }
+  }
+
+  // Generate filename
+  const filename = intents.length === 1
+    ? `Buying_Intent_${intents[0].name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`
+    : `Buying_Intents_${intents.length}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+  // Download file
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  window.URL.revokeObjectURL(url);
+}
 
 function Products() {
   const navigate = useNavigate();
@@ -458,6 +636,16 @@ function Products() {
     }
   };
 
+  const handleExportToExcel = async () => {
+    const selectedIntents = Array.from(selectedProducts)
+      .map(id => products.find(p => p.id === id))
+      .filter(Boolean);
+
+    if (selectedIntents.length === 0) return;
+
+    await exportBuyingIntentsToExcel(selectedIntents);
+  };
+
   const toggleCategory = (category) => {
     setCollapsedCategories(prev => ({
       ...prev,
@@ -817,6 +1005,28 @@ function Products() {
                 >
                   <FileDown size={16} />
                   Generate RFQ ({selectedProducts.size})
+                </button>
+                <button
+                  onClick={handleExportToExcel}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 'var(--radius-md)',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                  }}
+                >
+                  <FileDown size={16} />
+                  Export to Excel ({selectedProducts.size})
                 </button>
                 <button
                   onClick={handleBulkDelete}
