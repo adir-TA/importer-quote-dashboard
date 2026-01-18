@@ -41,43 +41,24 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     grouped[category].push(intent);
   });
 
-  // Collect ALL unique specification keys from all intents
-  const allSpecKeys = new Set();
-  intents.forEach(intent => {
-    if (intent.specs && intent.specs.length > 0) {
-      intent.specs.forEach(spec => {
-        if (spec.value) {
-          allSpecKeys.add(spec.key);
-        }
-      });
-    }
-  });
-
-  // Convert to sorted array for consistent column order
-  const specColumns = Array.from(allSpecKeys).sort();
-
   // Define fixed image size (larger for better visibility)
   const IMAGE_WIDTH = 100;
   const IMAGE_HEIGHT = 100;
 
-  // Set column widths - base columns + dynamic spec columns
-  const baseColumns = [
-    { key: 'image', width: 14 },       // Image column
-    { key: 'name', width: 30 },        // Buying Intent Name
-    { key: 'category', width: 18 },    // Category
+  // Set column widths - fixed columns only
+  worksheet.columns = [
+    { key: 'image', width: 14 },           // Image column
+    { key: 'name', width: 30 },            // Buying Intent Name
+    { key: 'category', width: 18 },        // Category
+    { key: 'specifications', width: 40 },  // Specifications (single column)
   ];
 
-  // Add spec columns (20 width each for readability)
-  const specColumnDefinitions = specColumns.map(key => ({ key: key, width: 20 }));
-
-  worksheet.columns = [...baseColumns, ...specColumnDefinitions];
-
   let currentRow = 1;
+  const totalColumns = 4; // Image, Name, Category, Specifications
 
   // Add title row
   const titleRow = worksheet.getRow(currentRow);
   titleRow.values = ['BUYING INTENTS EXPORT'];
-  const totalColumns = 3 + specColumns.length;
   worksheet.mergeCells(currentRow, 1, currentRow, totalColumns);
   titleRow.font = { bold: true, size: 16, color: { argb: theme.colors.title.text } };
   titleRow.fill = {
@@ -105,7 +86,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
 
   // Add column headers
   const headerRow = worksheet.getRow(currentRow);
-  headerRow.values = ['Image', 'Buying Intent Name', 'Category', ...specColumns];
+  headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Specifications'];
   headerRow.font = { bold: true, size: 11, color: { argb: theme.colors.header.text } };
   headerRow.fill = {
     type: 'pattern',
@@ -117,7 +98,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
 
   // Add borders to all header cells
   for (let i = 1; i <= totalColumns; i++) {
-    const colLetter = String.fromCharCode(64 + i); // A, B, C, ...
+    const colLetter = String.fromCharCode(64 + i); // A, B, C, D
     worksheet.getCell(`${colLetter}${currentRow}`).border = {
       top: { style: 'medium', color: { argb: theme.colors.header.bg } },
       left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
@@ -167,29 +148,66 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     for (const intent of categoryIntents) {
       const row = worksheet.getRow(currentRow);
 
-      // Build spec values map for this intent
-      const specValues = {};
+      // Format specifications as multi-line text
+      let specificationsText = '';
       if (intent.specs && intent.specs.length > 0) {
+        // Group specs by category for better readability
+        const dimensionKeys = ['height', 'width', 'length', 'depth', 'diameter', 'top out', 'top in', 'bottom out', 'bottom in', 'weight'];
+        const packagingKeys = ['packaging', 'packing', 'package', 'moq', 'box', 'carton', 'pallet'];
+
+        const dimensionSpecs = [];
+        const packagingSpecs = [];
+        const otherSpecs = [];
+
         intent.specs.forEach(spec => {
-          if (spec.value) {
-            specValues[spec.key] = spec.value;
+          if (!spec.value) return;
+
+          const keyLower = spec.key.toLowerCase();
+          if (dimensionKeys.some(dk => keyLower.includes(dk))) {
+            dimensionSpecs.push(spec);
+          } else if (packagingKeys.some(pk => keyLower.includes(pk))) {
+            packagingSpecs.push(spec);
+          } else {
+            otherSpecs.push(spec);
           }
         });
+
+        // Build formatted text
+        const sections = [];
+
+        if (dimensionSpecs.length > 0) {
+          sections.push('Dimensions:\n' + dimensionSpecs.map(s => `  • ${s.key}: ${s.value}`).join('\n'));
+        }
+
+        if (packagingSpecs.length > 0) {
+          sections.push('Packaging:\n' + packagingSpecs.map(s => `  • ${s.key}: ${s.value}`).join('\n'));
+        }
+
+        if (otherSpecs.length > 0) {
+          if (dimensionSpecs.length > 0 || packagingSpecs.length > 0) {
+            sections.push('Other:\n' + otherSpecs.map(s => `  • ${s.key}: ${s.value}`).join('\n'));
+          } else {
+            // If no grouped specs, just list them without a header
+            sections.push(otherSpecs.map(s => `• ${s.key}: ${s.value}`).join('\n'));
+          }
+        }
+
+        specificationsText = sections.join('\n\n');
       }
 
-      // Build row values: base columns + spec columns
+      // Build row values: fixed columns only
       const rowValues = [
         '', // Image will be added separately
         intent.name,
         intent.category || 'Uncategorized',
-        ...specColumns.map(key => specValues[key] || '') // Empty string if spec not present
+        specificationsText || '' // Empty if no specs
       ];
 
       row.values = rowValues;
 
       // Row styling
       const isOdd = rowIndex % 2 === 0;
-      row.height = 75; // Taller for larger images
+      row.height = 75; // Taller for larger images and multi-line specs
       row.alignment = { vertical: 'middle', wrapText: true };
       row.font = { size: 10 };
 
@@ -220,7 +238,12 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
 
         // Left alignment for text columns
         if (i > 1) {
-          cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+          // Specifications column (D) should align to top for multi-line content
+          if (i === 4) {
+            cell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+          } else {
+            cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+          }
         }
       }
 
