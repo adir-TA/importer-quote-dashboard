@@ -41,26 +41,44 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     grouped[category].push(intent);
   });
 
+  // Collect ALL unique specification keys from all intents
+  const allSpecKeys = new Set();
+  intents.forEach(intent => {
+    if (intent.specs && intent.specs.length > 0) {
+      intent.specs.forEach(spec => {
+        if (spec.value) {
+          allSpecKeys.add(spec.key);
+        }
+      });
+    }
+  });
+
+  // Convert to sorted array for consistent column order
+  const specColumns = Array.from(allSpecKeys).sort();
+
   // Define fixed image size (larger for better visibility)
   const IMAGE_WIDTH = 100;
   const IMAGE_HEIGHT = 100;
 
-  // Set column widths
-  worksheet.columns = [
-    { key: 'image', width: 14 },       // Image column (wider for larger images)
+  // Set column widths - base columns + dynamic spec columns
+  const baseColumns = [
+    { key: 'image', width: 14 },       // Image column
     { key: 'name', width: 30 },        // Buying Intent Name
     { key: 'category', width: 18 },    // Category
-    { key: 'dimensions', width: 25 },  // Dimensions specs
-    { key: 'packaging', width: 20 },   // Packaging specs
-    { key: 'other', width: 25 }        // Other specs
   ];
+
+  // Add spec columns (20 width each for readability)
+  const specColumnDefinitions = specColumns.map(key => ({ key: key, width: 20 }));
+
+  worksheet.columns = [...baseColumns, ...specColumnDefinitions];
 
   let currentRow = 1;
 
   // Add title row
   const titleRow = worksheet.getRow(currentRow);
   titleRow.values = ['BUYING INTENTS EXPORT'];
-  worksheet.mergeCells(currentRow, 1, currentRow, 6);
+  const totalColumns = 3 + specColumns.length;
+  worksheet.mergeCells(currentRow, 1, currentRow, totalColumns);
   titleRow.font = { bold: true, size: 16, color: { argb: theme.colors.title.text } };
   titleRow.fill = {
     type: 'pattern',
@@ -74,7 +92,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   // Add metadata row
   const metaRow = worksheet.getRow(currentRow);
   metaRow.values = [`${new Date().toLocaleDateString()} • ${intents.length} Buying Intent${intents.length > 1 ? 's' : ''}`];
-  worksheet.mergeCells(currentRow, 1, currentRow, 6);
+  worksheet.mergeCells(currentRow, 1, currentRow, totalColumns);
   metaRow.font = { size: 10, color: { argb: theme.colors.infoRow.text } };
   metaRow.fill = {
     type: 'pattern',
@@ -87,7 +105,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
 
   // Add column headers
   const headerRow = worksheet.getRow(currentRow);
-  headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Dimensions', 'Packaging', 'Other Specs'];
+  headerRow.values = ['Image', 'Buying Intent Name', 'Category', ...specColumns];
   headerRow.font = { bold: true, size: 11, color: { argb: theme.colors.header.text } };
   headerRow.fill = {
     type: 'pattern',
@@ -97,46 +115,21 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
   headerRow.height = 25;
 
-  // Add borders to header
-  ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
-    worksheet.getCell(`${col}${currentRow}`).border = {
+  // Add borders to all header cells
+  for (let i = 1; i <= totalColumns; i++) {
+    const colLetter = String.fromCharCode(64 + i); // A, B, C, ...
+    worksheet.getCell(`${colLetter}${currentRow}`).border = {
       top: { style: 'medium', color: { argb: theme.colors.header.bg } },
       left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
       bottom: { style: 'medium', color: { argb: theme.colors.header.bg } },
       right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
     };
-  });
+  }
 
   // Freeze header rows
   worksheet.views = [{ state: 'frozen', ySplit: currentRow }];
 
   currentRow++;
-
-  // Helper to parse specs into categories
-  const parseSpecs = (specs) => {
-    const dimensions = [];
-    const packaging = [];
-    const other = [];
-
-    if (specs && specs.length > 0) {
-      specs.filter(s => s.value).forEach(spec => {
-        const keyLower = spec.key.toLowerCase();
-        if (['weight', 'height', 'length', 'width', 'depth', 'diameter', 'size'].includes(keyLower)) {
-          dimensions.push(`${spec.key}: ${spec.value}`);
-        } else if (['moq', 'type', 'packaging', 'material', 'color', 'finish'].includes(keyLower)) {
-          packaging.push(`${spec.key}: ${spec.value}`);
-        } else {
-          other.push(`${spec.key}: ${spec.value}`);
-        }
-      });
-    }
-
-    return {
-      dimensions: dimensions.join('\n') || '',
-      packaging: packaging.join('\n') || '',
-      other: other.join('\n') || ''
-    };
-  };
 
   // Iterate through categories
   const sortedCategories = Object.keys(grouped).sort();
@@ -149,7 +142,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     // Add category separator row (full-width merged cells)
     const categoryRow = worksheet.getRow(currentRow);
     categoryRow.values = [category.toUpperCase()];
-    worksheet.mergeCells(currentRow, 1, currentRow, 6);
+    worksheet.mergeCells(currentRow, 1, currentRow, totalColumns);
     categoryRow.font = { bold: true, size: 11, color: { argb: theme.colors.category.text || theme.colors.header.text } };
     categoryRow.fill = {
       type: 'pattern',
@@ -160,29 +153,39 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     categoryRow.height = 22;
 
     // Border for category row
-    ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
-      worksheet.getCell(`${col}${currentRow}`).border = {
+    for (let i = 1; i <= totalColumns; i++) {
+      const colLetter = String.fromCharCode(64 + i);
+      worksheet.getCell(`${colLetter}${currentRow}`).border = {
         top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
         bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } }
       };
-    });
+    }
 
     currentRow++;
 
     // Add intents for this category
     for (const intent of categoryIntents) {
       const row = worksheet.getRow(currentRow);
-      const { dimensions, packaging, other } = parseSpecs(intent.specs);
 
-      // Set row values
-      row.values = [
+      // Build spec values map for this intent
+      const specValues = {};
+      if (intent.specs && intent.specs.length > 0) {
+        intent.specs.forEach(spec => {
+          if (spec.value) {
+            specValues[spec.key] = spec.value;
+          }
+        });
+      }
+
+      // Build row values: base columns + spec columns
+      const rowValues = [
         '', // Image will be added separately
         intent.name,
         intent.category || 'Uncategorized',
-        dimensions,
-        packaging,
-        other
+        ...specColumns.map(key => specValues[key] || '') // Empty string if spec not present
       ];
+
+      row.values = rowValues;
 
       // Row styling
       const isOdd = rowIndex % 2 === 0;
@@ -191,8 +194,9 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
       row.font = { size: 10 };
 
       // Apply styling to each cell
-      ['A', 'B', 'C', 'D', 'E', 'F'].forEach((col, colIdx) => {
-        const cell = worksheet.getCell(`${col}${currentRow}`);
+      for (let i = 1; i <= totalColumns; i++) {
+        const colLetter = String.fromCharCode(64 + i);
+        const cell = worksheet.getCell(`${colLetter}${currentRow}`);
 
         // Background color
         cell.fill = {
@@ -209,16 +213,16 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
           right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
         };
 
-        // Bold name column
-        if (colIdx === 1) {
+        // Bold name column (column B)
+        if (i === 2) {
           cell.font = { size: 10, bold: true };
         }
 
         // Left alignment for text columns
-        if (colIdx > 0) {
+        if (i > 1) {
           cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
         }
-      });
+      }
 
       // Embed image if exists, otherwise add placeholder
       if (intent.image_url) {
@@ -299,13 +303,14 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     if (catIdx < sortedCategories.length - 1) {
       const separatorRow = worksheet.getRow(currentRow);
       separatorRow.height = 10; // Small spacer
-      ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
-        worksheet.getCell(`${col}${currentRow}`).fill = {
+      for (let i = 1; i <= totalColumns; i++) {
+        const colLetter = String.fromCharCode(64 + i);
+        worksheet.getCell(`${colLetter}${currentRow}`).fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: 'FFFFFFFF' } // White background
         };
-      });
+      }
       currentRow++;
     }
   }
@@ -1225,6 +1230,63 @@ function Products() {
             <div style={{ marginBottom: '24px' }}>
               <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
             </div>
+
+            {/* Select All Control */}
+            {filteredProducts.length > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '12px 16px',
+                background: 'white',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '16px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <input
+                    type="checkbox"
+                    checked={filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id))}
+                    indeterminate={selectedProducts.size > 0 && !filteredProducts.every(p => selectedProducts.has(p.id))}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        selectAll();
+                      } else {
+                        deselectAll();
+                      }
+                    }}
+                    ref={(el) => {
+                      if (el) {
+                        el.indeterminate = selectedProducts.size > 0 && !filteredProducts.every(p => selectedProducts.has(p.id));
+                      }
+                    }}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      cursor: 'pointer',
+                    }}
+                  />
+                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Select All
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    ({filteredProducts.length} visible item{filteredProducts.length !== 1 ? 's' : ''})
+                  </span>
+                </div>
+                {selectedProducts.size > 0 && (
+                  <span style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    color: 'var(--accent)',
+                    padding: '4px 12px',
+                    background: 'var(--accent-light)',
+                    borderRadius: 'var(--radius-sm)',
+                  }}>
+                    {selectedProducts.size} selected
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Products Display */}
         {filteredProducts.length === 0 ? (
