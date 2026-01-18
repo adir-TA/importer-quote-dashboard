@@ -727,11 +727,24 @@ function Products() {
         const storagePath = `${user.id}/products/${fileName}`;
 
         // Upload to storage
-        const { error: uploadError } = await supabase.storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
           .from('business-cards') // Reuse existing bucket
           .upload(storagePath, selectedImage);
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error('❌ Storage upload error:', uploadError);
+          console.error('Error details:', {
+            message: uploadError.message,
+            statusCode: uploadError.statusCode,
+            error: uploadError.error,
+            path: storagePath,
+            bucket: 'business-cards',
+            userId: user.id
+          });
+          throw new Error(`Image upload failed: ${uploadError.message}`);
+        }
+
+        console.log('✅ Image uploaded successfully:', uploadData);
 
         // Generate public URL
         const { data: urlData } = supabase.storage
