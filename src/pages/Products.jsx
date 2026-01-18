@@ -25,12 +25,13 @@ async function getImageDimensions(buffer) {
 }
 
 // Export Buying Intents to Excel
-async function exportBuyingIntentsToExcel(intents) {
+async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'HA Tools';
   workbook.created = new Date();
 
   const worksheet = workbook.addWorksheet('Buying Intents');
+  const theme = EXPORT_THEMES[themeName];
 
   // Group intents by category
   const grouped = {};
@@ -54,31 +55,68 @@ async function exportBuyingIntentsToExcel(intents) {
 
   let currentRow = 1;
 
+  // Add title row
+  const titleRow = worksheet.getRow(currentRow);
+  titleRow.values = ['BUYING INTENTS EXPORT'];
+  worksheet.mergeCells(currentRow, 1, currentRow, 4);
+  titleRow.font = { bold: true, size: 16, color: { argb: theme.colors.title.text } };
+  titleRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: theme.colors.title.bg }
+  };
+  titleRow.alignment = { vertical: 'middle', horizontal: 'center' };
+  titleRow.height = 35;
+  currentRow++;
+
+  // Add metadata row (optional - date and count)
+  const metaRow = worksheet.getRow(currentRow);
+  metaRow.values = [`${new Date().toLocaleDateString()} • ${intents.length} Buying Intent${intents.length > 1 ? 's' : ''}`];
+  worksheet.mergeCells(currentRow, 1, currentRow, 4);
+  metaRow.font = { size: 10, color: { argb: theme.colors.infoRow.text } };
+  metaRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: theme.colors.infoRow.bg }
+  };
+  metaRow.alignment = { vertical: 'middle', horizontal: 'center' };
+  metaRow.height = 20;
+  currentRow++;
+
+  // Add ONE header row for the table
+  const headerRow = worksheet.getRow(currentRow);
+  headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Specifications'];
+  headerRow.font = { bold: true, size: 11, color: { argb: theme.colors.header.text } };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: theme.colors.header.bg }
+  };
+  headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+  headerRow.height = 25;
+
+  // Add borders to header
+  ['A', 'B', 'C', 'D'].forEach(col => {
+    worksheet.getCell(`${col}${currentRow}`).border = {
+      top: { style: 'medium', color: { argb: theme.colors.header.bg } },
+      left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+      bottom: { style: 'medium', color: { argb: theme.colors.header.bg } },
+      right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+    };
+  });
+
+  // Freeze header rows (title, meta, and column headers)
+  worksheet.views = [{ state: 'frozen', ySplit: currentRow }];
+
+  currentRow++;
+
   // Iterate through categories
   const sortedCategories = Object.keys(grouped).sort();
+  let rowIndex = 0;
 
   for (let catIdx = 0; catIdx < sortedCategories.length; catIdx++) {
     const category = sortedCategories[catIdx];
     const categoryIntents = grouped[category];
-
-    // Add header row for this section
-    const headerRow = worksheet.getRow(currentRow);
-    headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Specifications'];
-    headerRow.font = { bold: true, size: 11, color: { argb: 'FFFFFFFF' } };
-    headerRow.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: 'FF4472C4' }
-    };
-    headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-    headerRow.height = 25;
-
-    // Freeze header row (only the first one)
-    if (currentRow === 1) {
-      worksheet.views = [{ state: 'frozen', ySplit: 1 }];
-    }
-
-    currentRow++;
 
     // Add intents for this category
     for (const intent of categoryIntents) {
@@ -101,14 +139,21 @@ async function exportBuyingIntentsToExcel(intents) {
         specsText || 'No specifications'
       ];
 
-      // Row styling
+      // Row styling with alternating colors
+      const isOdd = rowIndex % 2 === 0;
       row.height = 65; // Tall enough for image
       row.alignment = { vertical: 'top', wrapText: true };
       row.font = { size: 10 };
 
-      // Add border
+      // Apply alternating row colors
       ['A', 'B', 'C', 'D'].forEach(col => {
-        worksheet.getCell(`${col}${currentRow}`).border = {
+        const cell = worksheet.getCell(`${col}${currentRow}`);
+        cell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: isOdd ? theme.colors.alternatingRow.odd : theme.colors.alternatingRow.even }
+        };
+        cell.border = {
           top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
           left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
           bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
@@ -164,11 +209,21 @@ async function exportBuyingIntentsToExcel(intents) {
       }
 
       currentRow++;
+      rowIndex++;
     }
 
-    // Add spacing between categories (except after last category)
+    // Add spacing between categories (empty row with subtle styling)
     if (catIdx < sortedCategories.length - 1) {
-      currentRow++; // Extra blank row
+      const separatorRow = worksheet.getRow(currentRow);
+      separatorRow.height = 8; // Small empty row
+      ['A', 'B', 'C', 'D'].forEach(col => {
+        worksheet.getCell(`${col}${currentRow}`).fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: theme.colors.infoRow.bg }
+        };
+      });
+      currentRow++;
     }
   }
 
@@ -243,6 +298,10 @@ function Products() {
   // RFQ export state
   const [showRFQThemeSelector, setShowRFQThemeSelector] = useState(false);
   const [selectedRFQTheme, setSelectedRFQTheme] = useState('vibrant');
+
+  // Buying Intents Excel export state
+  const [showExcelThemeSelector, setShowExcelThemeSelector] = useState(false);
+  const [selectedExcelTheme, setSelectedExcelTheme] = useState('vibrant');
 
   // Submission guard
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -636,14 +695,20 @@ function Products() {
     }
   };
 
-  const handleExportToExcel = async () => {
+  const handleExportToExcel = () => {
+    if (selectedProducts.size === 0) return;
+    setShowExcelThemeSelector(true);
+  };
+
+  const handleConfirmExcelExport = async () => {
     const selectedIntents = Array.from(selectedProducts)
       .map(id => products.find(p => p.id === id))
       .filter(Boolean);
 
     if (selectedIntents.length === 0) return;
 
-    await exportBuyingIntentsToExcel(selectedIntents);
+    setShowExcelThemeSelector(false);
+    await exportBuyingIntentsToExcel(selectedIntents, selectedExcelTheme);
   };
 
   const toggleCategory = (category) => {
@@ -1843,6 +1908,85 @@ function Products() {
               <button onClick={() => setShowRFQThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '0.95rem', color: '#475569' }}>Cancel</button>
               <button onClick={async () => { const selectedProductList = Array.from(selectedProducts).map(id => products.find(p => p.id === id)).filter(Boolean); await generateRFQExcel(selectedProductList, selectedRFQTheme); setShowRFQThemeSelector(false); }} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'white', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileDown size={18} />Export with {EXPORT_THEMES[selectedRFQTheme].name}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buying Intents Excel Export Theme Selection Modal */}
+      {showExcelThemeSelector && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10000,
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '16px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            maxWidth: '900px',
+            width: '90%',
+            maxHeight: '90vh',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+          }}>
+            <div style={{ padding: '24px 32px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                  Choose Excel Export Theme
+                </h2>
+                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                  Exporting {selectedProducts.size} Buying Intent{selectedProducts.size > 1 ? 's' : ''}
+                </p>
+              </div>
+              <button onClick={() => setShowExcelThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}>
+                <X size={24} color="#64748b" />
+              </button>
+            </div>
+            <div style={{ display: 'flex', overflow: 'hidden', flex: 1 }}>
+              <div style={{ width: '280px', borderRight: '1px solid #e5e7eb', padding: '24px 16px', background: '#f8fafc', overflow: 'auto' }}>
+                {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
+                  <button key={key} onClick={() => setSelectedExcelTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedExcelTheme === key ? '#eff6ff' : 'white', border: `2px solid ${selectedExcelTheme === key ? '#3b82f6' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedExcelTheme === key ? '#3b82f6' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {selectedExcelTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }} />}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b', marginBottom: '4px' }}>{theme.name}</div>
+                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>{theme.description}</div>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: '4px', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: '#64748b' }}>
+                  <FileDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>Buying Intents Export</div>
+                  <div style={{ fontSize: '0.875rem', marginTop: '8px' }}>
+                    Excel file with images, specifications, and categories
+                  </div>
+                  <div style={{ fontSize: '0.875rem', marginTop: '4px', opacity: 0.7 }}>
+                    {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''} selected
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: '20px 32px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setShowExcelThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '0.95rem', color: '#475569' }}>Cancel</button>
+              <button onClick={handleConfirmExcelExport} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileDown size={18} />Export with {EXPORT_THEMES[selectedExcelTheme].name}
               </button>
             </div>
           </div>
