@@ -712,10 +712,13 @@ function Products() {
 
       // Upload image if a new one was selected
       if (selectedImage) {
+        console.log('🔵 Starting image upload process...');
+        console.log('Selected image:', selectedImage.name, selectedImage.type, selectedImage.size);
+
         // Correct destructuring: getUser() returns { data: { user }, error }
         const { data: { user }, error: authError } = await supabase.auth.getUser();
         if (authError || !user) {
-          console.error('Auth error:', authError);
+          console.error('❌ Auth error:', authError);
           throw new Error('User not authenticated');
         }
 
@@ -726,9 +729,13 @@ function Products() {
         const fileName = `${crypto.randomUUID()}.${fileExt}`;
         const storagePath = `${user.id}/products/${fileName}`;
 
+        console.log('🔵 Upload path:', storagePath);
+        console.log('🔵 Bucket:', 'business-cards');
+        console.log('🔵 Attempting storage.upload()...');
+
         // Upload to storage
         const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('business-cards') // Reuse existing bucket
+          .from('business-cards')
           .upload(storagePath, selectedImage);
 
         if (uploadError) {
@@ -747,9 +754,12 @@ function Products() {
         console.log('✅ Image uploaded successfully:', uploadData);
 
         // Generate public URL
+        console.log('🔵 Getting public URL...');
         const { data: urlData } = supabase.storage
           .from('business-cards')
           .getPublicUrl(storagePath);
+
+        console.log('✅ Public URL generated:', urlData?.publicUrl);
 
         imageData = {
           image_storage_path: storagePath,
@@ -758,17 +768,29 @@ function Products() {
       }
 
       const productData = { ...formData, ...imageData };
+      console.log('🔵 Product data to save:', {
+        name: productData.name,
+        category: productData.category,
+        hasImage: !!productData.image_url,
+        imageStoragePath: productData.image_storage_path,
+        isEdit: !!editingProduct
+      });
 
       if (editingProduct) {
+        console.log('🔵 Calling updateProduct for ID:', editingProduct.id);
         await actions.updateProduct({ ...editingProduct, ...productData });
+        console.log('✅ Product updated successfully');
       } else {
+        console.log('🔵 Calling addProduct...');
         const newProduct = await actions.addProduct(productData);
         if (newProduct?.id) {
+          console.log('✅ Product created successfully:', newProduct.id);
           handleCloseModal();
           navigate(`/products/${newProduct.id}`);
           return;
         }
       }
+      console.log('✅ Save complete');
       handleCloseModal();
     } catch (error) {
       console.error('Error saving buying intent:', error);
