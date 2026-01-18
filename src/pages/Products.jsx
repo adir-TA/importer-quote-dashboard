@@ -41,16 +41,18 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     grouped[category].push(intent);
   });
 
-  // Define fixed image size (in pixels)
-  const IMAGE_WIDTH = 80;
-  const IMAGE_HEIGHT = 80;
+  // Define fixed image size (larger for better visibility)
+  const IMAGE_WIDTH = 100;
+  const IMAGE_HEIGHT = 100;
 
   // Set column widths
   worksheet.columns = [
-    { key: 'image', width: 12 }, // Image column
-    { key: 'name', width: 35 },  // Name column
-    { key: 'category', width: 20 }, // Category column
-    { key: 'specs', width: 40 }  // Specifications column
+    { key: 'image', width: 14 },       // Image column (wider for larger images)
+    { key: 'name', width: 30 },        // Buying Intent Name
+    { key: 'category', width: 18 },    // Category
+    { key: 'dimensions', width: 25 },  // Dimensions specs
+    { key: 'packaging', width: 20 },   // Packaging specs
+    { key: 'other', width: 25 }        // Other specs
   ];
 
   let currentRow = 1;
@@ -58,7 +60,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   // Add title row
   const titleRow = worksheet.getRow(currentRow);
   titleRow.values = ['BUYING INTENTS EXPORT'];
-  worksheet.mergeCells(currentRow, 1, currentRow, 4);
+  worksheet.mergeCells(currentRow, 1, currentRow, 6);
   titleRow.font = { bold: true, size: 16, color: { argb: theme.colors.title.text } };
   titleRow.fill = {
     type: 'pattern',
@@ -69,10 +71,10 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   titleRow.height = 35;
   currentRow++;
 
-  // Add metadata row (optional - date and count)
+  // Add metadata row
   const metaRow = worksheet.getRow(currentRow);
   metaRow.values = [`${new Date().toLocaleDateString()} • ${intents.length} Buying Intent${intents.length > 1 ? 's' : ''}`];
-  worksheet.mergeCells(currentRow, 1, currentRow, 4);
+  worksheet.mergeCells(currentRow, 1, currentRow, 6);
   metaRow.font = { size: 10, color: { argb: theme.colors.infoRow.text } };
   metaRow.fill = {
     type: 'pattern',
@@ -83,9 +85,9 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   metaRow.height = 20;
   currentRow++;
 
-  // Add ONE header row for the table
+  // Add column headers
   const headerRow = worksheet.getRow(currentRow);
-  headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Specifications'];
+  headerRow.values = ['Image', 'Buying Intent Name', 'Category', 'Dimensions', 'Packaging', 'Other Specs'];
   headerRow.font = { bold: true, size: 11, color: { argb: theme.colors.header.text } };
   headerRow.fill = {
     type: 'pattern',
@@ -96,7 +98,7 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
   headerRow.height = 25;
 
   // Add borders to header
-  ['A', 'B', 'C', 'D'].forEach(col => {
+  ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
     worksheet.getCell(`${col}${currentRow}`).border = {
       top: { style: 'medium', color: { argb: theme.colors.header.bg } },
       left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
@@ -105,10 +107,36 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     };
   });
 
-  // Freeze header rows (title, meta, and column headers)
+  // Freeze header rows
   worksheet.views = [{ state: 'frozen', ySplit: currentRow }];
 
   currentRow++;
+
+  // Helper to parse specs into categories
+  const parseSpecs = (specs) => {
+    const dimensions = [];
+    const packaging = [];
+    const other = [];
+
+    if (specs && specs.length > 0) {
+      specs.filter(s => s.value).forEach(spec => {
+        const keyLower = spec.key.toLowerCase();
+        if (['weight', 'height', 'length', 'width', 'depth', 'diameter', 'size'].includes(keyLower)) {
+          dimensions.push(`${spec.key}: ${spec.value}`);
+        } else if (['moq', 'type', 'packaging', 'material', 'color', 'finish'].includes(keyLower)) {
+          packaging.push(`${spec.key}: ${spec.value}`);
+        } else {
+          other.push(`${spec.key}: ${spec.value}`);
+        }
+      });
+    }
+
+    return {
+      dimensions: dimensions.join('\n') || '',
+      packaging: packaging.join('\n') || '',
+      other: other.join('\n') || ''
+    };
+  };
 
   // Iterate through categories
   const sortedCategories = Object.keys(grouped).sort();
@@ -118,50 +146,81 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
     const category = sortedCategories[catIdx];
     const categoryIntents = grouped[category];
 
+    // Add category separator row (full-width merged cells)
+    const categoryRow = worksheet.getRow(currentRow);
+    categoryRow.values = [category.toUpperCase()];
+    worksheet.mergeCells(currentRow, 1, currentRow, 6);
+    categoryRow.font = { bold: true, size: 11, color: { argb: theme.colors.category.text || theme.colors.header.text } };
+    categoryRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: theme.colors.category.bg || 'FFF1F5F9' }
+    };
+    categoryRow.alignment = { vertical: 'middle', horizontal: 'left', indent: 1 };
+    categoryRow.height = 22;
+
+    // Border for category row
+    ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
+      worksheet.getCell(`${col}${currentRow}`).border = {
+        top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
+        bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+      };
+    });
+
+    currentRow++;
+
     // Add intents for this category
     for (const intent of categoryIntents) {
       const row = worksheet.getRow(currentRow);
-
-      // Format specifications as multi-line text
-      let specsText = '';
-      if (intent.specs && intent.specs.length > 0) {
-        const specsWithValues = intent.specs.filter(s => s.value);
-        if (specsWithValues.length > 0) {
-          specsText = specsWithValues.map(s => `${s.key}: ${s.value}`).join('\n');
-        }
-      }
+      const { dimensions, packaging, other } = parseSpecs(intent.specs);
 
       // Set row values
       row.values = [
         '', // Image will be added separately
         intent.name,
         intent.category || 'Uncategorized',
-        specsText || 'No specifications'
+        dimensions,
+        packaging,
+        other
       ];
 
-      // Row styling with alternating colors
+      // Row styling
       const isOdd = rowIndex % 2 === 0;
-      row.height = 65; // Tall enough for image
-      row.alignment = { vertical: 'top', wrapText: true };
+      row.height = 75; // Taller for larger images
+      row.alignment = { vertical: 'middle', wrapText: true };
       row.font = { size: 10 };
 
-      // Apply alternating row colors
-      ['A', 'B', 'C', 'D'].forEach(col => {
+      // Apply styling to each cell
+      ['A', 'B', 'C', 'D', 'E', 'F'].forEach((col, colIdx) => {
         const cell = worksheet.getCell(`${col}${currentRow}`);
+
+        // Background color
         cell.fill = {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: isOdd ? theme.colors.alternatingRow.odd : theme.colors.alternatingRow.even }
         };
+
+        // Borders
         cell.border = {
-          top: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-          left: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-          bottom: { style: 'thin', color: { argb: 'FFD0D0D0' } },
-          right: { style: 'thin', color: { argb: 'FFD0D0D0' } }
+          top: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          left: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          bottom: { style: 'thin', color: { argb: 'FFE5E7EB' } },
+          right: { style: 'thin', color: { argb: 'FFE5E7EB' } }
         };
+
+        // Bold name column
+        if (colIdx === 1) {
+          cell.font = { size: 10, bold: true };
+        }
+
+        // Left alignment for text columns
+        if (colIdx > 0) {
+          cell.alignment = { vertical: 'middle', horizontal: 'left', wrapText: true };
+        }
       });
 
-      // Embed image if exists
+      // Embed image if exists, otherwise add placeholder
       if (intent.image_url) {
         try {
           const response = await fetch(intent.image_url);
@@ -187,9 +246,10 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
             const targetWidth = Math.floor(dimensions.width * ratio);
             const targetHeight = Math.floor(dimensions.height * ratio);
 
-            // Center image in cell
-            const colOffset = (IMAGE_WIDTH - targetWidth) / 2;
-            const rowOffset = (IMAGE_HEIGHT - targetHeight) / 2;
+            // Center image in cell with padding
+            const cellPadding = 8;
+            const colOffset = cellPadding;
+            const rowOffset = (row.height * 1.33 - targetHeight) / 2; // Excel units conversion
 
             worksheet.addImage(imageId, {
               tl: {
@@ -201,26 +261,49 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
               ext: { width: targetWidth, height: targetHeight },
               editAs: 'oneCell'
             });
+          } else {
+            // Failed to fetch - add placeholder text
+            const cell = worksheet.getCell(`A${currentRow}`);
+            cell.value = '[No Image]';
+            cell.font = { size: 8, color: { argb: 'FF9CA3AF' }, italic: true };
+            cell.alignment = { vertical: 'middle', horizontal: 'center' };
           }
         } catch (error) {
           console.error(`Failed to embed image for ${intent.name}:`, error);
-          // Continue without image
+          // Add placeholder text on error
+          const cell = worksheet.getCell(`A${currentRow}`);
+          cell.value = '[No Image]';
+          cell.font = { size: 8, color: { argb: 'FF9CA3AF' }, italic: true };
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
         }
+      } else {
+        // No image - add placeholder with border
+        const cell = worksheet.getCell(`A${currentRow}`);
+        cell.value = '[No Image]';
+        cell.font = { size: 8, color: { argb: 'FF9CA3AF' }, italic: true };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        cell.border = {
+          ...cell.border,
+          top: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          left: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          bottom: { style: 'thin', color: { argb: 'FFD1D5DB' } },
+          right: { style: 'thin', color: { argb: 'FFD1D5DB' } }
+        };
       }
 
       currentRow++;
       rowIndex++;
     }
 
-    // Add spacing between categories (empty row with subtle styling)
+    // Add empty spacer row after each category (except last)
     if (catIdx < sortedCategories.length - 1) {
       const separatorRow = worksheet.getRow(currentRow);
-      separatorRow.height = 8; // Small empty row
-      ['A', 'B', 'C', 'D'].forEach(col => {
+      separatorRow.height = 10; // Small spacer
+      ['A', 'B', 'C', 'D', 'E', 'F'].forEach(col => {
         worksheet.getCell(`${col}${currentRow}`).fill = {
           type: 'pattern',
           pattern: 'solid',
-          fgColor: { argb: theme.colors.infoRow.bg }
+          fgColor: { argb: 'FFFFFFFF' } // White background
         };
       });
       currentRow++;
