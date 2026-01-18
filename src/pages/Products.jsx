@@ -205,9 +205,19 @@ async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
 
       row.values = rowValues;
 
+      // Calculate dynamic row height based on specifications text
+      // Count lines in specifications text
+      const specLineCount = specificationsText ? (specificationsText.match(/\n/g) || []).length + 1 : 1;
+      // Excel line height: ~15 points per line for 10pt font with wrapping
+      const textHeightPoints = Math.max(specLineCount * 15, 30); // Minimum 30 points
+      // Image height in points: IMAGE_HEIGHT pixels ≈ 75 points (1px ≈ 0.75pt in Excel)
+      const imageHeightPoints = IMAGE_HEIGHT * 0.75 + 10; // Add padding
+      // Row height must accommodate both image and text
+      const calculatedRowHeight = Math.max(textHeightPoints, imageHeightPoints, 75);
+
       // Row styling
       const isOdd = rowIndex % 2 === 0;
-      row.height = 75; // Taller for larger images and multi-line specs
+      row.height = calculatedRowHeight; // Dynamic height based on content
       row.alignment = { vertical: 'middle', wrapText: true };
       row.font = { size: 10 };
 
