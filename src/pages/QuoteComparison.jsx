@@ -178,20 +178,19 @@ function QuoteComparison() {
         incoterm: item.incoterm || 'FOB',
         created_at: item.created_at,
       }))
-      .filter(q => q.unit_price > 0 && q.moq > 0);
+      .filter(q => q.unit_price > 0); // Only validate unit_price, MOQ has no influence
 
-    // Sort by unit_price (lowest first = best)
+    // Sort by unit_price (lowest first = best) - MOQ does NOT affect ranking
     return validQuotes.sort((a, b) => a.unit_price - b.unit_price);
   }, [lineItems, selectedProductId]);
 
-  // Invalid quotes (for warning)
+  // Invalid quotes (for warning) - Only check unit_price, NOT moq
   const invalidQuotes = useMemo(() => {
     if (!selectedProductId || lineItems.length === 0) return [];
     return lineItems
       .filter(item => {
         const price = item.unit_price || 0;
-        const moq = item.moq || 0;
-        return price <= 0 || moq <= 0;
+        return price <= 0; // Only validate price, MOQ has no influence
       });
   }, [lineItems, selectedProductId]);
 

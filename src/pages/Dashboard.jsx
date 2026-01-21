@@ -74,7 +74,8 @@ function Dashboard() {
       const unit_price = parseFloat(quote.unitPrice) || 0;
       const quantity = parseInt(quote.moq) || 1;
 
-      if (unit_price <= 0 || quantity <= 0) return;
+      // Only validate unit_price - MOQ has no influence on best price
+      if (unit_price <= 0) return;
 
       if (unit_price < lowestPrice) {
         lowestPrice = unit_price;
