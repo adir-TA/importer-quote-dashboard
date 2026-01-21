@@ -334,6 +334,42 @@ function ProductDetail() {
   const quotes = computed.getProductQuotes(id); // Old quotes
   const [lineItems, setLineItems] = useState([]); // New line items
 
+  // Combined and sorted quotes/line items (for display in table)
+  // Sort by unit_price ONLY - MOQ has NO influence on ordering
+  const sortedAllQuotes = useMemo(() => {
+    const combined = [
+      // Old quotes
+      ...quotes.map(q => ({
+        id: q.id,
+        type: 'quote',
+        supplierName: q.supplierName,
+        unit_price: parseFloat(q.unitPrice) || 0,
+        currency: q.currency,
+        moq: q.moq,
+        incoterm: q.incoterm,
+        originalData: q
+      })),
+      // New line items
+      ...lineItems.map(item => ({
+        id: item.id,
+        type: 'lineItem',
+        supplierName: item.supplierName,
+        product_name: item.product_name,
+        unit_price: parseFloat(item.unit_price) || 0,
+        currency: item.currency,
+        moq: item.moq,
+        incoterm: item.incoterm,
+        originalData: item
+      }))
+    ];
+
+    // Filter valid quotes (unit_price > 0 only, MOQ has no influence)
+    const valid = combined.filter(q => q.unit_price > 0);
+
+    // Sort by unit_price ascending (lowest first = best)
+    return valid.sort((a, b) => a.unit_price - b.unit_price);
+  }, [quotes, lineItems]);
+
   const [activeTab, setActiveTab] = useState('quotes'); // 'quotes' | 'documents'
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -1108,61 +1144,93 @@ function ProductDetail() {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Old quotes (from quotes_old table) */}
-                  {quotes.map((quote) => {
-                    return (
-                      <tr key={quote.id}>
-                        <td style={{ fontWeight: 500 }}>{quote.supplierName}</td>
-                        <td>
-                          {quote.currency} {parseFloat(quote.unitPrice).toFixed(2)}
-                        </td>
-                        <td>{quote.moq?.toLocaleString() || '-'}</td>
-                        <td>{quote.incoterm || '-'}</td>
-                        <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button
-                              className="icon-btn"
-                              onClick={() => handleOpenQuoteModal(quote)}
-                              title="Edit"
-                            >
-                              <Edit2 size={16} />
-                            </button>
-                            <button
-                              className="icon-btn"
-                              onClick={() => handleDeleteQuote(quote.id)}
-                              title="Delete"
-                              style={{ color: 'var(--error)' }}
-                            >
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {/* Combined quotes sorted by unit_price ONLY (MOQ has no influence) */}
+                  {sortedAllQuotes.map((item, index) => {
+                    const isBest = index === 0; // First item = lowest price = best
 
-                  {/* New line items (from supplier_quotes + quote_line_items) */}
-                  {lineItems.map((item) => {
-                    return (
-                      <tr key={item.id} style={{ background: '#f0fdf4' }}>
-                        <td style={{ fontWeight: 500 }}>
-                          {item.supplierName}
-                          <div style={{ fontSize: '0.85rem', color: '#059669', marginTop: '2px' }}>
-                            {item.product_name}
-                          </div>
-                        </td>
-                        <td>
-                          {item.currency} {parseFloat(item.unit_price).toFixed(2)}
-                        </td>
-                        <td>{item.moq ? parseInt(item.moq).toLocaleString() : '-'}</td>
-                        <td>{item.incoterm || '-'}</td>
-                        <td>
-                          <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 500 }}>
-                            From Upload
-                          </span>
-                        </td>
-                      </tr>
-                    );
+                    if (item.type === 'quote') {
+                      // Old quote
+                      const quote = item.originalData;
+                      return (
+                        <tr
+                          key={item.id}
+                          style={isBest ? { background: '#f0fdf4', borderLeft: '3px solid #10b981' } : {}}
+                        >
+                          <td style={{ fontWeight: isBest ? 700 : 500 }}>
+                            {item.supplierName}
+                            {isBest && (
+                              <span style={{
+                                marginLeft: '8px',
+                                fontSize: '0.7rem',
+                                color: '#10b981',
+                                fontWeight: 600
+                              }}>
+                                ⭐ BEST
+                              </span>
+                            )}
+                          </td>
+                          <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? '#10b981' : 'inherit' }}>
+                            {item.currency} {item.unit_price.toFixed(2)}
+                          </td>
+                          <td>{item.moq?.toLocaleString() || '-'}</td>
+                          <td>{item.incoterm || '-'}</td>
+                          <td>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                              <button
+                                className="icon-btn"
+                                onClick={() => handleOpenQuoteModal(quote)}
+                                title="Edit"
+                              >
+                                <Edit2 size={16} />
+                              </button>
+                              <button
+                                className="icon-btn"
+                                onClick={() => handleDeleteQuote(quote.id)}
+                                title="Delete"
+                                style={{ color: 'var(--error)' }}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    } else {
+                      // New line item
+                      return (
+                        <tr
+                          key={item.id}
+                          style={isBest ? { background: '#f0fdf4', borderLeft: '3px solid #10b981' } : { background: '#f9fafb' }}
+                        >
+                          <td style={{ fontWeight: isBest ? 700 : 500 }}>
+                            {item.supplierName}
+                            {isBest && (
+                              <span style={{
+                                marginLeft: '8px',
+                                fontSize: '0.7rem',
+                                color: '#10b981',
+                                fontWeight: 600
+                              }}>
+                                ⭐ BEST
+                              </span>
+                            )}
+                            <div style={{ fontSize: '0.85rem', color: '#059669', marginTop: '2px' }}>
+                              {item.product_name}
+                            </div>
+                          </td>
+                          <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? '#10b981' : 'inherit' }}>
+                            {item.currency} {item.unit_price.toFixed(2)}
+                          </td>
+                          <td>{item.moq ? parseInt(item.moq).toLocaleString() : '-'}</td>
+                          <td>{item.incoterm || '-'}</td>
+                          <td>
+                            <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 500 }}>
+                              From Upload
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    }
                   })}
                 </tbody>
               </table>
