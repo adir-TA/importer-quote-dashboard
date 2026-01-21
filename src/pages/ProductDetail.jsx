@@ -866,10 +866,16 @@ function ProductDetail() {
             </div>
           </div>
           {quotes.length + lineItems.length > 0 && (() => {
+            // Collect all unit prices and filter valid ones (must be > 0)
+            // MOQ has NO influence on best price calculation
             const allPrices = [
               ...quotes.map(q => parseFloat(q.unitPrice)),
               ...lineItems.map(i => parseFloat(i.unit_price))
-            ];
+            ].filter(price => price > 0); // Only valid prices, ignore MOQ completely
+
+            // If no valid prices, don't show best price card
+            if (allPrices.length === 0) return null;
+
             const bestPrice = Math.min(...allPrices);
             return (
               <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
