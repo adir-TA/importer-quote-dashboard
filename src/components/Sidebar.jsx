@@ -56,11 +56,11 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
       <button
         className="sidebar-search-trigger"
         onClick={onSearchOpen}
-        title="Search (⌘K or Ctrl+K)"
+        title="Search (F6)"
       >
         <Search size={16} />
         <span>Search...</span>
-        <kbd className="search-kbd">⌘K</kbd>
+        <kbd className="search-kbd">F6</kbd>
       </button>
 
       <nav className="sidebar-nav">

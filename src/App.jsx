@@ -70,10 +70,10 @@ function AppLayout() {
     setIsMobileSidebarOpen(false);
   }, [location.pathname]);
 
-  // Global keyboard shortcut for search (Cmd+K / Ctrl+K)
+  // Global keyboard shortcut for search (F6)
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if (e.key === 'F6') {
         e.preventDefault();
         setIsSearchOpen(true);
       }
