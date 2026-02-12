@@ -120,9 +120,9 @@ function Signup() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">
-            <img src={logo} alt="HA Tools" className="auth-logo-img" />
+            <img src={logo} alt="HA Products" className="auth-logo-img" />
             <div className="sidebar-brand">
-              <span className="sidebar-brand-name">HA Tools</span>
+              <span className="sidebar-brand-name">HA Products</span>
               <span className="sidebar-brand-tagline">Import Smarter</span>
             </div>
           </div>

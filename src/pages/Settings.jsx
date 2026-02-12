@@ -192,7 +192,7 @@ function Settings() {
 
         {/* About */}
         <div style={{ marginTop: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <p style={{ fontSize: '0.9rem' }}>HA Tools v3.0</p>
+          <p style={{ fontSize: '0.9rem' }}>HA Products v3.0</p>
           <p style={{ fontSize: '0.8rem' }}>Import Quote Management System</p>
         </div>
       </div>

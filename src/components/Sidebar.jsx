@@ -45,9 +45,9 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
     <aside className={`sidebar ${isMobileOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <img src={logo} alt="HA Tools" className="sidebar-logo-img" />
+          <img src={logo} alt="HA Products" className="sidebar-logo-img" />
           <div className="sidebar-brand">
-            <span className="sidebar-brand-name">ha tools</span>
+            <span className="sidebar-brand-name">HA Products</span>
             <span className="sidebar-brand-tagline">bro</span>
           </div>
         </div>
