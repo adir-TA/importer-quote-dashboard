@@ -90,6 +90,7 @@ body {
 .header h2 { font-size: 1.15rem; font-weight: 600; color: var(--text-primary); }
 .header-actions { display: flex; gap: 12px; }
 .content { flex: 1; padding: 32px; overflow-y: auto; }
+.content.content-fixed { overflow: hidden; display: flex; flex-direction: column; }
 
 /* Buttons - Atlassian Style */
 .btn { padding: 8px 16px; border-radius: var(--radius-md); font-size: 0.875rem; font-weight: 500; cursor: pointer; border: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: all var(--transition); }

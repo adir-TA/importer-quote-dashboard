@@ -888,7 +888,7 @@ function Products() {
         </div>
       </div>
 
-      <div className="content">
+      <div className="content content-fixed">
         {/* Loading State */}
         {loadingCounts ? (
           <div style={{
@@ -911,6 +911,7 @@ function Products() {
             gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
             gap: '20px',
             marginBottom: '28px',
+            flexShrink: 0,
           }}>
             <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
@@ -975,7 +976,7 @@ function Products() {
         </button>
 
         {/* Two-column layout: Filters sidebar + Main content */}
-        <div className="products-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="products-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', flex: 1, overflow: 'hidden', minHeight: 0 }}>
           {/* Left Sidebar: Filters & Options */}
           <div className="filters-sidebar" style={{
             background: 'white',
@@ -983,8 +984,7 @@ function Products() {
             borderRadius: 'var(--radius-lg)',
             padding: '24px',
             boxShadow: 'var(--shadow-sm)',
-            position: 'sticky',
-            top: '24px'
+            overflowY: 'auto',
           }}>
             <h3 style={{
               fontSize: '0.875rem',
@@ -1293,7 +1293,7 @@ function Products() {
           </div>
 
           {/* Right: Main Content */}
-          <div>
+          <div style={{ overflowY: 'auto', minHeight: 0 }}>
             {/* Search Bar */}
             <div style={{ marginBottom: '24px' }}>
               <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
