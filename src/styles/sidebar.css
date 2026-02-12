@@ -6,7 +6,10 @@
   display: flex;
   flex-direction: column;
   flex-shrink: 0;
-  position: relative;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
 /* Decorative accent bar */
