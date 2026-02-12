@@ -8,7 +8,6 @@ import {
   Calculator,
   Settings,
   LogOut,
-  CreditCard,
   Search,
   Languages,
 } from 'lucide-react';
@@ -37,7 +36,6 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
       { path: '/', icon: LayoutDashboard, label: t('sidebar.dashboard') },
       { path: '/products', icon: Package, label: t('sidebar.buyingIntents') },
       { path: '/comparison', icon: GitCompare, label: t('sidebar.compareQuotes') },
-      { path: '/business-cards', icon: CreditCard, label: t('sidebar.businessCards') },
     ]},
     { section: t('sidebar.system'), items: [
       { path: '/settings', icon: Settings, label: t('sidebar.settings') },

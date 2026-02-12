@@ -17,7 +17,6 @@ import {
   Login,
   Signup,
   LandedCost,
-  BusinessCards,
 } from './pages';
 
 // Protected route wrapper
@@ -117,7 +116,6 @@ function AppLayout() {
           <Route path="/comparison" element={<QuoteComparison />} />
           {/* <Route path="/portfolio" element={<PortfolioComparison />} /> */}
           <Route path="/landed-cost" element={<LandedCost />} />
-          <Route path="/business-cards" element={<BusinessCards />} />
           <Route path="/settings" element={<Settings />} />
           {/* Hidden routes - not in navigation but still accessible */}
           <Route path="/suppliers" element={<Suppliers />} />

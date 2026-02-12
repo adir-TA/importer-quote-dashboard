@@ -12,4 +12,3 @@ export { default as Login } from './Login';
 export { default as Signup } from './Signup';
 export { default as LandedCost } from './LandedCost';
 export { default as QuoteCapture } from './QuoteCapture';
-export { default as BusinessCards } from './BusinessCards';
