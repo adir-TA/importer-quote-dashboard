@@ -536,6 +536,18 @@ textarea.form-input { resize: none; min-height: 100px; }
 .filters-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(0, 82, 204, 0.5); }
 .filters-sidebar { scrollbar-color: rgba(0, 82, 204, 0.3) transparent; scrollbar-width: thin; }
 
+/* RTL Global Support */
+[dir="rtl"] .header { direction: rtl; }
+[dir="rtl"] .header-actions { direction: rtl; }
+[dir="rtl"] .content { direction: rtl; }
+[dir="rtl"] .stat-card { direction: rtl; }
+[dir="rtl"] .card-header { direction: rtl; }
+[dir="rtl"] .card-body { direction: rtl; }
+[dir="rtl"] .form-group { direction: rtl; text-align: right; }
+[dir="rtl"] .form-label { text-align: right; }
+[dir="rtl"] .btn { direction: rtl; }
+[dir="rtl"] .empty-state { direction: rtl; }
+
 @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } .header { flex-direction: column; gap: 16px; align-items: flex-start; } .content { padding: 20px; } .form-row { grid-template-columns: 1fr; } }
 

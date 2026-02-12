@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Settings as SettingsIcon, Key, Globe, Database, Trash2, Download, Upload, Check, Eye, EyeOff } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 
 function Settings() {
   const { state, actions } = useAppContext();
+  const { t } = useLanguage();
   const { confirm, alert: showAlert } = useModal();
   const { settings, products, quotes, suppliers, orders, documents } = state;
 
@@ -79,17 +81,17 @@ function Settings() {
   };
 
   const stats = [
-    { label: 'Products', count: products.length },
-    { label: 'Quotes', count: quotes.length },
-    { label: 'Suppliers', count: suppliers.length },
-    { label: 'Orders', count: orders.length },
-    { label: 'Documents', count: documents.length }
+    { label: t('settings.products'), count: products.length },
+    { label: t('settings.quotes'), count: quotes.length },
+    { label: t('settings.suppliers'), count: suppliers.length },
+    { label: t('settings.orders'), count: orders.length },
+    { label: t('settings.documents'), count: documents.length }
   ];
 
   return (
     <div className="page">
       <div className="header">
-        <h2>Settings</h2>
+        <h2>{t('settings.title')}</h2>
       </div>
 
       <div className="content" style={{ maxWidth: '900px' }}>
@@ -113,11 +115,11 @@ function Settings() {
         {/* API Configuration */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-header">
-            <span className="card-title"><Key size={18} style={{ marginRight: '8px' }} /> API Configuration</span>
+            <span className="card-title"><Key size={18} style={{ marginRight: '8px' }} /> {t('settings.apiConfiguration')}</span>
           </div>
           <div className="card-body">
             <div className="form-group">
-              <label className="form-label">Anthropic API Key</label>
+              <label className="form-label">{t('settings.anthropicApiKey')}</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type={showApiKey ? 'text' : 'password'}
@@ -130,10 +132,10 @@ function Settings() {
                   {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
-              <p className="form-hint">Required for AI features (translation, negotiation, contract analysis, quote extraction)</p>
+              <p className="form-hint">{t('settings.apiKeyHint')}</p>
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Default Currency</label>
+              <label className="form-label">{t('settings.defaultCurrency')}</label>
               <select className="form-select" value={currency} onChange={e => setCurrency(e.target.value)} style={{ maxWidth: '200px' }}>
                 <option value="USD">USD ($)</option>
                 <option value="EUR">EUR (€)</option>
@@ -145,7 +147,7 @@ function Settings() {
           </div>
           <div className="modal-footer" style={{ borderTop: '1px solid var(--border)' }}>
             <button className="btn btn-primary" onClick={handleSaveSettings}>
-              {saved ? <><Check size={16} /> Saved!</> : 'Save Settings'}
+              {saved ? <><Check size={16} /> {t('settings.saved')}</> : t('settings.saveSettings')}
             </button>
           </div>
         </div>
@@ -153,18 +155,18 @@ function Settings() {
         {/* Backup & Restore */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-header">
-            <span className="card-title"><Download size={18} style={{ marginRight: '8px' }} /> Backup & Restore</span>
+            <span className="card-title"><Download size={18} style={{ marginRight: '8px' }} /> {t('settings.backupRestore')}</span>
           </div>
           <div className="card-body">
             <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              Export your data to a JSON file for backup, or restore from a previous backup.
+              {t('settings.backupDesc')}
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button className="btn btn-secondary" onClick={handleExportBackup}>
-                <Download size={16} /> Export Backup
+                <Download size={16} /> {t('settings.exportBackup')}
               </button>
               <button className="btn btn-secondary" onClick={handleImportBackup}>
-                <Upload size={16} /> Import Backup
+                <Upload size={16} /> {t('settings.importBackup')}
               </button>
             </div>
           </div>
@@ -173,18 +175,18 @@ function Settings() {
         {/* Danger Zone */}
         <div className="card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
           <div className="card-header" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
-            <span className="card-title" style={{ color: '#ef4444' }}><Trash2 size={18} style={{ marginRight: '8px' }} /> Danger Zone</span>
+            <span className="card-title" style={{ color: '#ef4444' }}><Trash2 size={18} style={{ marginRight: '8px' }} /> {t('settings.dangerZone')}</span>
           </div>
           <div className="card-body">
             <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
-              This will permanently delete all your data including products, quotes, suppliers, orders, and documents. This action cannot be undone.
+              {t('settings.dangerDesc')}
             </p>
             <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
               <button className="btn" onClick={handleClearSeedData} style={{ background: '#f59e0b', color: 'white', padding: '12px 20px' }}>
-                <Trash2 size={16} /> Delete Fake Seed Products Only
+                <Trash2 size={16} /> {t('settings.deleteFakeSeed')}
               </button>
               <button className="btn btn-danger" onClick={handleClearAllData}>
-                <Trash2 size={16} /> Clear All Data (Everything)
+                <Trash2 size={16} /> {t('settings.clearAllData')}
               </button>
             </div>
           </div>
@@ -192,8 +194,8 @@ function Settings() {
 
         {/* About */}
         <div style={{ marginTop: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <p style={{ fontSize: '0.9rem' }}>HA Products v3.0</p>
-          <p style={{ fontSize: '0.8rem' }}>Import Quote Management System</p>
+          <p style={{ fontSize: '0.9rem' }}>{t('settings.about')}</p>
+          <p style={{ fontSize: '0.8rem' }}>{t('settings.aboutDesc')}</p>
         </div>
       </div>
     </div>

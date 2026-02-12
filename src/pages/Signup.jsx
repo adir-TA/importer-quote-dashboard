@@ -1,21 +1,23 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Mail, Lock, UserPlus, AlertCircle, CheckCircle, Check, X } from 'lucide-react';
 import logo from '../assets/logo.jpg';
 
-// Password requirements
+// Password requirements - labels are translation keys
 const PASSWORD_REQUIREMENTS = [
-  { id: 'length', label: 'At least 8 characters', test: (pw) => pw.length >= 8 },
-  { id: 'uppercase', label: 'One uppercase letter', test: (pw) => /[A-Z]/.test(pw) },
-  { id: 'lowercase', label: 'One lowercase letter', test: (pw) => /[a-z]/.test(pw) },
-  { id: 'number', label: 'One number', test: (pw) => /[0-9]/.test(pw) },
-  { id: 'special', label: 'One special character (!@#$%^&*)', test: (pw) => /[!@#$%^&*(),.?":{}|<>]/.test(pw) },
+  { id: 'length', labelKey: 'signup.atLeast8', test: (pw) => pw.length >= 8 },
+  { id: 'uppercase', labelKey: 'signup.oneUppercase', test: (pw) => /[A-Z]/.test(pw) },
+  { id: 'lowercase', labelKey: 'signup.oneLowercase', test: (pw) => /[a-z]/.test(pw) },
+  { id: 'number', labelKey: 'signup.oneNumber', test: (pw) => /[0-9]/.test(pw) },
+  { id: 'special', labelKey: 'signup.oneSpecial', test: (pw) => /[!@#$%^&*(),.?":{}|<>]/.test(pw) },
 ];
 
 function Signup() {
   const navigate = useNavigate();
   const { signUp } = useAuth();
+  const { t } = useLanguage();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -29,17 +31,18 @@ function Signup() {
   const passwordChecks = useMemo(() => {
     return PASSWORD_REQUIREMENTS.map(req => ({
       ...req,
+      label: t(req.labelKey),
       passed: req.test(password),
     }));
-  }, [password]);
+  }, [password, t]);
 
   const passwordStrength = useMemo(() => {
     const passed = passwordChecks.filter(c => c.passed).length;
     if (passed === 0) return { level: 0, label: '', color: '' };
-    if (passed <= 2) return { level: 1, label: 'Weak', color: '#ef4444' };
-    if (passed <= 3) return { level: 2, label: 'Fair', color: '#f59e0b' };
-    if (passed <= 4) return { level: 3, label: 'Good', color: '#3b82f6' };
-    return { level: 4, label: 'Strong', color: '#22c55e' };
+    if (passed <= 2) return { level: 1, label: t('signup.weak'), color: '#ef4444' };
+    if (passed <= 3) return { level: 2, label: t('signup.fair'), color: '#f59e0b' };
+    if (passed <= 4) return { level: 3, label: t('signup.good'), color: '#3b82f6' };
+    return { level: 4, label: t('signup.strong'), color: '#22c55e' };
   }, [passwordChecks]);
 
   const allRequirementsMet = passwordChecks.every(c => c.passed);
@@ -98,17 +101,17 @@ function Signup() {
             <div className="auth-success-icon">
               <CheckCircle size={48} />
             </div>
-            <h1>Check your email</h1>
-            <p>We've sent a confirmation link to <strong>{email}</strong></p>
+            <h1>{t('signup.checkEmail')}</h1>
+            <p>{t('signup.sentConfirmation')} <strong>{email}</strong></p>
             <p style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-              Click the link in the email to activate your account, then come back here to sign in.
+              {t('signup.clickLink')}
             </p>
             <p style={{ marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Didn't receive it? Check your spam folder or wait a minute and try again.
+              {t('signup.didntReceive')}
             </p>
           </div>
           <Link to="/login" className="btn btn-primary auth-btn" style={{ marginTop: '24px', textDecoration: 'none' }}>
-            Back to Sign In
+            {t('signup.backToSignIn')}
           </Link>
         </div>
       </div>
@@ -123,11 +126,11 @@ function Signup() {
             <img src={logo} alt="HA Products" className="auth-logo-img" />
             <div className="sidebar-brand">
               <span className="sidebar-brand-name">HA Products</span>
-              <span className="sidebar-brand-tagline">Import Smarter</span>
+              <span className="sidebar-brand-tagline">{t('login.importSmarter')}</span>
             </div>
           </div>
-          <h1>Create an account</h1>
-          <p>Start managing your import quotes today</p>
+          <h1>{t('signup.createAccount')}</h1>
+          <p>{t('signup.startManaging')}</p>
         </div>
 
         {error && (
@@ -139,7 +142,7 @@ function Signup() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <div className="form-group">
-            <label className="form-label">Email</label>
+            <label className="form-label">{t('signup.email')}</label>
             <div className="input-with-icon">
               <Mail size={18} className="input-icon" />
               <input
@@ -155,7 +158,7 @@ function Signup() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Password</label>
+            <label className="form-label">{t('signup.password')}</label>
             <div className="input-with-icon">
               <Lock size={18} className="input-icon" />
               <input
@@ -213,7 +216,7 @@ function Signup() {
           </div>
 
           <div className="form-group">
-            <label className="form-label">Confirm Password</label>
+            <label className="form-label">{t('signup.confirmPassword')}</label>
             <div className="input-with-icon">
               <Lock size={18} className="input-icon" />
               <input
@@ -227,10 +230,10 @@ function Signup() {
               />
             </div>
             {confirmPassword && password !== confirmPassword && (
-              <p className="field-error">Passwords do not match</p>
+              <p className="field-error">{t('signup.passwordsDontMatch')}</p>
             )}
             {confirmPassword && password === confirmPassword && password.length > 0 && (
-              <p className="field-success">Passwords match ✓</p>
+              <p className="field-success">{t('signup.passwordsMatch')} ✓</p>
             )}
           </div>
 
@@ -240,16 +243,16 @@ function Signup() {
             disabled={loading || !allRequirementsMet || password !== confirmPassword}
           >
             {loading ? <div className="spinner-small" /> : <UserPlus size={18} />}
-            {loading ? 'Creating account...' : 'Create Account'}
+            {loading ? t('signup.creatingAccount') : t('signup.createAccountBtn')}
           </button>
         </form>
 
         <div className="auth-footer">
-          Already have an account? <Link to="/login">Sign in</Link>
+          {t('signup.alreadyHave')} <Link to="/login">{t('signup.signIn')}</Link>
         </div>
 
         <p className="auth-privacy">
-          By creating an account, you agree to our Terms of Service and Privacy Policy.
+          {t('signup.termsPrivacy')}
         </p>
       </div>
     </div>

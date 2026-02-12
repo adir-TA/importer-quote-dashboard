@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, Table2, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter, Copy } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
@@ -369,6 +370,7 @@ function Products() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, actions, computed } = useAppContext();
+  const { t } = useLanguage();
   const { confirm } = useModal();
   const { products } = state;
 
@@ -877,13 +879,13 @@ function Products() {
   return (
     <div className="page">
       <div className="header">
-        <h2>Buying Intents</h2>
+        <h2>{t('products.title')}</h2>
         <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
           <button className="btn btn-secondary" onClick={() => setIsUploadQuoteModalOpen(true)}>
-            <Upload size={16} /> Upload Quote
+            <Upload size={16} /> {t('products.uploadQuote')}
           </button>
           <button className="btn btn-primary" onClick={() => handleOpenModal()}>
-            <Plus size={16} /> New Buying Intent
+            <Plus size={16} /> {t('products.newBuyingIntent')}
           </button>
         </div>
       </div>
@@ -900,7 +902,7 @@ function Products() {
             gap: '16px',
           }}>
             <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading buying intents...</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('products.loading')}</p>
           </div>
         ) : (
           <>
@@ -918,7 +920,7 @@ function Products() {
                 <Package size={22} color="#6366F1" />
               </div>
               <div className="stat-content">
-                <div className="stat-label">Total Intents</div>
+                <div className="stat-label">{t('products.totalIntents')}</div>
                 <div className="stat-value">{stats.totalProducts}</div>
               </div>
             </div>
@@ -927,7 +929,7 @@ function Products() {
                 <TrendingUp size={22} color="#10b981" />
               </div>
               <div className="stat-content">
-                <div className="stat-label">With Quotes</div>
+                <div className="stat-label">{t('products.withQuotes')}</div>
                 <div className="stat-value">{stats.totalWithQuotes}</div>
               </div>
             </div>
@@ -936,7 +938,7 @@ function Products() {
                 <TrendingDown size={22} color="#f59e0b" />
               </div>
               <div className="stat-content">
-                <div className="stat-label">Without Quotes</div>
+                <div className="stat-label">{t('products.withoutQuotes')}</div>
                 <div className="stat-value">{stats.totalWithoutQuotes}</div>
               </div>
             </div>
@@ -945,7 +947,7 @@ function Products() {
                 <Grid size={22} color="#8b5cf6" />
               </div>
               <div className="stat-content">
-                <div className="stat-label">Categories</div>
+                <div className="stat-label">{t('products.categories')}</div>
                 <div className="stat-value">{Object.keys(stats.categoryBreakdown).length}</div>
               </div>
             </div>
@@ -972,7 +974,7 @@ function Products() {
             width: '100%',
           }}
         >
-          <Filter size={16} /> Filters & Options
+          <Filter size={16} /> {t('products.filtersOptions')}
         </button>
 
         {/* Two-column layout: Filters sidebar + Main content */}
@@ -988,7 +990,7 @@ function Products() {
           }}>
             {/* Search */}
             <div style={{ marginBottom: '20px' }}>
-              <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
+              <SearchInput value={search} onChange={setSearch} placeholder={t('products.searchPlaceholder')} />
             </div>
 
             {/* Select All Control */}
@@ -1020,10 +1022,10 @@ function Products() {
                   style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
                 <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                  Select All
+                  {t('products.selectAll')}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
-                  {selectedProducts.size > 0 ? `${selectedProducts.size} selected` : `${filteredProducts.length}`}
+                  {selectedProducts.size > 0 ? `${selectedProducts.size} ${t('products.selected')}` : `${filteredProducts.length}`}
                 </span>
               </div>
             )}
@@ -1036,13 +1038,13 @@ function Products() {
               color: 'var(--text-muted)',
               marginBottom: '20px'
             }}>
-              Filters & View
+              {t('products.filtersView')}
             </h3>
 
             {/* View Mode */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
-                View Mode
+                {t('products.viewMode')}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
@@ -1067,7 +1069,7 @@ function Products() {
                   }}
                 >
                   <Grid size={16} />
-                  Cards
+                  {t('products.cards')}
                 </button>
                 <button
                   onClick={() => {
@@ -1091,7 +1093,7 @@ function Products() {
                   }}
                 >
                   <Table2 size={16} />
-                  Table
+                  {t('products.table')}
                 </button>
               </div>
             </div>
@@ -1099,7 +1101,7 @@ function Products() {
             {/* Sort By */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
-                Sort By
+                {t('products.sortBy')}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <button
@@ -1120,7 +1122,7 @@ function Products() {
                   }}
                 >
                   <Type size={16} />
-                  Name (A-Z)
+                  {t('products.nameAZ')}
                 </button>
                 <button
                   onClick={() => setSortBy('quotes')}
@@ -1140,7 +1142,7 @@ function Products() {
                   }}
                 >
                   <TrendingDown size={16} />
-                  Quotes (High-Low)
+                  {t('products.quotesHighLow')}
                 </button>
                 <button
                   onClick={() => setSortBy('recent')}
@@ -1160,7 +1162,7 @@ function Products() {
                   }}
                 >
                   <Clock size={16} />
-                  Recently Added
+                  {t('products.recentlyAdded')}
                 </button>
               </div>
             </div>
@@ -1170,7 +1172,7 @@ function Products() {
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Categories
+                    {t('products.categories')}
                   </label>
                   {selectedCategoryFilters.length > 0 && (
                     <button
@@ -1185,7 +1187,7 @@ function Products() {
                         textDecoration: 'underline',
                       }}
                     >
-                      Clear
+                      {t('products.clear')}
                     </button>
                   )}
                 </div>
@@ -1245,7 +1247,7 @@ function Products() {
                 border: '1px solid var(--error)',
               }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {selectedProducts.size} Selected
+                  {selectedProducts.size} {t('products.selected')}
                 </div>
                 <button
                   onClick={() => setShowRFQThemeSelector(true)}
@@ -1267,7 +1269,7 @@ function Products() {
                   }}
                 >
                   <FileDown size={16} />
-                  Generate RFQ ({selectedProducts.size})
+                  {t('products.generateRFQ')} ({selectedProducts.size})
                 </button>
                 <button
                   onClick={handleExportToExcel}
@@ -1289,7 +1291,7 @@ function Products() {
                   }}
                 >
                   <FileDown size={16} />
-                  Export to Excel ({selectedProducts.size})
+                  {t('products.exportToExcel')} ({selectedProducts.size})
                 </button>
                 <button
                   onClick={handleBulkDelete}
@@ -1311,7 +1313,7 @@ function Products() {
                   }}
                 >
                   <Trash2 size={16} />
-                  Delete Selected
+                  {t('products.deleteSelected')}
                 </button>
                 <button
                   onClick={deselectAll}
@@ -1328,7 +1330,7 @@ function Products() {
                     textDecoration: 'underline',
                   }}
                 >
-                  Deselect All
+                  {t('products.deselectAll')}
                 </button>
               </div>
             )}
@@ -1339,11 +1341,11 @@ function Products() {
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Package size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-            <h3>{search ? 'No buying intents match your search' : 'No buying intents yet'}</h3>
-            <p>{search ? 'Try a different search term' : 'Define what you want to buy to start comparing quotes'}</p>
+            <h3>{search ? t('products.noMatch') : t('products.noIntentsYet')}</h3>
+            <p>{search ? t('products.tryDifferent') : t('products.defineWhat')}</p>
             {!search && (
               <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => handleOpenModal()}>
-                <Plus size={16} /> New Buying Intent
+                <Plus size={16} /> {t('products.newBuyingIntent')}
               </button>
             )}
           </div>
@@ -1385,7 +1387,7 @@ function Products() {
                     fontWeight: 600,
                     color: '#64748b',
                   }}>
-                    {products.length} {products.length === 1 ? 'item' : 'items'}
+                    {products.length} {products.length === 1 ? t('products.item') : t('products.items')}
                   </span>
                 </div>
 
@@ -1424,11 +1426,11 @@ function Products() {
                         letterSpacing: '0.5px',
                       }}>
                         <div></div>
-                        <div>Name</div>
-                        <div>Category</div>
-                        <div style={{ textAlign: 'center' }}>Quotes</div>
-                        <div style={{ textAlign: 'center' }}>Status</div>
-                        <div style={{ textAlign: 'right' }}>Actions</div>
+                        <div>{t('products.name')}</div>
+                        <div>{t('products.category')}</div>
+                        <div style={{ textAlign: 'center' }}>{t('dashboard.quotes')}</div>
+                        <div style={{ textAlign: 'center' }}>{t('products.status')}</div>
+                        <div style={{ textAlign: 'right' }}>{t('products.actions')}</div>
                       </div>
                       {/* Table Rows */}
                       {products.map((product, idx) => {
@@ -1533,7 +1535,7 @@ function Products() {
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
                                 }}>
-                                  Draft
+                                  {t('products.draft')}
                                 </span>
                               ) : (
                                 <span style={{
@@ -1545,7 +1547,7 @@ function Products() {
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
                                 }}>
-                                  Active
+                                  {t('products.active')}
                                 </span>
                               )}
                             </div>
@@ -1706,7 +1708,7 @@ function Products() {
             {/* View Mode */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
-                View Mode
+                {t('products.viewMode')}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                 <button
@@ -1731,7 +1733,7 @@ function Products() {
                   }}
                 >
                   <Grid size={16} />
-                  Cards
+                  {t('products.cards')}
                 </button>
                 <button
                   onClick={() => {
@@ -1755,7 +1757,7 @@ function Products() {
                   }}
                 >
                   <Table2 size={16} />
-                  Table
+                  {t('products.table')}
                 </button>
               </div>
             </div>
@@ -1763,7 +1765,7 @@ function Products() {
             {/* Sort By */}
             <div style={{ marginBottom: '24px' }}>
               <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
-                Sort By
+                {t('products.sortBy')}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <button
@@ -1784,7 +1786,7 @@ function Products() {
                   }}
                 >
                   <Type size={16} />
-                  Name (A-Z)
+                  {t('products.nameAZ')}
                 </button>
                 <button
                   onClick={() => setSortBy('quotes')}
@@ -1804,7 +1806,7 @@ function Products() {
                   }}
                 >
                   <TrendingDown size={16} />
-                  Quotes (High-Low)
+                  {t('products.quotesHighLow')}
                 </button>
                 <button
                   onClick={() => setSortBy('recent')}
@@ -1824,7 +1826,7 @@ function Products() {
                   }}
                 >
                   <Clock size={16} />
-                  Recently Added
+                  {t('products.recentlyAdded')}
                 </button>
               </div>
             </div>
@@ -1834,7 +1836,7 @@ function Products() {
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Categories
+                    {t('products.categories')}
                   </label>
                   {selectedCategoryFilters.length > 0 && (
                     <button
@@ -1849,7 +1851,7 @@ function Products() {
                         textDecoration: 'underline',
                       }}
                     >
-                      Clear
+                      {t('products.clear')}
                     </button>
                   )}
                 </div>
@@ -1909,7 +1911,7 @@ function Products() {
                 border: '1px solid var(--error)',
               }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  {selectedProducts.size} Selected
+                  {selectedProducts.size} {t('products.selected')}
                 </div>
                 <button
                   onClick={() => {
@@ -1934,7 +1936,7 @@ function Products() {
                   }}
                 >
                   <FileDown size={16} />
-                  Generate RFQ ({selectedProducts.size})
+                  {t('products.generateRFQ')} ({selectedProducts.size})
                 </button>
                 <button
                   onClick={() => {
@@ -1959,7 +1961,7 @@ function Products() {
                   }}
                 >
                   <Trash2 size={16} />
-                  Delete Selected
+                  {t('products.deleteSelected')}
                 </button>
                 <button
                   onClick={deselectAll}
@@ -1976,7 +1978,7 @@ function Products() {
                     textDecoration: 'underline',
                   }}
                 >
-                  Deselect All
+                  {t('products.deselectAll')}
                 </button>
               </div>
             )}

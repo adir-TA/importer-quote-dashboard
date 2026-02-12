@@ -4,6 +4,7 @@ import {
   Package, FileText, Calculator, GitCompare, Plus, ArrowRight, TrendingDown, CheckCircle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { BuyingIntentCommandSelect } from '../components';
 
 // Formatting helper (display only)
@@ -28,6 +29,7 @@ function Dashboard() {
   const navigate = useNavigate();
   const { state, computed } = useAppContext();
   const { products, quotes } = state;
+  const { t } = useLanguage();
 
   // Product selection for best price
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -97,17 +99,17 @@ function Dashboard() {
   }, [selectedProductId, quoteCounts]);
 
   const stats = [
-    { label: 'Buying Intents', value: products.length, icon: Package, color: '#7c5cfc', bgColor: 'rgba(124, 92, 252, 0.1)' },
-    { label: 'Quotes', value: quotes.length, icon: FileText, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' },
+    { label: t('dashboard.buyingIntents'), value: products.length, icon: Package, color: '#7c5cfc', bgColor: 'rgba(124, 92, 252, 0.1)' },
+    { label: t('dashboard.quotes'), value: quotes.length, icon: FileText, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' },
   ];
 
   return (
     <div className="page">
       <div className="header">
         <div>
-          <h2>Dashboard</h2>
+          <h2>{t('dashboard.title')}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
-            Manage buying intents and compare supplier quotes
+            {t('dashboard.subtitle')}
           </p>
         </div>
       </div>
@@ -123,7 +125,7 @@ function Dashboard() {
             paddingBottom: '8px',
             borderBottom: '2px solid var(--border)'
           }}>
-            Overview
+            {t('dashboard.overview')}
           </h3>
           <div className="stats-grid">
             {stats.map(stat => (
@@ -160,7 +162,7 @@ function Dashboard() {
                 color: 'var(--text-primary)',
                 margin: 0
               }}>
-                Workflow
+                {t('dashboard.workflow')}
               </h3>
             </div>
             <div style={{ padding: '16px' }}>
@@ -184,8 +186,8 @@ function Dashboard() {
                   flexShrink: 0
                 }}>1</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>Buying Intents</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Define what you want to buy</p>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step1Title')}</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step1Desc')}</p>
                 </div>
               </div>
               <div
@@ -207,8 +209,8 @@ function Dashboard() {
                   flexShrink: 0
                 }}>2</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>Quotes</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Upload supplier quotes</p>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step2Title')}</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step2Desc')}</p>
                 </div>
               </div>
               <div
@@ -230,8 +232,8 @@ function Dashboard() {
                   flexShrink: 0
                 }}>3</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>Compare</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>Find the best price</p>
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step3Title')}</h4>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step3Desc')}</p>
                 </div>
                 <CheckCircle size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               </div>
@@ -261,7 +263,7 @@ function Dashboard() {
                 gap: '6px'
               }}>
                 <TrendingDown size={16} />
-                Best Price Finder
+                {t('dashboard.bestPriceFinder')}
               </h3>
             </div>
             <div style={{ padding: '16px' }}>
@@ -277,14 +279,14 @@ function Dashboard() {
               letterSpacing: '0.05em',
               marginBottom: '8px'
             }}>
-              Select Buying Intent
+              {t('dashboard.selectBuyingIntent')}
             </label>
             <BuyingIntentCommandSelect
               buyingIntents={products}
               value={selectedProductId}
               onChange={setSelectedProductId}
               quoteCounts={quoteCounts}
-              placeholder="Select a buying intent..."
+              placeholder={t('dashboard.selectBuyingIntentPlaceholder')}
             />
           </div>
 
@@ -298,7 +300,7 @@ function Dashboard() {
                   marginBottom: '12px',
                   fontWeight: 500
                 }}>
-                  Best price for <strong style={{ color: 'var(--text-primary)' }}>{selectedProduct?.name}</strong>
+                  {t('dashboard.bestPriceFor')} <strong style={{ color: 'var(--text-primary)' }}>{selectedProduct?.name}</strong>
                 </div>
                 <div className="best-quote-content">
                   <div className="best-quote-supplier">
@@ -307,12 +309,12 @@ function Dashboard() {
                   </div>
                   <div className="best-quote-price landed">
                     <div className="best-quote-unit">{formatCurrency(bestQuoteForProduct.unit_price)}/unit</div>
-                    <div className="best-quote-label">Unit Price</div>
+                    <div className="best-quote-label">{t('dashboard.unitPrice')}</div>
                   </div>
                 </div>
                 <button className="btn btn-secondary" onClick={() => navigate('/comparison', { state: { productId: selectedProductId } })}>
                   <GitCompare size={16} />
-                  Compare {productQuoteCount} Quotes
+                  {t('dashboard.compareQuotes').replace('{count}', productQuoteCount)}
                 </button>
               </>
             ) : (
@@ -324,13 +326,13 @@ function Dashboard() {
                 borderRadius: 'var(--radius-md)'
               }}>
                 <Package size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
-                <p style={{ margin: 0 }}>No quotes for {selectedProduct?.name} yet</p>
+                <p style={{ margin: 0 }}>{t('dashboard.noQuotesFor').replace('{name}', selectedProduct?.name)}</p>
                 <button
                   className="btn btn-ghost"
                   style={{ marginTop: '12px' }}
                   onClick={() => navigate(`/products/${selectedProductId}`)}
                 >
-                  Add Quotes
+                  {t('dashboard.addQuotes')}
                 </button>
               </div>
             )
@@ -343,7 +345,7 @@ function Dashboard() {
               borderRadius: 'var(--radius-md)'
             }}>
               <Package size={32} style={{ opacity: 0.4, marginBottom: '12px' }} />
-              <p style={{ margin: 0 }}>Select a buying intent above to see best price</p>
+              <p style={{ margin: 0 }}>{t('dashboard.selectAbove')}</p>
             </div>
           )}
             </div>
@@ -360,20 +362,20 @@ function Dashboard() {
             paddingBottom: '8px',
             borderBottom: '2px solid var(--border)'
           }}>
-            Quick Actions
+            {t('dashboard.quickActions')}
           </h3>
           <div className="quick-actions-grid">
             <button className="quick-action-card" onClick={() => navigate('/products')}>
               <Package size={20} />
-              <span>Buying Intents</span>
+              <span>{t('dashboard.buyingIntents')}</span>
             </button>
             <button className="quick-action-card" onClick={() => navigate('/comparison')}>
               <GitCompare size={20} />
-              <span>Compare Quotes</span>
+              <span>{t('sidebar.compareQuotes')}</span>
             </button>
             <button className="quick-action-card" onClick={() => navigate('/quote-capture')}>
               <Plus size={20} />
-              <span>Upload Quote</span>
+              <span>{t('dashboard.uploadQuote')}</span>
             </button>
           </div>
         </div>

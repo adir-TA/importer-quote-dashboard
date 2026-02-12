@@ -6,6 +6,7 @@ import {
   FileDown, Calculator, Package, AlertCircle, AlertTriangle, Filter
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { BuyingIntentCommandSelect } from '../components';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
@@ -77,7 +78,8 @@ Best regards,
 function QuoteComparison() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { state, computed } = useAppContext();
+  const { state, computed, actions } = useAppContext();
+  const { t } = useLanguage();
   const { products } = state;
   const [lineItems, setLineItems] = React.useState([]);
   const [quoteCounts, setQuoteCounts] = React.useState({});
@@ -522,9 +524,9 @@ function QuoteComparison() {
             <ArrowLeft size={20} />
           </button>
           <div>
-            <h2>Compare Quotes</h2>
+            <h2>{t('comparison.title')}</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
-              Compare suppliers for a buying intent and select the best price
+              {t('comparison.subtitle')}
             </p>
           </div>
         </div>
@@ -542,7 +544,7 @@ function QuoteComparison() {
             gap: '16px',
           }}>
             <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading buying intents...</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('comparison.loading')}</p>
           </div>
         ) : (
           <>
@@ -559,7 +561,7 @@ function QuoteComparison() {
                 <FileText size={22} color="#6366F1" />
               </div>
               <div className="stat-content">
-                <div className="stat-label">Total Quotes</div>
+                <div className="stat-label">{t('comparison.totalQuotes')}</div>
                 <div className="stat-value">{quotesWithLanded.length}</div>
               </div>
             </div>
@@ -568,7 +570,7 @@ function QuoteComparison() {
                 <TrendingDown size={22} color="#10b981" />
               </div>
               <div className="stat-content">
-                <div className="stat-label">Best Price</div>
+                <div className="stat-label">{t('comparison.bestPrice')}</div>
                 <div className="stat-value" style={{ fontSize: '1.5rem' }}>
                   {formatCurrency(bestQuote.unit_price)}
                 </div>
@@ -580,7 +582,7 @@ function QuoteComparison() {
                   <Calculator size={22} color="#f59e0b" />
                 </div>
                 <div className="stat-content">
-                  <div className="stat-label">Potential Savings</div>
+                  <div className="stat-label">{t('comparison.potentialSavings')}</div>
                   <div className="stat-value" style={{ fontSize: '1.5rem' }}>
                     {formatCurrency(otherQuotes[0].unit_price - bestQuote.unit_price)}
                   </div>
@@ -610,7 +612,7 @@ function QuoteComparison() {
             width: '100%',
           }}
         >
-          <Filter size={16} /> Select Buying Intent
+          <Filter size={16} /> {t('comparison.selectBuyingIntent')}
         </button>
 
         {/* Two-column layout: Product selector sidebar + Main content */}
@@ -633,7 +635,7 @@ function QuoteComparison() {
               color: 'var(--text-muted)',
               marginBottom: '20px'
             }}>
-              Select Buying Intent
+              {t('comparison.selectBuyingIntent')}
             </h3>
 
             <BuyingIntentCommandSelect
@@ -641,13 +643,13 @@ function QuoteComparison() {
               value={selectedProductId}
               onChange={handleProductChange}
               quoteCounts={quoteCounts}
-              placeholder="Select a buying intent to compare..."
+              placeholder={t('comparison.selectPlaceholder')}
             />
 
             {!selectedProductId && (
               <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                 <AlertCircle size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
-                Select a buying intent to compare quotes
+                {t('comparison.selectToCompare')}
               </div>
             )}
 
@@ -655,7 +657,7 @@ function QuoteComparison() {
             {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
               <div style={{ marginTop: '24px' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Recently Used
+                  {t('comparison.recentlyUsed')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (
@@ -722,14 +724,14 @@ function QuoteComparison() {
             {quotesWithLanded.length === 0 ? (
               <div className="empty-state">
                 <TrendingDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                <h3>No valid quotes for {selectedProduct?.name}</h3>
-                <p>Add quotes with valid prices and quantities</p>
+                <h3>{t('comparison.noValidQuotes').replace('{name}', selectedProduct?.name)}</h3>
+                <p>{t('comparison.addValidQuotes')}</p>
                 <button
                   className="btn btn-primary"
                   style={{ marginTop: '16px' }}
                   onClick={() => navigate(`/products/${selectedProductId}`)}
                 >
-                  Add Quotes
+                  {t('comparison.addQuotes')}
                 </button>
               </div>
             ) : (
@@ -753,22 +755,22 @@ function QuoteComparison() {
                             <CheckCircle2 size={48} />
                           </div>
                           <div className="selected-content">
-                            <h3>Supplier Selected</h3>
+                            <h3>{t('comparison.supplierSelected')}</h3>
                             <p>{bestQuote.supplierName} — {formatCurrency(bestQuote.unit_price)}/unit</p>
                           </div>
                         </div>
 
                         <div className="next-actions-section">
                           <p className="next-actions-helper">
-                            You've selected the best option for {selectedProduct?.name}. What's next?
+                            {t('comparison.youveSelected').replace('{name}', selectedProduct?.name)}
                           </p>
-                          <div className="next-actions-title">Next Actions</div>
+                          <div className="next-actions-title">{t('comparison.nextActions')}</div>
                           <div className="next-actions-buttons">
                             <button className="btn btn-secondary" onClick={handleExportDecision}>
-                              <FileDown size={18} /> Export Decision
+                              <FileDown size={18} /> {t('comparison.exportDecision')}
                             </button>
                             <button className="btn btn-secondary" onClick={() => handleAINegotiate(bestQuote)}>
-                              <MessageSquare size={18} /> Negotiation Message
+                              <MessageSquare size={18} /> {t('comparison.negotiationMessage')}
                             </button>
                           </div>
                         </div>
@@ -778,13 +780,13 @@ function QuoteComparison() {
                         <div className="best-quote-header">
                           <Trophy size={24} color="#f59e0b" />
                           <div style={{ flex: 1 }}>
-                            <h3 style={{ margin: 0 }}>Best: {bestQuote.supplierName}</h3>
+                            <h3 style={{ margin: 0 }}>{t('comparison.best')}: {bestQuote.supplierName}</h3>
                             <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                              Lowest price ({bestQuote.incoterm})
+                              {t('comparison.lowestPrice')} ({bestQuote.incoterm})
                             </p>
                           </div>
                           <div className="best-quote-price">
-                            <span className="price-label">Unit Price</span>
+                            <span className="price-label">{t('comparison.unitPrice')}</span>
                             <span className="price-value">{formatCurrency(bestQuote.unit_price)}/unit</span>
                           </div>
                         </div>
@@ -794,7 +796,7 @@ function QuoteComparison() {
                             className="btn btn-select-supplier"
                             onClick={() => handleSelectSupplier(bestQuote.id)}
                           >
-                            <Check size={20} /> Select This Supplier
+                            <Check size={20} /> {t('comparison.selectThisSupplier')}
                           </button>
                         </div>
 
@@ -808,10 +810,10 @@ function QuoteComparison() {
                           marginTop: '16px'
                         }}>
                           <button className="btn btn-ghost btn-sm" onClick={handleAIExplain} title="Explain why this is best">
-                            <Sparkles size={14} /> Why Best?
+                            <Sparkles size={14} /> {t('comparison.whyBest')}
                           </button>
                           <button className="btn btn-ghost btn-sm" onClick={() => handleAINegotiate(bestQuote)} title="Generate negotiation message">
-                            <MessageSquare size={14} /> Negotiate
+                            <MessageSquare size={14} /> {t('comparison.negotiate')}
                           </button>
                         </div>
                       </>
@@ -886,7 +888,7 @@ function QuoteComparison() {
                   <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <TrendingDown size={18} /> {quotesWithLanded.length} Quotes for {selectedProduct?.name}
+                        <TrendingDown size={18} /> {t('comparison.quotesFor').replace('{count}', quotesWithLanded.length).replace('{name}', selectedProduct?.name)}
                       </span>
                       {selectedProduct?.status === 'draft' && (
                         <span style={{
@@ -916,19 +918,19 @@ function QuoteComparison() {
                       title="Export comparison to Excel"
                     >
                       <FileSpreadsheet size={16} />
-                      Export to Excel
+                      {t('comparison.exportToExcel')}
                     </button>
                   </div>
                   <div className="card-body" style={{ padding: 0 }}>
                     <table className="table comparison-table">
                       <thead>
                         <tr>
-                          <th style={{ width: '50px' }}>#</th>
-                          <th>Supplier</th>
-                          <th>Unit Price</th>
-                          <th>MOQ</th>
-                          <th>Total (at MOQ)</th>
-                          <th>Actions</th>
+                          <th style={{ width: '50px' }}>{t('comparison.rank')}</th>
+                          <th>{t('comparison.supplier')}</th>
+                          <th>{t('comparison.unitPrice')}</th>
+                          <th>{t('comparison.mOQ')}</th>
+                          <th>{t('comparison.totalAtMOQ')}</th>
+                          <th>{t('comparison.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1611,13 +1613,13 @@ function QuoteComparison() {
                 setIsMobileSelectorOpen(false);
               }}
               quoteCounts={quoteCounts}
-              placeholder="Select a buying intent to compare..."
+              placeholder={t('comparison.selectPlaceholder')}
             />
 
             {!selectedProductId && (
               <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
                 <AlertCircle size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
-                Select a buying intent to compare quotes
+                {t('comparison.selectToCompare')}
               </div>
             )}
 
@@ -1625,7 +1627,7 @@ function QuoteComparison() {
             {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
               <div style={{ marginTop: '24px' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Recently Used
+                  {t('comparison.recentlyUsed')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).map(product => (

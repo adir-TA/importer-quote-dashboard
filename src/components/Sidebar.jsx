@@ -10,8 +10,10 @@ import {
   LogOut,
   CreditCard,
   Search,
+  Languages,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import logo from '../assets/logo.jpg';
 import '../styles/sidebar.css';
 
@@ -19,6 +21,7 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { t, language, toggleLanguage, isRTL } = useLanguage();
 
   const handleLogout = async () => {
     try {
@@ -30,14 +33,14 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
   };
 
   const navItems = [
-    { section: 'Workflow', items: [
-      { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
-      { path: '/products', icon: Package, label: 'Buying Intents' },
-      { path: '/comparison', icon: GitCompare, label: 'Compare Quotes' },
-      { path: '/business-cards', icon: CreditCard, label: 'Business Cards' },
+    { section: t('sidebar.workflow'), items: [
+      { path: '/', icon: LayoutDashboard, label: t('sidebar.dashboard') },
+      { path: '/products', icon: Package, label: t('sidebar.buyingIntents') },
+      { path: '/comparison', icon: GitCompare, label: t('sidebar.compareQuotes') },
+      { path: '/business-cards', icon: CreditCard, label: t('sidebar.businessCards') },
     ]},
-    { section: 'System', items: [
-      { path: '/settings', icon: Settings, label: 'Settings' },
+    { section: t('sidebar.system'), items: [
+      { path: '/settings', icon: Settings, label: t('sidebar.settings') },
     ]}
   ];
 
@@ -60,7 +63,7 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
         title="Search (F6)"
       >
         <Search size={16} />
-        <span>Search...</span>
+        <span>{t('sidebar.search')}</span>
         <kbd className="search-kbd">F6</kbd>
       </button>
 
@@ -90,9 +93,13 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
             <span className="user-email">{user?.email}</span>
           </div>
         </div>
+        <button className="backup-btn lang-btn" onClick={toggleLanguage}>
+          <Languages size={14} />
+          {language === 'en' ? 'עברית' : 'English'}
+        </button>
         <button className="backup-btn logout-btn" onClick={handleLogout}>
           <LogOut size={14} />
-          Sign Out
+          {t('sidebar.signOut')}
         </button>
       </div>
     </aside>
