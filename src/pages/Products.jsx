@@ -1293,13 +1293,13 @@ function Products() {
           </div>
 
           {/* Right: Main Content */}
-          <div style={{ overflowY: 'auto', minHeight: 0 }}>
-            {/* Search Bar */}
-            <div style={{ marginBottom: '24px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
+            {/* Pinned: Search Bar */}
+            <div style={{ marginBottom: '16px', flexShrink: 0 }}>
               <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
             </div>
 
-            {/* Select All Control */}
+            {/* Pinned: Select All Control */}
             {filteredProducts.length > 0 && (
               <div style={{
                 display: 'flex',
@@ -1310,6 +1310,7 @@ function Products() {
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius-md)',
                 marginBottom: '16px',
+                flexShrink: 0,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <input
@@ -1356,7 +1357,8 @@ function Products() {
               </div>
             )}
 
-            {/* Products Display */}
+            {/* Products Display - Scrollable */}
+            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Package size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -1670,6 +1672,7 @@ function Products() {
             ))}
           </div>
         )}
+            </div>
           </div>
           {/* End right content area */}
         </div>
