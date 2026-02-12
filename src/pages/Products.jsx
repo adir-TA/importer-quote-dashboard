@@ -986,6 +986,48 @@ function Products() {
             boxShadow: 'var(--shadow-sm)',
             overflowY: 'auto',
           }}>
+            {/* Search */}
+            <div style={{ marginBottom: '20px' }}>
+              <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
+            </div>
+
+            {/* Select All Control */}
+            {filteredProducts.length > 0 && (
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                padding: '10px 12px',
+                background: 'var(--bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '20px',
+              }}>
+                <input
+                  type="checkbox"
+                  checked={filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id))}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      selectAll();
+                    } else {
+                      deselectAll();
+                    }
+                  }}
+                  ref={(el) => {
+                    if (el) {
+                      el.indeterminate = selectedProducts.size > 0 && !filteredProducts.every(p => selectedProducts.has(p.id));
+                    }
+                  }}
+                  style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                />
+                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Select All
+                </span>
+                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                  {selectedProducts.size > 0 ? `${selectedProducts.size} selected` : `${filteredProducts.length}`}
+                </span>
+              </div>
+            )}
+
             <h3 style={{
               fontSize: '0.875rem',
               fontWeight: 700,
@@ -1293,72 +1335,7 @@ function Products() {
           </div>
 
           {/* Right: Main Content */}
-          <div style={{ display: 'flex', flexDirection: 'column', minHeight: 0, overflow: 'hidden' }}>
-            {/* Pinned: Search Bar */}
-            <div style={{ marginBottom: '16px', flexShrink: 0 }}>
-              <SearchInput value={search} onChange={setSearch} placeholder="Search buying intents..." />
-            </div>
-
-            {/* Pinned: Select All Control */}
-            {filteredProducts.length > 0 && (
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '12px 16px',
-                background: 'white',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-md)',
-                marginBottom: '16px',
-                flexShrink: 0,
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <input
-                    type="checkbox"
-                    checked={filteredProducts.length > 0 && filteredProducts.every(p => selectedProducts.has(p.id))}
-                    indeterminate={selectedProducts.size > 0 && !filteredProducts.every(p => selectedProducts.has(p.id))}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        selectAll();
-                      } else {
-                        deselectAll();
-                      }
-                    }}
-                    ref={(el) => {
-                      if (el) {
-                        el.indeterminate = selectedProducts.size > 0 && !filteredProducts.every(p => selectedProducts.has(p.id));
-                      }
-                    }}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      cursor: 'pointer',
-                    }}
-                  />
-                  <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                    Select All
-                  </span>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    ({filteredProducts.length} visible item{filteredProducts.length !== 1 ? 's' : ''})
-                  </span>
-                </div>
-                {selectedProducts.size > 0 && (
-                  <span style={{
-                    fontSize: '0.8rem',
-                    fontWeight: 600,
-                    color: 'var(--accent)',
-                    padding: '4px 12px',
-                    background: 'var(--accent-light)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}>
-                    {selectedProducts.size} selected
-                  </span>
-                )}
-              </div>
-            )}
-
-            {/* Products Display - Scrollable */}
-            <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ overflowY: 'auto', minHeight: 0 }}>
         {filteredProducts.length === 0 ? (
           <div className="empty-state">
             <Package size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
@@ -1672,7 +1649,6 @@ function Products() {
             ))}
           </div>
         )}
-            </div>
           </div>
           {/* End right content area */}
         </div>
