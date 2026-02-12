@@ -12,6 +12,7 @@ import {
   Search,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import logo from '../assets/logo.jpg';
 import '../styles/sidebar.css';
 
 function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
@@ -44,7 +45,7 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
     <aside className={`sidebar ${isMobileOpen ? 'open' : ''}`}>
       <div className="sidebar-header">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-icon">📦</div>
+          <img src={logo} alt="HA Tools" className="sidebar-logo-img" />
           <div className="sidebar-brand">
             <span className="sidebar-brand-name">ha tools</span>
             <span className="sidebar-brand-tagline">bro</span>

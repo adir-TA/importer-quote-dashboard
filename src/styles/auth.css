@@ -52,29 +52,12 @@
   text-transform: uppercase;
 }
 
-.auth-logo-icon {
+.auth-logo-img {
   width: 46px;
   height: 46px;
-  background: var(--accent);
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.4rem;
+  object-fit: cover;
   box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
-  position: relative;
-  color: white;
-}
-
-.auth-logo-icon::after {
-  content: '';
-  position: absolute;
-  inset: -3px;
-  border-radius: 15px;
-  background: var(--accent);
-  opacity: 0.25;
-  z-index: -1;
-  filter: blur(10px);
 }
 
 .auth-header h1 {

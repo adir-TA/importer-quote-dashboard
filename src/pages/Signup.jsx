@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, UserPlus, AlertCircle, CheckCircle, Check, X } from 'lucide-react';
+import logo from '../assets/logo.jpg';
 
 // Password requirements
 const PASSWORD_REQUIREMENTS = [
@@ -119,7 +120,7 @@ function Signup() {
       <div className="auth-card">
         <div className="auth-header">
           <div className="auth-logo">
-            <div className="auth-logo-icon">📦</div>
+            <img src={logo} alt="HA Tools" className="auth-logo-img" />
             <div className="sidebar-brand">
               <span className="sidebar-brand-name">HA Tools</span>
               <span className="sidebar-brand-tagline">Import Smarter</span>

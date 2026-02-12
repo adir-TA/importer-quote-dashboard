@@ -32,29 +32,13 @@
   gap: 14px;
 }
 
-.sidebar-logo-icon {
+.sidebar-logo-img {
   width: 46px;
   height: 46px;
-  background: var(--accent);
   border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 1.4rem;
+  object-fit: cover;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
-  position: relative;
-}
-
-.sidebar-logo-icon::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border-radius: 14px;
-  background: var(--accent);
-  opacity: 0.2;
-  z-index: -1;
-  filter: blur(8px);
+  filter: invert(1);
 }
 
 .sidebar-brand {
