@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import * as businessCardsService from '../utils/businessCardsService';
@@ -37,6 +37,10 @@ export function AppProvider({ children }) {
   const [cardCategories, setCardCategories] = useState([]);
   const [cardTags, setCardTags] = useState([]);
 
+  // All line items loaded upfront for fast in-memory filtering
+  const [allLineItems, setAllLineItems] = useState([]);
+  const allLineItemsRef = useRef([]);
+
   useEffect(() => {
     if (user) {
       fetchAllData();
@@ -53,6 +57,8 @@ export function AppProvider({ children }) {
       setBusinessCards([]);
       setCardCategories([]);
       setCardTags([]);
+      setAllLineItems([]);
+      allLineItemsRef.current = [];
       setLoading(false);
       setInitialized(false);
     }
@@ -68,13 +74,30 @@ export function AppProvider({ children }) {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [productsRes, quotesRes, suppliersRes, ordersRes, documentsRes, settingsRes] = await Promise.all([
+      const [productsRes, quotesRes, suppliersRes, ordersRes, documentsRes, settingsRes, lineItemsRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
         supabase.from('quotes_old').select('*').order('created_at', { ascending: false }),
         supabase.from('suppliers').select('*').order('created_at', { ascending: false }),
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
         supabase.from('user_settings').select('*').single(),
+        supabase.from('quote_line_items').select(`
+          *,
+          supplier_quote:supplier_quotes(
+            id,
+            supplier_name,
+            supplier_contact,
+            supplier_email,
+            currency,
+            incoterm,
+            quote_date,
+            valid_until,
+            payment_terms,
+            lead_time,
+            notes,
+            created_at
+          )
+        `).order('created_at', { ascending: false }),
       ]);
 
       // Transform quotes to new structure if needed
@@ -86,6 +109,17 @@ export function AppProvider({ children }) {
         moq: q.fields?.moq || q.moq || 0,
         incoterm: q.fields?.incoterm || q.incoterm || '',
       }));
+
+      // Transform line items with supplier info (same transform as previous per-product query)
+      const transformedLineItems = (lineItemsRes.data || []).map(item => ({
+        ...item,
+        supplierName: item.supplier_quote?.supplier_name,
+        currency: item.supplier_quote?.currency || 'USD',
+        incoterm: item.supplier_quote?.incoterm || '',
+        supplier: item.supplier_quote,
+      }));
+      allLineItemsRef.current = transformedLineItems;
+      setAllLineItems(transformedLineItems);
 
       setProducts(productsRes.data || []);
       setQuotes(transformedQuotes);
@@ -104,11 +138,13 @@ export function AppProvider({ children }) {
         }
       }
 
-      // Fetch business cards data
+      // Fetch business cards data (in parallel)
       try {
-        const cards = await businessCardsService.fetchBusinessCards(user.id);
-        const categories = await businessCardsService.fetchCardCategories(user.id);
-        const tags = await businessCardsService.fetchCardTags(user.id);
+        const [cards, categories, tags] = await Promise.all([
+          businessCardsService.fetchBusinessCards(user.id),
+          businessCardsService.fetchCardCategories(user.id),
+          businessCardsService.fetchCardTags(user.id),
+        ]);
 
         console.log('Business Cards - Fetched categories:', categories);
         console.log('Business Cards - Fetched tags:', tags);
@@ -815,51 +851,26 @@ export function AppProvider({ children }) {
   /**
    * Get all line items linked to a BuyingIntent
    * Returns: Array of line items with supplier details
+   * Note: Now synchronous - filters from pre-loaded allLineItems via ref
+   * All callers that `await` this still work (await on non-Promise returns the value)
    */
-  const getLineItemsForBuyingIntent = useCallback(async (buyingIntentId) => {
+  const getLineItemsForBuyingIntent = useCallback((buyingIntentId) => {
     if (!user) return [];
-
-    // Query line items where linked_buying_intent_id = buyingIntentId
-    // Join with supplier_quotes to get supplier info
-    const { data, error} = await supabase
-      .from('quote_line_items')
-      .select(`
-        *,
-        supplier_quote:supplier_quotes(
-          id,
-          supplier_name,
-          supplier_contact,
-          supplier_email,
-          currency,
-          incoterm,
-          quote_date,
-          valid_until,
-          payment_terms,
-          lead_time,
-          notes,
-          created_at
-        )
-      `)
-      .eq('linked_buying_intent_id', buyingIntentId)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('[AppContext] Error fetching line items:', error);
-      return [];
-    }
-
-    // Transform to usable format
-    return (data || []).map(item => ({
-      ...item,
-      supplierName: item.supplier_quote?.supplier_name,
-      currency: item.supplier_quote?.currency || 'USD',
-      incoterm: item.supplier_quote?.incoterm || '',
-      supplier: item.supplier_quote,
-    }));
+    return allLineItemsRef.current.filter(item => item.linked_buying_intent_id === buyingIntentId);
   }, [user]);
 
   // Legacy alias for backwards compatibility
   const getLineItemsForProduct = getLineItemsForBuyingIntent;
+
+  // Memoize computed object so consumers' useEffect deps don't trigger on every render
+  const computedMemo = useMemo(() => ({
+    getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
+    getLineItemsForProduct, // Legacy alias
+    getLineItemsForBuyingIntent, // Filter line items by buying intent (now synchronous)
+    getDocumentsForBuyingIntent, // Query documents by buying intent
+    calculateLandedCost,
+  }), [getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
+       getLineItemsForBuyingIntent, getDocumentsForBuyingIntent, calculateLandedCost]);
 
   const value = {
     state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, businessCards, cardCategories, cardTags },
@@ -880,13 +891,7 @@ export function AppProvider({ children }) {
       addCardCategory, updateCardCategory, deleteCardCategory, refreshCardCategories,
       addCardTag, deleteCardTag,
     },
-    computed: {
-      getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
-      getLineItemsForProduct, // Legacy alias
-      getLineItemsForBuyingIntent, // Query line items by buying intent
-      getDocumentsForBuyingIntent, // Query documents by buying intent
-      calculateLandedCost,
-    },
+    computed: computedMemo,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
