@@ -718,27 +718,37 @@ function Products() {
       if (selectedImage) {
         console.log('🔵 Starting image upload process...');
 
-        // Upload via backend proxy (service role key bypasses RLS)
-        const formData = new FormData();
-        formData.append('file', selectedImage);
-        formData.append('userId', user.id);
+        const fileExt = selectedImage.name.split('.').pop();
+        const storagePath = `${user.id}/products/${Date.now()}.${fileExt}`;
 
-        const uploadResponse = await fetch(`${API_BASE_URL}/api/storage/upload-image`, {
+        // Get presigned upload URL from backend (bypasses RLS, no size limit)
+        const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
           method: 'POST',
-          body: formData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucket: 'business-cards', path: storagePath }),
         });
 
-        if (!uploadResponse.ok) {
-          const err = await uploadResponse.json().catch(() => ({}));
-          throw new Error(err.error || 'Image upload failed');
+        if (!urlResponse.ok) {
+          const err = await urlResponse.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to prepare image upload');
         }
 
-        const uploadResult = await uploadResponse.json();
-        console.log('✅ Image uploaded successfully:', uploadResult.file.path);
+        const { signedUrl, publicUrl } = await urlResponse.json();
+
+        // Upload directly to Supabase Storage (no Vercel size limit)
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': selectedImage.type },
+          body: selectedImage,
+        });
+
+        if (!uploadResponse.ok) throw new Error('Image upload failed');
+
+        console.log('✅ Image uploaded successfully:', storagePath);
 
         imageData = {
-          image_storage_path: uploadResult.file.path,
-          image_url: uploadResult.file.publicUrl || null
+          image_storage_path: storagePath,
+          image_url: publicUrl || null
         };
       }
 

@@ -791,60 +791,43 @@ app.post('/api/debug/extract-quote', async (req, res) => {
 // STORAGE UPLOAD ENDPOINTS
 // ============================================
 
-// Upload image for buying intent (to business-cards bucket)
-app.post('/api/storage/upload-image', upload.single('file'), async (req, res) => {
+// Generate a presigned upload URL for any storage bucket
+// Client uploads directly to Supabase Storage — no Vercel size limit
+app.post('/api/storage/create-upload-url', express.json(), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    const { bucket, path } = req.body;
+
+    if (!bucket || !path) {
+      return res.status(400).json({ error: 'Missing required fields: bucket, path' });
     }
 
-    const { userId } = req.body;
+    // Create signed upload URL using service role key (bypasses RLS)
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUploadUrl(path);
 
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing required field: userId' });
+    if (error) {
+      console.error('❌ Failed to create signed upload URL:', error);
+      return res.status(500).json({ error: error.message });
     }
 
-    // Generate file path
-    const fileExtension = req.file.originalname.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
-    const filePath = `${userId}/products/${fileName}`;
-
-    console.log(`📤 Uploading image: ${filePath}`);
-
-    // Upload to Supabase Storage (service role key bypasses RLS)
-    const { data: uploadData, error: uploadError } = await supabase.storage
-      .from('business-cards')
-      .upload(filePath, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: false,
-      });
-
-    if (uploadError) {
-      console.error('❌ Image upload error:', uploadError);
-      return res.status(500).json({ error: uploadError.message });
-    }
-
-    // Get public URL
+    // Also generate the public URL for this path
     const { data: urlData } = supabase.storage
-      .from('business-cards')
-      .getPublicUrl(uploadData.path);
+      .from(bucket)
+      .getPublicUrl(path);
 
-    console.log(`✅ Image uploaded: ${uploadData.path}`);
+    console.log(`✅ Signed upload URL created for ${bucket}/${path}`);
 
     res.json({
-      success: true,
-      file: {
-        path: uploadData.path,
-        publicUrl: urlData?.publicUrl || null,
-        name: req.file.originalname,
-        type: req.file.mimetype,
-        size: req.file.size,
-      },
+      signedUrl: data.signedUrl,
+      token: data.token,
+      path: data.path,
+      publicUrl: urlData?.publicUrl || null,
     });
 
   } catch (error) {
-    console.error('❌ Image upload error:', error);
-    res.status(500).json({ error: error.message || 'Failed to upload image' });
+    console.error('❌ Create upload URL error:', error);
+    res.status(500).json({ error: error.message || 'Failed to create upload URL' });
   }
 });
 
