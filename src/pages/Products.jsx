@@ -734,8 +734,18 @@ function Products() {
         });
 
         if (!uploadResponse.ok) {
-          const errorData = await uploadResponse.json();
-          throw new Error(errorData.error || 'Image upload failed');
+          let errorMessage = 'Image upload failed';
+          try {
+            const errorData = await uploadResponse.json();
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            if (uploadResponse.status === 413) {
+              errorMessage = 'Image is too large. Please use a smaller image (max ~4.5MB for hosted deployments).';
+            } else {
+              errorMessage = `Image upload failed (${uploadResponse.status})`;
+            }
+          }
+          throw new Error(errorMessage);
         }
 
         const { file: uploadedFile } = await uploadResponse.json();

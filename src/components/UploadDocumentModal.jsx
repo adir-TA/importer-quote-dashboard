@@ -148,8 +148,19 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
       });
 
       if (!uploadResponse.ok) {
-        const errorData = await uploadResponse.json();
-        throw new Error(errorData.error || 'Upload failed');
+        let errorMessage = 'Upload failed';
+        try {
+          const errorData = await uploadResponse.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          // Response may not be JSON (e.g. 413 "Request Entity Too Large")
+          if (uploadResponse.status === 413) {
+            errorMessage = 'File is too large. Please use a smaller file (max ~4.5MB for hosted deployments).';
+          } else {
+            errorMessage = `Upload failed (${uploadResponse.status})`;
+          }
+        }
+        throw new Error(errorMessage);
       }
 
       const { file: uploadedFile } = await uploadResponse.json();
