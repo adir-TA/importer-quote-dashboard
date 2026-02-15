@@ -133,51 +133,45 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
     setError('');
 
     try {
-      // Step 1: Upload file to backend (Supabase Storage)
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('userId', user.id);
-      formData.append('buyingIntentId', buyingIntentId);
-      if (selectedSupplierQuoteId) {
-        formData.append('supplierQuoteId', selectedSupplierQuoteId);
+      // Step 1: Get presigned upload URL from backend (bypasses RLS + Vercel size limit)
+      const fileExtension = file.name.split('.').pop();
+      const storagePath = `${user.id}/buying-intents/${buyingIntentId}/${Date.now()}.${fileExtension}`;
+
+      const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bucket: 'documents', path: storagePath }),
+      });
+
+      if (!urlResponse.ok) {
+        const err = await urlResponse.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to prepare upload');
       }
 
-      const uploadResponse = await fetch(`${API_BASE_URL}/api/documents/upload`, {
-        method: 'POST',
-        body: formData,
+      const { signedUrl } = await urlResponse.json();
+
+      // Step 2: Upload file directly to Supabase Storage (bypasses Vercel size limit)
+      const uploadResponse = await fetch(signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
       });
 
       if (!uploadResponse.ok) {
-        let errorMessage = 'Upload failed';
-        try {
-          const errorData = await uploadResponse.json();
-          errorMessage = errorData.error || errorMessage;
-        } catch {
-          // Response may not be JSON (e.g. 413 "Request Entity Too Large")
-          if (uploadResponse.status === 413) {
-            errorMessage = 'File is too large. Please use a smaller file (max ~4.5MB for hosted deployments).';
-          } else {
-            errorMessage = `Upload failed (${uploadResponse.status})`;
-          }
-        }
-        throw new Error(errorMessage);
+        throw new Error('File upload failed. The file may be too large.');
       }
 
-      const { file: uploadedFile } = await uploadResponse.json();
-
-      // Get file extension
-      const fileExtension = file.name.split('.').pop();
       const finalFileName = `${customFileName}.${fileExtension}`;
 
-      // Step 2: Save document metadata to database
+      // Step 3: Save document metadata to database
       const doc = {
         type,
         buyingIntentId,
         supplierQuoteId: selectedSupplierQuoteId || null,
-        filePath: uploadedFile.path,
+        filePath: storagePath,
         fileName: finalFileName,
-        fileType: uploadedFile.type,
-        fileSize: uploadedFile.size,
+        fileType: file.type,
+        fileSize: file.size,
       };
 
       await actions.addDocument(doc);

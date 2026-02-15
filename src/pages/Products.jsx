@@ -723,37 +723,39 @@ function Products() {
           throw new Error('User not authenticated');
         }
 
-        // Upload via backend (uses service role key, bypasses storage RLS)
-        const uploadFormData = new FormData();
-        uploadFormData.append('file', selectedImage);
-        uploadFormData.append('userId', authUser.id);
+        // Step 1: Get presigned upload URL from backend (bypasses RLS)
+        const fileExt = selectedImage.name.split('.').pop();
+        const storagePath = `${authUser.id}/products/${Date.now()}.${fileExt}`;
 
-        const uploadResponse = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+        const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
           method: 'POST',
-          body: uploadFormData,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucket: 'business-cards', path: storagePath }),
+        });
+
+        if (!urlResponse.ok) {
+          const err = await urlResponse.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to prepare image upload');
+        }
+
+        const { signedUrl, token, publicUrl } = await urlResponse.json();
+
+        // Step 2: Upload file directly to Supabase Storage (bypasses Vercel size limit)
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': selectedImage.type },
+          body: selectedImage,
         });
 
         if (!uploadResponse.ok) {
-          let errorMessage = 'Image upload failed';
-          try {
-            const errorData = await uploadResponse.json();
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            if (uploadResponse.status === 413) {
-              errorMessage = 'Image is too large. Please use a smaller image (max ~4.5MB for hosted deployments).';
-            } else {
-              errorMessage = `Image upload failed (${uploadResponse.status})`;
-            }
-          }
-          throw new Error(errorMessage);
+          throw new Error('Image upload failed');
         }
 
-        const { file: uploadedFile } = await uploadResponse.json();
-        console.log('✅ Image uploaded successfully:', uploadedFile.path);
+        console.log('✅ Image uploaded successfully:', storagePath);
 
         imageData = {
-          image_storage_path: uploadedFile.path,
-          image_url: uploadedFile.publicUrl || null
+          image_storage_path: storagePath,
+          image_url: publicUrl || null
         };
       }
 
