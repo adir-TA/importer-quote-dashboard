@@ -788,6 +788,65 @@ app.post('/api/debug/extract-quote', async (req, res) => {
 });
 
 // ============================================
+// PRODUCT IMAGE UPLOAD ENDPOINT
+// ============================================
+
+// Upload product/buying intent image to Supabase Storage (uses service role key to bypass RLS)
+app.post('/api/products/upload-image', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing required field: userId' });
+    }
+
+    // Generate unique filename
+    const timestamp = Date.now();
+    const fileExtension = req.file.originalname.split('.').pop();
+    const fileName = `${timestamp}.${fileExtension}`;
+    const filePath = `${userId}/products/${fileName}`;
+
+    console.log(`📤 Uploading product image: ${filePath}`);
+
+    // Upload to Supabase Storage using service role key (bypasses RLS)
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('business-cards')
+      .upload(filePath, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error('❌ Product image upload error:', uploadError);
+      return res.status(500).json({ error: uploadError.message });
+    }
+
+    console.log(`✅ Product image uploaded successfully: ${uploadData.path}`);
+
+    // Generate public URL
+    const { data: urlData } = supabase.storage
+      .from('business-cards')
+      .getPublicUrl(filePath);
+
+    res.json({
+      success: true,
+      file: {
+        path: uploadData.path,
+        publicUrl: urlData?.publicUrl || null,
+      },
+    });
+
+  } catch (error) {
+    console.error('❌ Product image upload error:', error);
+    res.status(500).json({ error: error.message || 'Failed to upload product image' });
+  }
+});
+
+// ============================================
 // DOCUMENT STORAGE ENDPOINTS
 // ============================================
 
@@ -800,9 +859,9 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
 
     const { userId, supplierQuoteId, buyingIntentId } = req.body;
 
-    if (!userId || !supplierQuoteId || !buyingIntentId) {
+    if (!userId || !buyingIntentId) {
       return res.status(400).json({
-        error: 'Missing required fields: userId, supplierQuoteId, buyingIntentId'
+        error: 'Missing required fields: userId, buyingIntentId'
       });
     }
 

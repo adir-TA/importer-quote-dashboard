@@ -8,6 +8,7 @@ import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
+import API_BASE_URL from '../config/api';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { generateRFQExcel } from './ProductDetail';
 import ExcelJS from 'exceljs';
@@ -715,57 +716,34 @@ function Products() {
       // Upload image if a new one was selected
       if (selectedImage) {
         console.log('🔵 Starting image upload process...');
-        console.log('Selected image:', selectedImage.name, selectedImage.type, selectedImage.size);
 
-        // Correct destructuring: getUser() returns { data: { user }, error }
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
-        if (authError || !user) {
-          console.error('❌ Auth error:', authError);
+        // Get user ID for the upload path
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) {
           throw new Error('User not authenticated');
         }
 
-        console.log('✅ User authenticated for image upload:', user.id);
+        // Upload via backend (uses service role key, bypasses storage RLS)
+        const uploadFormData = new FormData();
+        uploadFormData.append('file', selectedImage);
+        uploadFormData.append('userId', authUser.id);
 
-        // Generate unique filename
-        const fileExt = selectedImage.name.split('.').pop();
-        const fileName = `${crypto.randomUUID()}.${fileExt}`;
-        const storagePath = `${user.id}/products/${fileName}`;
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/products/upload-image`, {
+          method: 'POST',
+          body: uploadFormData,
+        });
 
-        console.log('🔵 Upload path:', storagePath);
-        console.log('🔵 Bucket:', 'business-cards');
-        console.log('🔵 Attempting storage.upload()...');
-
-        // Upload to storage
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('business-cards')
-          .upload(storagePath, selectedImage);
-
-        if (uploadError) {
-          console.error('❌ Storage upload error:', uploadError);
-          console.error('Error details:', {
-            message: uploadError.message,
-            statusCode: uploadError.statusCode,
-            error: uploadError.error,
-            path: storagePath,
-            bucket: 'business-cards',
-            userId: user.id
-          });
-          throw new Error(`Image upload failed: ${uploadError.message}`);
+        if (!uploadResponse.ok) {
+          const errorData = await uploadResponse.json();
+          throw new Error(errorData.error || 'Image upload failed');
         }
 
-        console.log('✅ Image uploaded successfully:', uploadData);
-
-        // Generate public URL
-        console.log('🔵 Getting public URL...');
-        const { data: urlData } = supabase.storage
-          .from('business-cards')
-          .getPublicUrl(storagePath);
-
-        console.log('✅ Public URL generated:', urlData?.publicUrl);
+        const { file: uploadedFile } = await uploadResponse.json();
+        console.log('✅ Image uploaded successfully:', uploadedFile.path);
 
         imageData = {
-          image_storage_path: storagePath,
-          image_url: urlData?.publicUrl || null
+          image_storage_path: uploadedFile.path,
+          image_url: uploadedFile.publicUrl || null
         };
       }
 

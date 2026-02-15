@@ -673,8 +673,8 @@ export function AppProvider({ children }) {
 
   // Document actions - Proforma Invoices & Quotes storage
   const addDocument = async (doc) => {
-    if (!doc.type || !doc.buyingIntentId || !doc.supplierQuoteId) {
-      throw new Error('Document must have type, buyingIntentId, and supplierQuoteId');
+    if (!doc.type || !doc.buyingIntentId) {
+      throw new Error('Document must have type and buyingIntentId');
     }
 
     const { data, error } = await supabase
@@ -683,7 +683,7 @@ export function AppProvider({ children }) {
         user_id: user.id,
         type: doc.type,
         buying_intent_id: doc.buyingIntentId,
-        supplier_quote_id: doc.supplierQuoteId,
+        supplier_quote_id: doc.supplierQuoteId || null,
         quote_line_item_id: doc.quoteLineItemId || null,
         file_path: doc.filePath,
         file_name: doc.fileName,

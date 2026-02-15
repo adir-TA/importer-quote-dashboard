@@ -56,6 +56,8 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
     }
   };
 
+  // Supplier is optional - check if one is available but don't require it
+
   const handleFileSelect = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
@@ -69,12 +71,6 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
     // Validate file size
     if (selectedFile.size > MAX_SIZE) {
       setError(`File size must be less than ${MAX_SIZE / 1024 / 1024}MB`);
-      return;
-    }
-
-    // Validate supplier selected
-    if (!selectedSupplierQuoteId) {
-      setError('Please select a supplier first');
       return;
     }
 
@@ -128,11 +124,6 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
       return;
     }
 
-    if (!selectedSupplierQuoteId) {
-      setError('Please select a supplier');
-      return;
-    }
-
     if (!customFileName.trim()) {
       setError('Please enter a document name');
       return;
@@ -147,7 +138,9 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
       formData.append('file', file);
       formData.append('userId', user.id);
       formData.append('buyingIntentId', buyingIntentId);
-      formData.append('supplierQuoteId', selectedSupplierQuoteId);
+      if (selectedSupplierQuoteId) {
+        formData.append('supplierQuoteId', selectedSupplierQuoteId);
+      }
 
       const uploadResponse = await fetch(`${API_BASE_URL}/api/documents/upload`, {
         method: 'POST',
@@ -169,7 +162,7 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
       const doc = {
         type,
         buyingIntentId,
-        supplierQuoteId: selectedSupplierQuoteId,
+        supplierQuoteId: selectedSupplierQuoteId || null,
         filePath: uploadedFile.path,
         fileName: finalFileName,
         fileType: uploadedFile.type,
@@ -262,31 +255,26 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
             </select>
           </div>
 
-          {/* Supplier */}
+          {/* Supplier (optional) */}
+          {supplierQuotes.length > 0 && (
           <div style={styles.field}>
             <label style={styles.label}>
-              Supplier <span style={styles.required}>*</span>
+              Link to Supplier <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span>
             </label>
-            {supplierQuotes.length === 0 ? (
-              <div style={styles.noSuppliers}>
-                <AlertCircle size={16} />
-                <span>No suppliers found. Upload a quote first.</span>
-              </div>
-            ) : (
-              <select
-                value={selectedSupplierQuoteId}
-                onChange={(e) => setSelectedSupplierQuoteId(e.target.value)}
-                style={styles.select}
-              >
-                <option value="">-- Select Supplier --</option>
-                {supplierQuotes.map(sq => (
-                  <option key={sq.id} value={sq.id}>
-                    {sq.supplier_name}
-                  </option>
-                ))}
-              </select>
-            )}
+            <select
+              value={selectedSupplierQuoteId}
+              onChange={(e) => setSelectedSupplierQuoteId(e.target.value)}
+              style={styles.select}
+            >
+              <option value="">-- No supplier --</option>
+              {supplierQuotes.map(sq => (
+                <option key={sq.id} value={sq.id}>
+                  {sq.supplier_name}
+                </option>
+              ))}
+            </select>
           </div>
+          )}
 
           {/* File Upload */}
           <div style={styles.field}>
@@ -337,8 +325,8 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
           <div style={styles.info}>
             <AlertCircle size={16} />
             <div>
-              <strong>Note:</strong> This document will be linked to the selected supplier
-              and can be accessed from this Buying Intent.
+              <strong>Note:</strong> This document will be linked to this Buying Intent.
+              {supplierQuotes.length > 0 && ' You can optionally link it to a specific supplier.'}
             </div>
           </div>
         </div>

@@ -80,9 +80,9 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
     return signedUrl;
   };
 
-  // Group documents by supplier
+  // Group documents - general docs first, then by supplier
   const groupedDocs = documents.reduce((acc, doc) => {
-    const supplierName = doc.supplier_quote?.supplier_name || 'Unknown Supplier';
+    const supplierName = doc.supplier_quote?.supplier_name || 'General';
     if (!acc[supplierName]) {
       acc[supplierName] = [];
     }
