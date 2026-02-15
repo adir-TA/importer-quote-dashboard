@@ -119,7 +119,7 @@ function EditBuyingIntentModal({
     <div className="modal-overlay">
       <div className="modal" ref={modalRef}>
         <div className="modal-header">
-          <span className="modal-title">🎯 {editingProduct ? 'Edit Buying Intent' : 'New Buying Intent'}</span>
+          <span className="modal-title">{editingProduct ? 'Edit Buying Intent' : 'New Buying Intent'}</span>
           <button className="icon-btn" onClick={onClose}><X size={20} /></button>
         </div>
         <div className="modal-body">

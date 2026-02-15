@@ -95,7 +95,6 @@ function QuoteComparisonTable({ quotes }) {
           alignItems: 'center',
           gap: '12px'
         }}>
-          <span style={{ fontSize: '1.5rem' }}>💡</span>
           <div>
             <strong style={{ color: 'var(--accent)' }}>Best Overall: {bestSupplier}</strong>
             <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>

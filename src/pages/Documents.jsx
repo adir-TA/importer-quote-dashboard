@@ -206,7 +206,7 @@ function Documents() {
         <div className="modal-overlay">
           <div className="modal">
             <div className="modal-header">
-              <span className="modal-title">📄 {editingDoc ? 'Edit Document' : 'Upload Document'}</span>
+              <span className="modal-title">{editingDoc ? 'Edit Document' : 'Upload Document'}</span>
               <button className="icon-btn" onClick={handleCloseModal}><X size={20} /></button>
             </div>
             <div className="modal-body">

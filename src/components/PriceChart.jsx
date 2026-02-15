@@ -82,7 +82,7 @@ function PriceChart({ quotes, productId }) {
     return (
       <div className="card">
         <div className="card-header">
-          <span className="card-title">📈 Price History</span>
+          <span className="card-title">Price History</span>
         </div>
         <div className="card-body">
           <div style={{ 
@@ -99,7 +99,7 @@ function PriceChart({ quotes, productId }) {
               Add more quotes to see price trends
             </p>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-              📈 Compare prices from different suppliers over time
+              Compare prices from different suppliers over time
             </p>
           </div>
         </div>
@@ -110,7 +110,7 @@ function PriceChart({ quotes, productId }) {
   return (
     <div className="card">
       <div className="card-header">
-        <span className="card-title">📈 Price History</span>
+        <span className="card-title">Price History</span>
       </div>
       <div className="card-body">
         <ResponsiveContainer width="100%" height={250}>

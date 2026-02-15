@@ -1092,7 +1092,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                     transition: 'all 0.2s',
                   }}
                 >
-                  📄 Upload File
+                  Upload File
                 </button>
                 <button
                   onClick={() => setInputMode('text')}
@@ -1107,7 +1107,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                     transition: 'all 0.2s',
                   }}
                 >
-                  📝 Paste Text
+                  Paste Text
                 </button>
               </div>
 

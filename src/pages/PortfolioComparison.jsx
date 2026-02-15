@@ -460,7 +460,7 @@ function PortfolioComparison() {
         {selectedIntents.length > 0 && supplierMetrics.length > 0 && (
           <div className="card" style={{ marginTop: '16px', background: '#f0f9ff', border: '1px solid #0ea5e9' }}>
             <div className="card-body">
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>📊 Metrics Explained</h4>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem' }}>Metrics Explained</h4>
               <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.85rem', lineHeight: '1.8' }}>
                 <li><strong>Coverage:</strong> How many of the selected buying intents this supplier quoted (e.g., "7/10" = quoted 7 out of 10)</li>
                 <li><strong>Best Price Count:</strong> Number of intents where this supplier offers the lowest price</li>
@@ -468,7 +468,7 @@ function PortfolioComparison() {
                 <li><strong>Missing Intents:</strong> Buying intents this supplier didn't provide quotes for</li>
               </ul>
               <p style={{ margin: '12px 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-                💡 <strong>Tip:</strong> Click any supplier row to see the raw line-item data. All metrics are calculated transparently - no black boxes!
+                <strong>Tip:</strong> Click any supplier row to see the raw line-item data. All metrics are calculated transparently - no black boxes!
               </p>
             </div>
           </div>

@@ -918,7 +918,7 @@ function LandedCost() {
               <div className="card">
                 <div className="card-header">
                   <span className="card-title">
-                    📊 Landed Cost Breakdown
+                    Landed Cost Breakdown
                     {selectedQuote && (
                       <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>
                         — {selectedQuote.supplierName}

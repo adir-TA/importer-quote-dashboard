@@ -179,8 +179,8 @@ function Suppliers() {
                   {getStatusBadge(supplier.status)}
                 </div>
                 <div className="supplier-info">
-                  {supplier.contact && <span>👤 {supplier.contact}</span>}
-                  {supplier.email && <span>✉️ {supplier.email}</span>}
+                  {supplier.contact && <span>{supplier.contact}</span>}
+                  {supplier.email && <span>{supplier.email}</span>}
                   {supplier.wechat && <span><MessageCircle size={14} style={{ marginRight: '4px' }} />{supplier.wechat}</span>}
                   {supplier.website && <span><Globe size={14} style={{ marginRight: '4px' }} />{supplier.website}</span>}
                 </div>
