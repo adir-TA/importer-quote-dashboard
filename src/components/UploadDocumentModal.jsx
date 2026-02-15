@@ -133,37 +133,31 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
     setError('');
 
     try {
-      // Step 1: Get presigned upload URL from backend (bypasses RLS + Vercel size limit)
-      const fileExtension = file.name.split('.').pop();
-      const storagePath = `${user.id}/buying-intents/${buyingIntentId}/${Date.now()}.${fileExtension}`;
-
-      const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bucket: 'documents', path: storagePath }),
-      });
-
-      if (!urlResponse.ok) {
-        const err = await urlResponse.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to prepare upload');
+      // Step 1: Upload file to backend (proxies to Supabase Storage via service role key)
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('userId', user.id);
+      formData.append('buyingIntentId', buyingIntentId);
+      if (selectedSupplierQuoteId) {
+        formData.append('supplierQuoteId', selectedSupplierQuoteId);
       }
 
-      const { signedUrl } = await urlResponse.json();
-
-      // Step 2: Upload file directly to Supabase Storage (bypasses Vercel size limit)
-      const uploadResponse = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
+      const uploadResponse = await fetch(`${API_BASE_URL}/api/documents/upload`, {
+        method: 'POST',
+        body: formData,
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('File upload failed. The file may be too large.');
+        const err = await uploadResponse.json().catch(() => ({}));
+        throw new Error(err.error || 'File upload failed. The file may be too large (max ~4.5MB).');
       }
 
+      const uploadResult = await uploadResponse.json();
+      const storagePath = uploadResult.file.path;
+      const fileExtension = file.name.split('.').pop();
       const finalFileName = `${customFileName}.${fileExtension}`;
 
-      // Step 3: Save document metadata to database
+      // Step 2: Save document metadata to database
       const doc = {
         type,
         buyingIntentId,

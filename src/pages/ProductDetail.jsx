@@ -9,7 +9,7 @@ import DocumentsTab from '../components/DocumentsTab';
 import UploadDocumentModal from '../components/UploadDocumentModal';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config/api';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
@@ -328,6 +328,7 @@ function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { state, actions, computed } = useAppContext();
+  const { user } = useAuth();
   const { confirm } = useModal();
   const { products } = state;
 
@@ -783,38 +784,26 @@ function ProductDetail() {
 
       // Handle image upload if changed
       if (selectedImage) {
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-        if (authError || !authUser) throw new Error('User not authenticated');
+        // Upload via backend proxy (service role key bypasses RLS)
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('userId', user.id);
 
-        const fileExt = selectedImage.name.split('.').pop();
-        const storagePath = `${authUser.id}/products/${Date.now()}.${fileExt}`;
-
-        // Get presigned upload URL from backend (bypasses RLS)
-        const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/storage/upload-image`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: 'business-cards', path: storagePath }),
+          body: formData,
         });
 
-        if (!urlResponse.ok) {
-          const err = await urlResponse.json().catch(() => ({}));
-          throw new Error(err.error || 'Failed to prepare image upload');
+        if (!uploadResponse.ok) {
+          const err = await uploadResponse.json().catch(() => ({}));
+          throw new Error(err.error || 'Image upload failed');
         }
 
-        const { signedUrl, publicUrl } = await urlResponse.json();
-
-        // Upload directly to Supabase Storage (bypasses Vercel size limit)
-        const uploadResponse = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': selectedImage.type },
-          body: selectedImage,
-        });
-
-        if (!uploadResponse.ok) throw new Error('Image upload failed');
+        const uploadResult = await uploadResponse.json();
 
         imageData = {
-          image_storage_path: storagePath,
-          image_url: publicUrl || null
+          image_storage_path: uploadResult.file.path,
+          image_url: uploadResult.file.publicUrl || null
         };
       }
 

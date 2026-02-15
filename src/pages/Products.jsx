@@ -7,7 +7,7 @@ import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch } from '../utils/helpers';
-import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
 import API_BASE_URL from '../config/api';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { generateRFQExcel } from './ProductDetail';
@@ -371,6 +371,7 @@ function Products() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const { state, actions, computed } = useAppContext();
+  const { user } = useAuth();
   const { t } = useLanguage();
   const { confirm } = useModal();
   const { products } = state;
@@ -717,45 +718,27 @@ function Products() {
       if (selectedImage) {
         console.log('🔵 Starting image upload process...');
 
-        // Get user ID for the upload path
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
-        if (authError || !authUser) {
-          throw new Error('User not authenticated');
-        }
+        // Upload via backend proxy (service role key bypasses RLS)
+        const formData = new FormData();
+        formData.append('file', selectedImage);
+        formData.append('userId', user.id);
 
-        // Step 1: Get presigned upload URL from backend (bypasses RLS)
-        const fileExt = selectedImage.name.split('.').pop();
-        const storagePath = `${authUser.id}/products/${Date.now()}.${fileExt}`;
-
-        const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/storage/upload-image`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: 'business-cards', path: storagePath }),
-        });
-
-        if (!urlResponse.ok) {
-          const err = await urlResponse.json().catch(() => ({}));
-          throw new Error(err.error || 'Failed to prepare image upload');
-        }
-
-        const { signedUrl, token, publicUrl } = await urlResponse.json();
-
-        // Step 2: Upload file directly to Supabase Storage (bypasses Vercel size limit)
-        const uploadResponse = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': selectedImage.type },
-          body: selectedImage,
+          body: formData,
         });
 
         if (!uploadResponse.ok) {
-          throw new Error('Image upload failed');
+          const err = await uploadResponse.json().catch(() => ({}));
+          throw new Error(err.error || 'Image upload failed');
         }
 
-        console.log('✅ Image uploaded successfully:', storagePath);
+        const uploadResult = await uploadResponse.json();
+        console.log('✅ Image uploaded successfully:', uploadResult.file.path);
 
         imageData = {
-          image_storage_path: storagePath,
-          image_url: publicUrl || null
+          image_storage_path: uploadResult.file.path,
+          image_url: uploadResult.file.publicUrl || null
         };
       }
 
