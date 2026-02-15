@@ -10,6 +10,7 @@ import UploadDocumentModal from '../components/UploadDocumentModal';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { supabase } from '../lib/supabase';
+import API_BASE_URL from '../config/api';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
@@ -782,23 +783,38 @@ function ProductDetail() {
 
       // Handle image upload if changed
       if (selectedImage) {
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        if (authError || !authUser) throw new Error('User not authenticated');
+
         const fileExt = selectedImage.name.split('.').pop();
-        const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-        const storagePath = `buying-intents/${fileName}`;
+        const storagePath = `${authUser.id}/products/${Date.now()}.${fileExt}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from('business-cards')
-          .upload(storagePath, selectedImage);
+        // Get presigned upload URL from backend (bypasses RLS)
+        const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bucket: 'business-cards', path: storagePath }),
+        });
 
-        if (uploadError) throw uploadError;
+        if (!urlResponse.ok) {
+          const err = await urlResponse.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to prepare image upload');
+        }
 
-        const { data: urlData } = supabase.storage
-          .from('business-cards')
-          .getPublicUrl(storagePath);
+        const { signedUrl, publicUrl } = await urlResponse.json();
+
+        // Upload directly to Supabase Storage (bypasses Vercel size limit)
+        const uploadResponse = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': selectedImage.type },
+          body: selectedImage,
+        });
+
+        if (!uploadResponse.ok) throw new Error('Image upload failed');
 
         imageData = {
           image_storage_path: storagePath,
-          image_url: urlData?.publicUrl || null
+          image_url: publicUrl || null
         };
       }
 
