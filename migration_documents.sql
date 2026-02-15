@@ -16,7 +16,7 @@ CREATE TABLE documents (
 
   -- Required links
   buying_intent_id UUID REFERENCES products(id) ON DELETE CASCADE NOT NULL,
-  supplier_quote_id UUID REFERENCES supplier_quotes(id) ON DELETE CASCADE NOT NULL,
+  supplier_quote_id UUID REFERENCES supplier_quotes(id) ON DELETE CASCADE,
 
   -- Optional link to specific line item
   quote_line_item_id UUID REFERENCES quote_line_items(id) ON DELETE SET NULL,
