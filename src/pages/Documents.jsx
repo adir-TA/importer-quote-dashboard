@@ -82,6 +82,27 @@ function Documents() {
 
   return (
     <div className="page">
+      <style>{`
+        .documents-layout {
+          display: grid;
+          grid-template-columns: 280px 1fr;
+          gap: 24px;
+          align-items: start;
+        }
+        .documents-filters-sidebar {
+          position: sticky;
+          top: 24px;
+        }
+        @media (max-width: 768px) {
+          .documents-layout {
+            grid-template-columns: 1fr !important;
+          }
+          .documents-filters-sidebar {
+            position: static !important;
+            top: auto !important;
+          }
+        }
+      `}</style>
       <div className="header">
         <h2>Documents</h2>
         <button className="btn btn-primary" onClick={() => handleOpenModal()}><Plus size={16} /> Upload Document</button>
@@ -116,16 +137,14 @@ function Documents() {
         </div>
 
         {/* Two-column layout: Filters sidebar + Main content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="documents-layout">
           {/* Left Sidebar: Filters */}
-          <div style={{
+          <div className="documents-filters-sidebar" style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',
             boxShadow: 'var(--shadow-sm)',
-            position: 'sticky',
-            top: '24px'
           }}>
             <h3 style={{
               fontSize: '0.875rem',
