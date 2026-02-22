@@ -843,6 +843,27 @@ function ProductDetail() {
 
   return (
     <div className="page">
+      <style>{`
+        .product-detail-layout {
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 24px;
+          align-items: start;
+        }
+        .product-detail-sidebar {
+          position: sticky;
+          top: 24px;
+        }
+        @media (max-width: 768px) {
+          .product-detail-layout {
+            grid-template-columns: 1fr !important;
+          }
+          .product-detail-sidebar {
+            position: static !important;
+            top: auto !important;
+          }
+        }
+      `}</style>
       <div className="header">
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button className="icon-btn" onClick={() => navigate('/products')}>
@@ -944,16 +965,14 @@ function ProductDetail() {
         </div>
 
         {/* Two-column layout: Product Info sidebar + Main content */}
-        <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
+        <div className="product-detail-layout">
           {/* Left Sidebar: Product Info */}
-          <div style={{
+          <div className="product-detail-sidebar" style={{
             background: 'white',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',
             boxShadow: 'var(--shadow-sm)',
-            position: 'sticky',
-            top: '24px'
           }}>
             <h3 style={{
               fontSize: '0.875rem',
