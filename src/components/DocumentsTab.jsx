@@ -100,9 +100,18 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
   }
 
   return (
-    <div style={styles.container}>
+    <div style={styles.container} className="docs-tab-container">
+      <style>{`
+        @media (max-width: 768px) {
+          .docs-tab-container { padding: 16px; }
+          .docs-tab-header { flex-wrap: wrap; gap: 12px; }
+          .docs-tab-header > button { width: 100%; justify-content: center; }
+          .docs-tab-meta { flex-wrap: wrap; }
+          .docs-tab-actions { flex-shrink: 0; }
+        }
+      `}</style>
       {/* Header */}
-      <div style={styles.header}>
+      <div style={styles.header} className="docs-tab-header">
         <div>
           <h3 style={styles.title}>Documents</h3>
           <p style={styles.subtitle}>
@@ -146,7 +155,7 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
 
                     <div style={styles.docInfo}>
                       <div style={styles.docName}>{doc.file_name}</div>
-                      <div style={styles.docMeta}>
+                      <div style={styles.docMeta} className="docs-tab-meta">
                         <span style={{
                           ...styles.typeBadge,
                           color: TYPE_BADGES[doc.type]?.color,
@@ -165,7 +174,7 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
                       </div>
                     </div>
 
-                    <div style={styles.docActions}>
+                    <div style={styles.docActions} className="docs-tab-actions">
                       <button
                         style={styles.actionButton}
                         onClick={() => handlePreview(doc)}
