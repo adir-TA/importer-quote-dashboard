@@ -6,7 +6,7 @@ import { useApp } from '../context/AppContext';
  * Returns grouped results sorted by relevance (starts-with > contains > recency)
  */
 export function useGlobalSearch(query) {
-  const { products, quotes, suppliers, documents, businessCards, cardCategories } = useApp();
+  const { products, quotes, suppliers, documents } = useApp();
 
   const results = useMemo(() => {
     if (!query || query.trim().length === 0) {
@@ -15,9 +15,7 @@ export function useGlobalSearch(query) {
         products: [],
         quotes: [],
         documents: [],
-        businessCards: [],
         buyingIntentCategories: [],
-        businessCardCategories: [],
         total: 0
       };
     }
@@ -126,30 +124,6 @@ export function useGlobalSearch(query) {
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
-    // Search business cards
-    const businessCardResults = businessCards
-      .map(card => {
-        const displayNameScore = getRelevanceScore(card.display_name, 'primary');
-        const companyScore = getRelevanceScore(card.company_name, 'primary');
-        const contactScore = getRelevanceScore(card.contact_person, 'secondary');
-        const phoneScore = getRelevanceScore(card.phone, 'secondary');
-        const emailScore = getRelevanceScore(card.email, 'secondary');
-        const score = Math.max(displayNameScore, companyScore, contactScore, phoneScore, emailScore);
-
-        return {
-          type: 'businessCard',
-          id: card.id,
-          title: card.display_name || card.company_name,
-          subtitle: card.company_name !== card.display_name ? card.company_name : (card.contact_person || ''),
-          metadata: card.phone || card.email || '',
-          score,
-          data: card
-        };
-      })
-      .filter(r => r.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
-
     // Search Buying Intent Categories (extract unique categories from products)
     const buyingIntentCategoryMap = new Map();
     products.forEach(product => {
@@ -186,52 +160,22 @@ export function useGlobalSearch(query) {
       })
       .slice(0, 10);
 
-    // Search Business Card Categories
-    const businessCardCategoryResults = (cardCategories || [])
-      .map(category => {
-        const nameScore = getRelevanceScore(category.name, 'primary');
-
-        // Count how many business cards use this category
-        const count = businessCards.filter(card => card.category_id === category.id).length;
-
-        return {
-          type: 'businessCardCategory',
-          id: category.id,
-          title: category.name,
-          subtitle: 'Business Card Category',
-          metadata: `${count} card${count === 1 ? '' : 's'}`,
-          score: nameScore,
-          data: { ...category, count }
-        };
-      })
-      .filter(r => r.score > 0)
-      .sort((a, b) => {
-        // Sort by score first, then by count (usage)
-        if (b.score !== a.score) return b.score - a.score;
-        return b.data.count - a.data.count;
-      })
-      .slice(0, 10);
-
     const total =
       supplierResults.length +
       productResults.length +
       quoteResults.length +
       documentResults.length +
-      businessCardResults.length +
-      buyingIntentCategoryResults.length +
-      businessCardCategoryResults.length;
+      buyingIntentCategoryResults.length;
 
     return {
       suppliers: supplierResults,
       products: productResults,
       quotes: quoteResults,
       documents: documentResults,
-      businessCards: businessCardResults,
       buyingIntentCategories: buyingIntentCategoryResults,
-      businessCardCategories: businessCardCategoryResults,
       total
     };
-  }, [query, products, quotes, suppliers, documents, businessCards, cardCategories]);
+  }, [query, products, quotes, suppliers, documents]);
 
   return results;
 }

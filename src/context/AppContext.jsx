@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
-import * as businessCardsService from '../utils/businessCardsService';
-
 const AppContext = createContext(null);
 
 // Default fees for landed cost calculation
@@ -32,11 +30,6 @@ export function AppProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
 
-  // Business Cards state
-  const [businessCards, setBusinessCards] = useState([]);
-  const [cardCategories, setCardCategories] = useState([]);
-  const [cardTags, setCardTags] = useState([]);
-
   // All line items loaded upfront for fast in-memory filtering
   const [allLineItems, setAllLineItems] = useState([]);
   const allLineItemsRef = useRef([]);
@@ -54,9 +47,6 @@ export function AppProvider({ children }) {
       setFees(DEFAULT_FEES);
       setSettings({ apiKey: '', currency: 'USD' });
       setSelectedQuotes([]);
-      setBusinessCards([]);
-      setCardCategories([]);
-      setCardTags([]);
       setAllLineItems([]);
       allLineItemsRef.current = [];
       setLoading(false);
@@ -138,34 +128,6 @@ export function AppProvider({ children }) {
         }
       }
 
-      // Fetch business cards data (in parallel)
-      try {
-        const [cards, categories, tags] = await Promise.all([
-          businessCardsService.fetchBusinessCards(user.id),
-          businessCardsService.fetchCardCategories(user.id),
-          businessCardsService.fetchCardTags(user.id),
-        ]);
-
-        console.log('Business Cards - Fetched categories:', categories);
-        console.log('Business Cards - Fetched tags:', tags);
-        console.log('Business Cards - Fetched cards:', cards);
-
-        setBusinessCards(cards || []);
-        setCardCategories(categories || []);
-        setCardTags(tags || []);
-      } catch (bcError) {
-        console.error('Error fetching Business Cards data:', bcError);
-        console.error('Error details:', {
-          message: bcError.message,
-          code: bcError.code,
-          details: bcError.details,
-          hint: bcError.hint
-        });
-        // Set to empty arrays so UI doesn't break
-        setBusinessCards([]);
-        setCardCategories([]);
-        setCardTags([]);
-      }
     } catch (error) {
       console.error('Error fetching data:', error);
     }
@@ -752,95 +714,6 @@ export function AppProvider({ children }) {
     setSelectedQuotes(prev => prev.includes(quoteId) ? prev.filter(id => id !== quoteId) : [...prev, quoteId]);
   };
 
-  // Business Cards actions
-  const addBusinessCard = async (cardData) => {
-    const newCard = await businessCardsService.createBusinessCard(cardData, user.id);
-    const cards = await businessCardsService.fetchBusinessCards(user.id);
-    const fullCard = cards.find(c => c.id === newCard.id);
-    setBusinessCards(prev => [fullCard || newCard, ...prev]);
-    return fullCard || newCard;
-  };
-
-  const updateBusinessCard = async (cardId, updates) => {
-    await businessCardsService.updateBusinessCard(cardId, updates, user.id);
-    const cards = await businessCardsService.fetchBusinessCards(user.id);
-    setBusinessCards(cards);
-  };
-
-  const deleteBusinessCard = async (cardId) => {
-    await businessCardsService.deleteBusinessCard(cardId, user.id);
-    setBusinessCards(prev => prev.filter(c => c.id !== cardId));
-  };
-
-  const bulkUpdateCardStatus = async (cardIds, status) => {
-    await businessCardsService.bulkUpdateCardStatus(cardIds, status, user.id);
-    const cards = await businessCardsService.fetchBusinessCards(user.id);
-    setBusinessCards(cards);
-  };
-
-  const bulkUpdateCardCategory = async (cardIds, categoryId) => {
-    await businessCardsService.bulkUpdateCardCategory(cardIds, categoryId, user.id);
-    const cards = await businessCardsService.fetchBusinessCards(user.id);
-    setBusinessCards(cards);
-  };
-
-  const bulkDeleteCards = async (cardIds) => {
-    await businessCardsService.bulkDeleteCards(cardIds, user.id);
-    setBusinessCards(prev => prev.filter(c => !cardIds.includes(c.id)));
-  };
-
-  const addCardCategory = async (name, color) => {
-    const newCategory = await businessCardsService.createCardCategory(name, color, user.id);
-    // Refresh from database to ensure consistency
-    const categories = await businessCardsService.fetchCardCategories(user.id);
-    setCardCategories(categories);
-    return newCategory;
-  };
-
-  const updateCardCategory = async (categoryId, name, color) => {
-    await businessCardsService.updateCardCategory(categoryId, name, color, user.id);
-    // Refresh from database to ensure consistency
-    const categories = await businessCardsService.fetchCardCategories(user.id);
-    setCardCategories(categories);
-  };
-
-  const deleteCardCategory = async (categoryId) => {
-    await businessCardsService.deleteCardCategory(categoryId, user.id);
-    // Refresh from database to ensure consistency
-    const categories = await businessCardsService.fetchCardCategories(user.id);
-    setCardCategories(categories);
-  };
-
-  const refreshCardCategories = async () => {
-    try {
-      console.log('Manual refresh - Fetching categories for user:', user.id);
-      const categories = await businessCardsService.fetchCardCategories(user.id);
-      console.log('Manual refresh - Fetched categories:', categories);
-      setCardCategories(categories || []);
-      return categories;
-    } catch (error) {
-      console.error('Manual refresh - Error:', error);
-      console.error('Manual refresh - Error details:', {
-        message: error.message,
-        code: error.code,
-        details: error.details,
-        hint: error.hint
-      });
-      throw error;
-    }
-  };
-
-  const addCardTag = async (name) => {
-    const newTag = await businessCardsService.createCardTag(name, user.id);
-    setCardTags(prev => [...prev, newTag]);
-    return newTag;
-  };
-
-  const deleteCardTag = async (tagId) => {
-    await businessCardsService.deleteCardTag(tagId, user.id);
-    setCardTags(prev => prev.filter(t => t.id !== tagId));
-  };
-
   // Computed values
   const getProductQuotes = useCallback((productId) => quotes.filter(q => q.product_id === productId), [quotes]);
   const getSupplierQuotes = useCallback((supplierId) => quotes.filter(q => q.supplier_id === supplierId), [quotes]);
@@ -873,7 +746,7 @@ export function AppProvider({ children }) {
        getLineItemsForBuyingIntent, getDocumentsForBuyingIntent, calculateLandedCost]);
 
   const value = {
-    state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, businessCards, cardCategories, cardTags },
+    state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },
     actions: {
       addProduct, updateProduct, deleteProduct, finalizeBuyingIntent,
       addQuote, updateQuote, deleteQuote,
@@ -885,11 +758,6 @@ export function AppProvider({ children }) {
       updateSettings, toggleQuoteSelection, setSelectedQuotes,
       refreshData: fetchAllData,
       clearAllSeedData,
-      // Business Cards actions
-      addBusinessCard, updateBusinessCard, deleteBusinessCard,
-      bulkUpdateCardStatus, bulkUpdateCardCategory, bulkDeleteCards,
-      addCardCategory, updateCardCategory, deleteCardCategory, refreshCardCategories,
-      addCardTag, deleteCardTag,
     },
     computed: computedMemo,
   };
