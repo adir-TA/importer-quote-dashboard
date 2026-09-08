@@ -22,7 +22,9 @@ function ContainerEditor() {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { confirm, alert: showAlert } = useModal();
-  const { loadContainer, queueSave, flushSave, saveError, savedAt, clearSaveError } = useContainers();
+  const {
+    loadContainer, queueSave, flushSave, saveError, savedAt, clearSaveError, saveBranches,
+  } = useContainers();
 
   const [record, setRecord] = useState(null);
   const [payload, setPayload] = useState(emptyPayload());
@@ -170,6 +172,14 @@ function ContainerEditor() {
       return;
     }
 
+    // An empty branch list is the same kind of accident as an empty product
+    // list: rebuilding on it drops every column, so every quantity goes with
+    // them - and this write is immediate, so undo is the only way back.
+    if (!names.length) {
+      showAlert({ title: t('containers.needBranches'), message: t('containers.needBranchesHint'), type: 'warning' });
+      return;
+    }
+
     const resized = resizeGrid({
       products, branches: names,
       prevProducts: payload.products, prevBranches: payload.stores,
@@ -185,6 +195,36 @@ function ContainerEditor() {
       docExclude: prev.docExclude.filter(n => names.includes(n)),
     }), { immediate: true });
   }, [payload, update, showAlert, t]);
+
+  /**
+   * Promote this container's branch list to the account-wide default, so the
+   * next new container starts from it. Without this the master list could only
+   * ever be seeded once and never corrected.
+   */
+  const [savingBranches, setSavingBranches] = useState(false);
+  const saveAsDefaultBranches = useCallback(async () => {
+    const { names, groups } = parseBranches(payload.draftStores);
+    if (!names.length) {
+      showAlert({ title: t('containers.needBranches'), message: t('containers.needBranchesHint'), type: 'warning' });
+      return;
+    }
+    const ok = await confirm({
+      title: t('containers.saveDefaults'),
+      message: t('containers.saveDefaultsConfirm'),
+      confirmText: t('containers.saveDefaults'),
+    });
+    if (!ok) return;
+
+    setSavingBranches(true);
+    try {
+      await saveBranches(names, normalizeGroups(groups));
+      showAlert({ title: t('containers.saveDefaultsDone'), type: 'success' });
+    } catch (err) {
+      showAlert({ title: t('containers.saveDefaultsFailed'), message: err.message, type: 'error' });
+    } finally {
+      setSavingBranches(false);
+    }
+  }, [payload.draftStores, saveBranches, confirm, showAlert, t]);
 
   // ------------------------------------------------
   // Grid handlers
@@ -432,9 +472,15 @@ function ContainerEditor() {
                   onBlur={() => flushSave()} />
               </div>
             </div>
-            <button type="button" className="btn btn-primary" onClick={rebuild}>
-              {t('containers.rebuild')}
-            </button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button type="button" className="btn btn-primary" onClick={rebuild}>
+                {t('containers.rebuild')}
+              </button>
+              <button type="button" className="btn btn-secondary" onClick={saveAsDefaultBranches}
+                disabled={savingBranches}>
+                {t('containers.saveDefaults')}
+              </button>
+            </div>
           </div>
         </div>
 

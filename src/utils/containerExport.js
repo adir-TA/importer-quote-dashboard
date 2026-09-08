@@ -49,6 +49,9 @@ export async function buildGridWorkbook({ products, stores, storeGroups, qty, ca
   const wb = new ExcelJS.Workbook();
   wb.creator = 'HA Tools';
   wb.created = new Date();
+  // Written into the file's properties so a downloaded sheet still says which
+  // container it belongs to once it is renamed or mailed on.
+  wb.title = [name, containerNo && `מכולה ${containerNo}`].filter(Boolean).join(' — ');
 
   const ws = wb.addWorksheet('גיליון1', {
     views: [{ rightToLeft: true, state: 'frozen', ySplit: 1 }],

@@ -86,13 +86,13 @@ function ContainerGrid({
     const text = e.clipboardData?.getData('text/plain') || '';
     if (!text || !isGridPaste(text)) return; // a single value pastes normally
 
-    e.preventDefault();
-
     const anchorRow = +el.dataset.navR;
     const anchorCol = +el.dataset.navC;
 
-    // The two derived columns cannot receive a paste
-    if (anchorCol > stores.length + 1) return;
+    // Every editable column takes a paste (name, branches, capacity, max per
+    // branch); the read-only derived cells carry no input to paste into, so
+    // there is nothing left to reject here.
+    e.preventDefault();
 
     const result = applyPaste({
       grid: parseClipboardGrid(text),

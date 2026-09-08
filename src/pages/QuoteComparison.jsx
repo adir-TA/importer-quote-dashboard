@@ -226,16 +226,19 @@ function QuoteComparison() {
     const doc = win.document;
     doc.title = `Supplier decision — ${selectedProduct.name}`;
 
+    // Literal colours, not design tokens: this document is a blank about:blank
+    // window that never loads globals.css, so any var(--...) here resolves to
+    // nothing and the table would print without borders or a chosen-row tint.
     const style = doc.createElement('style');
     style.textContent = `
-      body { font-family: Arial, Helvetica, sans-serif; padding: 40px; color: var(--text-primary); }
+      body { font-family: Arial, Helvetica, sans-serif; padding: 40px; color: #101828; }
       h1 { margin: 0 0 4px; font-size: 20px; }
-      .meta { color: var(--text-secondary); font-size: 13px; margin-bottom: 24px; }
+      .meta { color: #4B5565; font-size: 13px; margin-bottom: 24px; }
       table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-      th, td { border: 1px solid var(--border-strong); padding: 10px; text-align: left; font-size: 13px; }
-      th { background: var(--grey-100); }
-      tr.chosen td { background: var(--success-light); font-weight: 600; }
-      .note { margin-top: 24px; font-size: 12px; color: var(--text-secondary); }
+      th, td { border: 1px solid #D4D9E0; padding: 10px; text-align: left; font-size: 13px; }
+      th { background: #F2F4F7; }
+      tr.chosen td { background: #ECFDF3; font-weight: 600; }
+      .note { margin-top: 24px; font-size: 12px; color: #4B5565; }
     `;
     doc.head.appendChild(style);
 

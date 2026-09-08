@@ -213,7 +213,10 @@ export function applyPaste({ grid, anchorRow, anchorCol, products, branches, qty
   const nextCaps = [...caps];
   const nextLimits = [...limits];
 
-  const lastCol = branches.length + 1; // 0 name, 1..n branches, n+1 capacity
+  // 0 name, 1..n branches, n+1 capacity, n+2 max per branch
+  const capCol = branches.length + 1;
+  const limitCol = branches.length + 2;
+  const lastCol = limitCol;
   const pastesNames = anchorCol === 0;
 
   let addedRows = 0;
@@ -251,7 +254,8 @@ export function applyPaste({ grid, anchorRow, anchorCol, products, branches, qty
 
       if (v === '') {
         // An empty source cell clears the target
-        if (c === lastCol) nextCaps[i] = '';
+        if (c === capCol) nextCaps[i] = '';
+        else if (c === limitCol) nextLimits[i] = '';
         else nextQty[i][c - 1] = '';
         filled++;
         return;
@@ -260,7 +264,8 @@ export function applyPaste({ grid, anchorRow, anchorCol, products, branches, qty
       const n = cleanNumber(v);
       if (n === null) { badCells++; return; }
 
-      if (c === lastCol) nextCaps[i] = n;
+      if (c === capCol) nextCaps[i] = n;
+      else if (c === limitCol) nextLimits[i] = n;
       else nextQty[i][c - 1] = n;
       filled++;
     });
@@ -364,22 +369,51 @@ export function normalizePayload(raw) {
   };
 }
 
+/**
+ * Slots whose previous occupant disappeared from the list entirely - the
+ * signature of an edit in place (a typo fixed, an SKU rewritten), where
+ * matching by position is what keeps the row's numbers attached to it.
+ */
+function renamedSlots(prev, next) {
+  const kept = new Set(next);
+  const slots = new Set();
+  prev.forEach((name, i) => { if (!kept.has(name)) slots.add(i); });
+  return slots;
+}
+
 /** Resize the grid to match a new product / branch list, keeping what overlaps. */
 export function resizeGrid({ products, branches, prevProducts, prevBranches, qty, caps, limits }) {
   const prevIndexOfProduct = new Map(prevProducts.map((p, i) => [p, i]));
   const prevIndexOfBranch = new Map(prevBranches.map((b, j) => [b, j]));
 
+  // A name still on the list keeps its own numbers wherever it moved to. A new
+  // name only inherits the slot it landed in when that slot's old occupant is
+  // gone as well; otherwise it is an insertion, and inheriting would hand it
+  // the quantities of the row it pushed down.
+  const renamedProducts = renamedSlots(prevProducts, products);
+  const renamedBranches = renamedSlots(prevBranches, branches);
+
+  const sourceRow = (product, i) => {
+    if (prevIndexOfProduct.has(product)) return prevIndexOfProduct.get(product);
+    return renamedProducts.has(i) ? i : -1;
+  };
+  const sourceCol = (branch, j) => {
+    if (prevIndexOfBranch.has(branch)) return prevIndexOfBranch.get(branch);
+    return renamedBranches.has(j) ? j : -1;
+  };
+
   const nextQty = products.map((product, i) => {
-    const pi = prevIndexOfProduct.has(product) ? prevIndexOfProduct.get(product) : i;
+    const pi = sourceRow(product, i);
     return branches.map((branch, j) => {
-      const bj = prevIndexOfBranch.has(branch) ? prevIndexOfBranch.get(branch) : j;
+      const bj = sourceCol(branch, j);
+      if (pi < 0 || bj < 0) return '';
       return qty[pi]?.[bj] ?? '';
     });
   });
 
   const carry = (arr) => products.map((product, i) => {
-    const pi = prevIndexOfProduct.has(product) ? prevIndexOfProduct.get(product) : i;
-    return arr[pi] ?? '';
+    const pi = sourceRow(product, i);
+    return pi < 0 ? '' : (arr[pi] ?? '');
   });
 
   return { qty: nextQty, caps: carry(caps), limits: carry(limits) };

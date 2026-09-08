@@ -88,7 +88,7 @@ function Orders() {
             </div>
           </div>
           {STATUSES.slice(0, 4).map(s => (
-            <div key={s.key} className="stat-card" style={{ '--stat-color': s.color, '--stat-bg': `${s.color}20` }}>
+            <div key={s.key} className="stat-card">
               <div className="stat-content">
                 <div className="stat-label">{s.label}</div>
                 <div className="stat-value">{statusCounts[s.key] || 0}</div>
@@ -139,7 +139,7 @@ function Orders() {
                   </div>
                   <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {STATUSES.map(s => (
-                      <button key={s.key} className={`btn btn-ghost ${order.status === s.key ? 'active' : ''}`} onClick={() => handleStatusChange(order.id, s.key)} style={{ padding: '6px 12px', fontSize: 'var(--text-sm)', background: order.status === s.key ? `${s.color}20` : undefined, color: order.status === s.key ? s.color : undefined }}>
+                      <button key={s.key} type="button" className={`btn btn-ghost btn-chip ${order.status === s.key ? 'active' : ''}`} aria-pressed={order.status === s.key} onClick={() => handleStatusChange(order.id, s.key)}>
                         {s.label}
                       </button>
                     ))}

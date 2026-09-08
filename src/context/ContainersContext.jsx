@@ -121,13 +121,31 @@ export function ContainersProvider({ children }) {
   // ------------------------------------------------
   // Containers
   // ------------------------------------------------
-  const createContainer = useCallback(async ({ name, containerNo } = {}) => {
+  const createContainer = useCallback(async ({ name, containerNo, branches: seed } = {}) => {
     if (!user) throw new Error('Not authenticated');
 
     // A new container starts with every active branch already in the grid.
     // Real containers leave 7-8 branches blank rather than removing them, so
     // asking the user to pick would be friction for no benefit.
-    const { names, groups } = activeBranchList;
+    //
+    // Branches are read fresh rather than from `activeBranchList`: a caller
+    // that seeds the list and immediately creates would otherwise still hold
+    // the empty pre-seed closure and produce a container with no branches.
+    let names;
+    let groups;
+    if (seed) {
+      ({ names, groups } = seed);
+    } else {
+      const { data, error } = await supabase
+        .from('branches')
+        .select('name, group_index')
+        .eq('archived', false)
+        .order('group_index', { ascending: true })
+        .order('sort_order', { ascending: true });
+      if (error) throw error;
+      names = (data || []).map(b => b.name);
+      groups = (data || []).map(b => b.group_index);
+    }
     const payload = {
       ...emptyPayload(),
       stores: names,
@@ -149,7 +167,7 @@ export function ContainersProvider({ children }) {
     if (error) throw error;
     setContainers(prev => [data, ...prev]);
     return data;
-  }, [user, activeBranchList]);
+  }, [user]);
 
   const deleteContainer = useCallback(async (id) => {
     const { error } = await supabase.from('containers').delete().eq('id', id);
@@ -186,6 +204,9 @@ export function ContainersProvider({ children }) {
       .from('containers').select('*').eq('id', id).maybeSingle();
     if (error) throw error;
     if (!data) return null;
+    // Opening a container resets the concurrency baseline
+    versionRef.current = data.version;
+    pending.current = null;
     return { ...data, payload: normalizePayload(data.payload) };
   }, []);
 
@@ -195,6 +216,10 @@ export function ContainersProvider({ children }) {
   const saveTimer = useRef(null);
   const pending = useRef(null);
   const saveChain = useRef(Promise.resolve());
+  // The row's current version, kept here rather than on the queued job: an
+  // edit queued while an earlier save is in flight would otherwise carry the
+  // pre-bump number, match no row, and be dropped as a phantom conflict.
+  const versionRef = useRef(null);
 
   const writeNow = useCallback(() => {
     if (saveTimer.current) { clearTimeout(saveTimer.current); saveTimer.current = null; }
@@ -203,6 +228,9 @@ export function ContainersProvider({ children }) {
     saveChain.current = saveChain.current.then(async () => {
       const job = pending.current;
       if (!job) return;
+
+      // Read the version at WRITE time, not at queue time
+      const expectedVersion = versionRef.current ?? job.version;
 
       try {
         const { data, error } = await supabase
@@ -215,18 +243,21 @@ export function ContainersProvider({ children }) {
           .eq('id', job.id)
           // Optimistic concurrency: refuse to clobber a newer version written
           // from another device. The trigger bumps `version` on every write.
-          .eq('version', job.version)
+          .eq('version', expectedVersion)
           .select('id, name, container_no, version, updated_at')
           .maybeSingle();
 
         if (error) throw error;
 
         if (!data) {
-          // No row matched, so `version` had moved on
+          // No row matched, so another device really did move the version on.
+          // Drop the job: retrying it would fail identically forever.
+          pending.current = null;
           setSaveError('STALE');
           return;
         }
 
+        versionRef.current = data.version;
         if (pending.current === job) pending.current = null;
         job.onSaved?.(data.version);
 
@@ -244,6 +275,10 @@ export function ContainersProvider({ children }) {
 
   /** Queue a save. `immediate` skips the debounce for discrete actions. */
   const queueSave = useCallback((job, immediate = false) => {
+    // First write for this row seeds the tracked version
+    if (versionRef.current === null || pending.current?.id !== job.id) {
+      versionRef.current = job.version;
+    }
     pending.current = job;
     if (saveTimer.current) clearTimeout(saveTimer.current);
     if (immediate) return writeNow();

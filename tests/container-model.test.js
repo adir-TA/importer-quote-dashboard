@@ -145,10 +145,23 @@ check('paste clips at the last column instead of overflowing', () => {
     products: ['a'], branches: ['x', 'y'],
     qty: [['', '']], caps: [''], limits: [''],
   });
-  // columns: 1,2 = branches, 3 = capacity, 4+ = clipped
+  // columns: 1,2 = branches, 3 = capacity, 4 = max per branch, 5+ = clipped
   eq(r.qty, [['1', '2']]);
   eq(r.caps, ['3']);
-  eq(r.report.skippedCols, 2);
+  eq(r.limits, ['4']);
+  eq(r.report.skippedCols, 1);
+});
+
+check('a paste anchored on the max column lands there', () => {
+  const r = applyPaste({
+    grid: [['7'], ['8']],
+    anchorRow: 0, anchorCol: 5, // 0 name, 1-3 branches, 4 capacity, 5 max
+    products: ['a', 'b'], branches: ['x', 'y', 'z'],
+    qty: [['', '', ''], ['', '', '']], caps: ['', ''], limits: ['', ''],
+  });
+  eq(r.limits, ['7', '8']);
+  eq(r.caps, ['', '']);
+  eq(r.report.skippedCols, 0);
 });
 
 check('paste does not grow the table unless names are included', () => {
@@ -276,6 +289,49 @@ check('reordering branches moves quantities with them', () => {
     qty: [['1', '2']], caps: [''], limits: [''],
   });
   eq(r.qty, [['2', '1']], 'x keeps 1 and y keeps 2 after the swap');
+});
+
+check('an inserted product starts empty instead of inheriting the row below', () => {
+  const r = resizeGrid({
+    products: ['new', 'a', 'b'],
+    branches: ['x', 'y'],
+    prevProducts: ['a', 'b'],
+    prevBranches: ['x', 'y'],
+    qty: [['1', '2'], ['3', '4']],
+    caps: ['10', '20'],
+    limits: ['5', '6'],
+  });
+  eq(r.qty, [['', ''], ['1', '2'], ['3', '4']]);
+  eq(r.caps, ['', '10', '20']);
+  eq(r.limits, ['', '5', '6']);
+});
+
+check('a product renamed in place keeps its numbers', () => {
+  const r = resizeGrid({
+    products: ['a', 'b-fixed'],
+    branches: ['x', 'y'],
+    prevProducts: ['a', 'b'],
+    prevBranches: ['x', 'y'],
+    qty: [['1', '2'], ['3', '4']],
+    caps: ['10', '20'],
+    limits: ['5', '6'],
+  });
+  eq(r.qty, [['1', '2'], ['3', '4']]);
+  eq(r.caps, ['10', '20']);
+  eq(r.limits, ['5', '6']);
+});
+
+check('an inserted branch starts empty instead of inheriting its neighbour', () => {
+  const r = resizeGrid({
+    products: ['a'],
+    branches: ['new', 'x', 'y'],
+    prevProducts: ['a'],
+    prevBranches: ['x', 'y'],
+    qty: [['1', '2']],
+    caps: ['10'],
+    limits: ['5'],
+  });
+  eq(r.qty, [['', '1', '2']]);
 });
 
 check('removing a product keeps the others intact', () => {
