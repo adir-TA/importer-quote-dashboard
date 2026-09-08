@@ -268,18 +268,23 @@ function detectAndCorrectQuantityType(data) {
   if (!data || !data.lineItems) return data;
 
   data.lineItems = data.lineItems.map(item => {
-    // Pick the first field that actually carries a value. `??` alone let an
-    // empty string or 0 in quantity_value shadow a perfectly good moq.
-    const rawQty = [item.quantity_value, item.moq, item.quantity]
-      .find(v => v !== null && v !== undefined && v !== '');
-    // The model sometimes returns "1,000" or "500 pcs" - the numeric
-    // comparisons below silently did nothing for those.
+    // Pick the first field that yields a USABLE quantity.
+    // `quantity_value ?? moq` let 0 (and an empty string) shadow a perfectly
+    // good moq, and the model sometimes returns "1,000" or "500 pcs", which
+    // the numeric comparisons below silently ignored.
+    const toQuantity = (raw) => {
+      if (raw === null || raw === undefined || raw === '') return null;
+      const parsed = typeof raw === 'number'
+        ? raw
+        : parseFloat(String(raw).replace(/[^\d.]/g, ''));
+      // A quantity of 0 or less is not a quantity
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    };
+
     const qtyValue =
-      typeof rawQty === 'number'
-        ? rawQty
-        : rawQty != null && String(rawQty).replace(/[^\d.]/g, '') !== ''
-          ? parseFloat(String(rawQty).replace(/[^\d.]/g, ''))
-          : null;
+      toQuantity(item.quantity_value) ??
+      toQuantity(item.moq) ??
+      toQuantity(item.quantity);
     const qtyType = item.quantity_type || 'UNKNOWN';
 
     // If no quantity data, skip

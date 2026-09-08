@@ -23,6 +23,64 @@ function isMissingTableError(error) {
   return error?.code === '42P01' || error?.code === 'PGRST205';
 }
 
+/** Postgres 42703 = undefined_column; PostgREST reports PGRST204 for unknown columns. */
+function isMissingColumnError(error) {
+  return error?.code === '42703' || error?.code === 'PGRST204';
+}
+
+/**
+ * Load user settings without ever selecting api_key.
+ *
+ * `has_api_key` is a generated column added by the 20260908 migration. If a
+ * deployment ships this frontend before applying that migration, the select
+ * fails with 42703 - so fall back to the columns that always existed rather
+ * than losing the user's currency, rates and fees.
+ */
+async function loadUserSettings() {
+  const withFlag = await supabase
+    .from('user_settings')
+    .select('id, currency, fees, fx_rates, has_api_key')
+    .maybeSingle();
+
+  if (!withFlag.error || !isMissingColumnError(withFlag.error)) {
+    return withFlag;
+  }
+
+  console.warn(
+    '[AppContext] user_settings.has_api_key is missing - run migrations/20260908_bug_audit_fixes.sql. ' +
+    'Falling back; "API key saved" status will read as false until the migration is applied.'
+  );
+
+  const legacy = await supabase
+    .from('user_settings')
+    .select('id, currency, fees, fx_rates')
+    .maybeSingle();
+
+  if (legacy.data) legacy.data.has_api_key = false;
+  return legacy;
+}
+
+/**
+ * Ask the API whether the deployment supplies an Anthropic key for everyone.
+ * Bounded by a timeout: an unresponsive API host must not hold the app on its
+ * loading spinner after all the Supabase data has arrived.
+ */
+async function fetchServerKeyStatus() {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 4000);
+
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/health`, { signal: controller.signal });
+    if (!res.ok) return false;
+    return Boolean((await res.json())?.serverKeyConfigured);
+  } catch {
+    // Offline, aborted, or API unreachable - assume the user supplies the key
+    return false;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // The Anthropic key is never loaded into browser state. The client only ever
 // learns *whether* one is saved; the backend reads the value server-side.
 const DEFAULT_SETTINGS = {
@@ -55,6 +113,9 @@ export function AppProvider({ children }) {
   const [selectedQuotes, setSelectedQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  // True when user_settings could not be read. Blocks fee writes so a failed
+  // read cannot upsert defaults over the user's real configuration.
+  const [settingsLoadFailed, setSettingsLoadFailed] = useState(false);
 
   // All line items loaded upfront for fast in-memory filtering
   const [allLineItems, setAllLineItems] = useState([]);
@@ -100,9 +161,9 @@ export function AppProvider({ children }) {
         // maybeSingle: .single() raised PGRST116 (and a console 406) for every
         // user who had not saved settings yet.
         // api_key is deliberately NOT in the column list - it must never reach
-        // the browser. Whether one exists is derived below from has_api_key,
-        // a generated boolean column (see the 20260908 migration).
-        supabase.from('user_settings').select('id, currency, fees, fx_rates, has_api_key').maybeSingle(),
+        // the browser. Whether one exists is derived from has_api_key, a
+        // generated boolean column (see the 20260908 migration).
+        loadUserSettings(),
         supabase.from('quote_line_items').select(`
           *,
           supplier_quote:supplier_quotes(
@@ -154,17 +215,17 @@ export function AppProvider({ children }) {
       setOrders(ordersRes.data || []);
       setDocuments(documentsRes.data || []);
       
-      // Does the deployment provide a key for everyone? Failing this check is
-      // not fatal - fall back to "user must supply their own".
-      let serverHasKey = false;
-      try {
-        const health = await fetch(`${API_BASE_URL}/api/health`);
-        if (health.ok) serverHasKey = Boolean((await health.json())?.serverKeyConfigured);
-      } catch {
-        // offline or API unreachable; leave serverHasKey false
-      }
+      const serverHasKey = await fetchServerKeyStatus();
 
-      if (settingsRes.data) {
+      if (settingsRes.error) {
+        // Do NOT fall back to defaults here. Overwriting local state with
+        // DEFAULT_SETTINGS/DEFAULT_FEES means the next fee edit upserts those
+        // defaults over the user's real saved configuration.
+        console.error('Failed to load user settings:', settingsRes.error.message);
+        setSettingsLoadFailed(true);
+        setSettings(prev => ({ ...prev, serverHasKey }));
+      } else if (settingsRes.data) {
+        setSettingsLoadFailed(false);
         setSettings({
           // Only a boolean crosses into the browser, never the key itself
           hasApiKey: Boolean(settingsRes.data.has_api_key),
@@ -177,6 +238,8 @@ export function AppProvider({ children }) {
           setFees(settingsRes.data.fees);
         }
       } else {
+        // No row yet - a genuinely new user
+        setSettingsLoadFailed(false);
         setSettings({ ...DEFAULT_SETTINGS, serverHasKey });
       }
 
@@ -532,42 +595,81 @@ export function AppProvider({ children }) {
   // These used to touch local state only, so every landed-cost fee edit was
   // lost on reload even though the app read `fees` back from user_settings.
   // Each mutation now writes through to the database.
-  // Fee inputs fire on every keystroke, so the local state updates immediately
-  // and the database write is debounced. Writing straight through issued one
+  // Fee inputs fire on every keystroke, so local state updates immediately and
+  // the database write is debounced. Writing straight through issued one
   // upsert per character typed.
   const feeSaveTimer = useRef(null);
   const pendingFeesRef = useRef(null);
+  const feeSaveChain = useRef(Promise.resolve());
   const [feeSaveError, setFeeSaveError] = useState(null);
 
-  const flushFees = useCallback(async () => {
+  /**
+   * Persist the latest pending fees.
+   * Writes are chained rather than fired in parallel, so a blur-triggered
+   * flush cannot land before a slower in-flight timer flush and leave the
+   * stale set persisted. The payload is only cleared once the write succeeds,
+   * so a failure stays retryable.
+   */
+  const flushFees = useCallback(() => {
     if (feeSaveTimer.current) {
       clearTimeout(feeSaveTimer.current);
       feeSaveTimer.current = null;
     }
 
-    const pending = pendingFeesRef.current;
-    if (pending === null) return;
-    pendingFeesRef.current = null;
+    if (pendingFeesRef.current === null) return feeSaveChain.current;
 
-    try {
-      await persistSettings({ fees: pending });
-      setFeeSaveError(null);
-    } catch (error) {
-      console.error('Failed to save fees:', error);
-      setFeeSaveError(error.message || 'Could not save fees');
-    }
+    feeSaveChain.current = feeSaveChain.current.then(async () => {
+      const pending = pendingFeesRef.current;
+      if (pending === null) return; // an earlier link already wrote it
+
+      try {
+        await persistSettings({ fees: pending });
+        // Only clear if nothing newer arrived while we were writing
+        if (pendingFeesRef.current === pending) pendingFeesRef.current = null;
+        setFeeSaveError(null);
+      } catch (error) {
+        console.error('Failed to save fees:', error);
+        // Keep the payload so blur / the next edit retries it
+        setFeeSaveError(error.message || 'Could not save fees');
+      }
+    });
+
+    return feeSaveChain.current;
   }, [user]);
 
   const commitFees = useCallback((nextFees) => {
     setFees(nextFees);
+
+    if (settingsLoadFailed) {
+      // Settings could not be read, so we do not know what we would be
+      // overwriting. Keep the edit local rather than persisting a guess.
+      setFeeSaveError('Settings could not be loaded, so fee changes are not being saved. Reload to try again.');
+      return;
+    }
+
     pendingFeesRef.current = nextFees;
 
     if (feeSaveTimer.current) clearTimeout(feeSaveTimer.current);
     feeSaveTimer.current = setTimeout(flushFees, 800);
-  }, [flushFees]);
+  }, [flushFees, settingsLoadFailed]);
 
-  // Do not lose an in-flight edit when the provider unmounts
-  useEffect(() => () => { flushFees(); }, [flushFees]);
+  // Do not lose an in-flight edit when the tab is closed, hidden or reloaded.
+  // The unmount cleanup alone cannot cover teardown - it cannot await.
+  useEffect(() => {
+    const handlePageHide = () => { flushFees(); };
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') flushFees();
+    };
+
+    window.addEventListener('pagehide', handlePageHide);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      window.removeEventListener('pagehide', handlePageHide);
+      document.removeEventListener('visibilitychange', handleVisibility);
+      flushFees();
+    };
+  }, [flushFees]);
 
   const updateFees = (newFees) => commitFees(newFees);
 

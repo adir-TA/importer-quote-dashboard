@@ -801,9 +801,10 @@ function LandedCost() {
               </div>
               <div className="card-body">
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
-                  {t('landedCost.feesHint')} <strong>{t('landedCost.fixedFee')}</strong>{' '}
-                  {t('landedCost.perShipment')}. <strong>{t('landedCost.percentageFee')}</strong>{' '}
-                  applies to FOB total. Amounts are in {baseCurrency}.
+                  {t('landedCost.feesHint')}{' '}
+                  <strong>{t('landedCost.fixedFee')}</strong> {t('landedCost.perShipment')}{' '}
+                  <strong>{t('landedCost.percentageFee')}</strong> {t('landedCost.appliesToFob')}{' '}
+                  {t('landedCost.amountsIn').replace('{currency}', baseCurrency)}
                 </p>
 
                 {/* A failed background save must not be silent */}
