@@ -801,9 +801,12 @@ function LandedCost() {
               </div>
               <div className="card-body">
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
+                  {/* Complete sentences per key - splitting a bolded label from
+                      its predicate produced Hebrew that disagreed in gender
+                      and number. */}
                   {t('landedCost.feesHint')}{' '}
-                  <strong>{t('landedCost.fixedFee')}</strong> {t('landedCost.perShipment')}{' '}
-                  <strong>{t('landedCost.percentageFee')}</strong> {t('landedCost.appliesToFob')}{' '}
+                  {t('landedCost.fixedFeeHint')}{' '}
+                  {t('landedCost.percentageFeeHint')}{' '}
                   {t('landedCost.amountsIn').replace('{currency}', baseCurrency)}
                 </p>
 

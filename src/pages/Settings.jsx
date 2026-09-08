@@ -10,7 +10,7 @@ function Settings() {
   const { state, actions } = useAppContext();
   const { t } = useLanguage();
   const { confirm, alert: showAlert } = useModal();
-  const { settings, products, quotes, suppliers, orders, documents } = state;
+  const { settings, products, quotes, suppliers, orders, documents, settingsLoadFailed } = state;
 
   // The API key is write-only: the browser only ever learns whether one is
   // stored (settings.hasApiKey), never its value.
@@ -34,6 +34,13 @@ function Settings() {
 
   const handleSaveSettings = async () => {
     setSaveError('');
+
+    // The form is seeded from defaults when the settings read failed, so
+    // saving would overwrite the user's real currency and rates.
+    if (settingsLoadFailed) {
+      setSaveError('Your settings could not be loaded, so they cannot be saved safely. Please reload the page.');
+      return;
+    }
 
     // Validate the rate table before writing it - a bad rate silently corrupts
     // every price comparison in the app.
@@ -260,6 +267,16 @@ function Settings() {
               </div>
             </div>
 
+            {settingsLoadFailed && (
+              <div className="auth-error" role="alert" style={{ marginTop: '16px' }}>
+                <AlertCircle size={18} />
+                <span>
+                  Your saved settings could not be loaded. The values shown are
+                  defaults — reload before changing anything.
+                </span>
+              </div>
+            )}
+
             {saveError && (
               <div className="auth-error" role="alert" style={{ marginTop: '16px' }}>
                 <AlertCircle size={18} />
@@ -268,7 +285,7 @@ function Settings() {
             )}
           </div>
           <div className="modal-footer" style={{ borderTop: '1px solid var(--border)' }}>
-            <button className="btn btn-primary" onClick={handleSaveSettings} disabled={busy}>
+            <button className="btn btn-primary" onClick={handleSaveSettings} disabled={busy || settingsLoadFailed}>
               {saved ? <><Check size={16} /> {t('settings.saved')}</> : t('settings.saveSettings')}
             </button>
           </div>

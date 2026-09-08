@@ -61,6 +61,39 @@ async function loadUserSettings() {
 }
 
 /**
+ * Durable buffer for unsaved fee edits.
+ *
+ * A pagehide/visibilitychange flush issues an ordinary supabase-js request,
+ * and browsers cancel non-keepalive requests during teardown - so closing the
+ * tab within the debounce window could still lose the edit. Mirroring the
+ * pending fees into localStorage lets the next load finish the write.
+ */
+const PENDING_FEES_KEY = 'ha-tools-pending-fees';
+
+function readPendingFees(userId) {
+  try {
+    const raw = localStorage.getItem(PENDING_FEES_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Scoped to the user who made the edit, so it can never be replayed
+    // into a different account's settings row.
+    if (!parsed || parsed.userId !== userId || !Array.isArray(parsed.fees)) return null;
+    return parsed.fees;
+  } catch {
+    return null;
+  }
+}
+
+function writePendingFees(userId, fees) {
+  try {
+    if (fees === null) localStorage.removeItem(PENDING_FEES_KEY);
+    else localStorage.setItem(PENDING_FEES_KEY, JSON.stringify({ userId, fees }));
+  } catch {
+    // Storage unavailable (private mode / blocked). Best effort only.
+  }
+}
+
+/**
  * Ask the API whether the deployment supplies an Anthropic key for everyone.
  * Bounded by a timeout: an unresponsive API host must not hold the app on its
  * loading spinner after all the Supabase data has arrived.
@@ -136,6 +169,17 @@ export function AppProvider({ children }) {
       setSelectedQuotes([]);
       setAllLineItems([]);
       allLineItemsRef.current = [];
+      // Drop any unsaved fee edit. Retaining it across a sign-out would let
+      // the pagehide flush write the previous user's fees into the next
+      // user's settings row.
+      if (feeSaveTimer.current) {
+        clearTimeout(feeSaveTimer.current);
+        feeSaveTimer.current = null;
+      }
+      pendingFeesRef.current = null;
+      writePendingFees(user?.id, null);
+      setFeeSaveError(null);
+      setSettingsLoadFailed(false);
       setLoading(false);
       setInitialized(false);
     }
@@ -237,6 +281,23 @@ export function AppProvider({ children }) {
         if (Array.isArray(settingsRes.data.fees) && settingsRes.data.fees.length > 0) {
           setFees(settingsRes.data.fees);
         }
+
+        // Finish a fee edit that was still in the debounce window when the
+        // tab was closed. Scoped to this user by readPendingFees().
+        const recovered = readPendingFees(user.id);
+        if (recovered) {
+          console.warn('[AppContext] Recovering unsaved fee changes from the last session');
+          setFees(recovered);
+          try {
+            await supabase
+              .from('user_settings')
+              .upsert({ user_id: user.id, fees: recovered }, { onConflict: 'user_id' })
+              .throwOnError();
+            writePendingFees(user.id, null);
+          } catch (error) {
+            console.error('[AppContext] Failed to recover pending fees:', error);
+          }
+        }
       } else {
         // No row yet - a genuinely new user
         setSettingsLoadFailed(false);
@@ -245,6 +306,9 @@ export function AppProvider({ children }) {
 
     } catch (error) {
       console.error('Error fetching data:', error);
+      // We never reached the settings branches, so treat settings as
+      // unresolved: `fees` may still be DEFAULT_FEES and must not be written.
+      setSettingsLoadFailed(true);
     } finally {
       setLoading(false);
     }
@@ -625,7 +689,10 @@ export function AppProvider({ children }) {
       try {
         await persistSettings({ fees: pending });
         // Only clear if nothing newer arrived while we were writing
-        if (pendingFeesRef.current === pending) pendingFeesRef.current = null;
+        if (pendingFeesRef.current === pending) {
+          pendingFeesRef.current = null;
+          writePendingFees(user?.id, null);
+        }
         setFeeSaveError(null);
       } catch (error) {
         console.error('Failed to save fees:', error);
@@ -648,6 +715,7 @@ export function AppProvider({ children }) {
     }
 
     pendingFeesRef.current = nextFees;
+    writePendingFees(user.id, nextFees);
 
     if (feeSaveTimer.current) clearTimeout(feeSaveTimer.current);
     feeSaveTimer.current = setTimeout(flushFees, 800);
@@ -932,6 +1000,14 @@ export function AppProvider({ children }) {
   const persistSettings = async (patch) => {
     if (!user) throw new Error('User not authenticated');
 
+    // We could not read the row, so we do not know what an upsert would be
+    // overwriting. Refuse rather than persist defaults over real settings.
+    if (settingsLoadFailed) {
+      throw new Error(
+        'Your settings could not be loaded, so changes cannot be saved safely. Please reload the page.'
+      );
+    }
+
     const row = {};
     if (patch.currency !== undefined) row.currency = patch.currency;
     if (patch.fees !== undefined) row.fees = patch.fees;
@@ -1063,8 +1139,8 @@ export function AppProvider({ children }) {
   }, []);
 
   const state = useMemo(
-    () => ({ products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems, feeSaveError }),
-    [products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems, feeSaveError]
+    () => ({ products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems, feeSaveError, settingsLoadFailed }),
+    [products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems, feeSaveError, settingsLoadFailed]
   );
 
   // Memoised so consumers do not re-render on every provider render
