@@ -11,6 +11,7 @@ import { EXPORT_THEMES } from '../utils/exportThemes';
 import { useAuth } from '../context/AuthContext';
 import { uploadToStorage, validateFile, safeExtension, IMAGE_MIME_TYPES, MAX_IMAGE_BYTES } from '../utils/storageUpload';
 import { downloadBlob } from '../utils/helpers';
+import { convertAmount, normalizeCurrency, formatCurrency } from '../utils/currency';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
@@ -339,7 +340,10 @@ function ProductDetail() {
   const { state, actions, computed } = useAppContext();
   const { user } = useAuth();
   const { confirm, alert: showAlert } = useModal();
-  const { products } = state;
+  const { products, settings } = state;
+  // Base currency for cross-quote ranking, from Settings
+  const baseCurrency = normalizeCurrency(settings?.currency);
+  const fxRates = settings?.fxRates;
 
   const product = computed.getProductById(id);
   const quotes = computed.getProductQuotes(id); // Old quotes
@@ -375,11 +379,25 @@ function ProductDetail() {
     ];
 
     // Filter valid quotes (unit_price > 0 only, MOQ has no influence)
-    const valid = combined.filter(q => q.unit_price > 0);
+    const valid = combined
+      .filter(q => q.unit_price > 0)
+      .map(q => ({
+        ...q,
+        // Ranking must happen in one currency. Sorting raw unit_price put a
+        // CNY quote next to a USD one as if the numbers were comparable.
+        comparablePrice: convertAmount(q.unit_price, q.currency, baseCurrency, fxRates),
+        isConverted: normalizeCurrency(q.currency) !== baseCurrency,
+      }));
 
-    // Sort by unit_price ascending (lowest first = best)
-    return valid.sort((a, b) => a.unit_price - b.unit_price);
-  }, [quotes, lineItems]);
+    // Sort by comparable price ascending (lowest first = best).
+    // Quotes we cannot convert go last rather than being mis-ranked.
+    return valid.sort((a, b) => {
+      if (a.comparablePrice === null && b.comparablePrice === null) return 0;
+      if (a.comparablePrice === null) return 1;
+      if (b.comparablePrice === null) return -1;
+      return a.comparablePrice - b.comparablePrice;
+    });
+  }, [quotes, lineItems, baseCurrency, fxRates]);
 
   const [activeTab, setActiveTab] = useState('quotes'); // 'quotes' | 'documents'
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
@@ -944,17 +962,13 @@ function ProductDetail() {
             </div>
           </div>
           {quotes.length + lineItems.length > 0 && (() => {
-            // Collect all unit prices and filter valid ones (must be > 0)
-            // MOQ has NO influence on best price calculation
-            const allPrices = [
-              ...quotes.map(q => parseFloat(q.unitPrice)),
-              ...lineItems.map(i => parseFloat(i.unit_price))
-            ].filter(price => price > 0); // Only valid prices, ignore MOQ completely
+            // Best price must be compared in ONE currency. This used to take
+            // Math.min over raw prices from every currency and then label the
+            // winner with the *first* quote's currency code.
+            const best = sortedAllQuotes.find(q => q.comparablePrice !== null);
 
-            // If no valid prices, don't show best price card
-            if (allPrices.length === 0) return null;
-
-            const bestPrice = Math.min(...allPrices);
+            // If nothing is convertible, we cannot name a best price
+            if (!best) return null;
             return (
               <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
                 <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
@@ -963,8 +977,13 @@ function ProductDetail() {
                 <div className="stat-content">
                   <div className="stat-label">Best Price</div>
                   <div className="stat-value" style={{ fontSize: '1.5rem' }}>
-                    {quotes[0]?.currency || 'USD'} {bestPrice.toFixed(2)}
+                    {formatCurrency(best.unit_price, best.currency)}
                   </div>
+                  {best.isConverted && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      ≈ {formatCurrency(best.comparablePrice, baseCurrency)}
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -1210,7 +1229,7 @@ function ProductDetail() {
                             )}
                           </td>
                           <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? '#10b981' : 'inherit' }}>
-                            {item.currency} {item.unit_price.toFixed(2)}
+                            {formatCurrency(item.unit_price, item.currency)}
                           </td>
                           <td>{item.moq?.toLocaleString() || '-'}</td>
                           <td>{item.incoterm || '-'}</td>
@@ -1259,7 +1278,7 @@ function ProductDetail() {
                             </div>
                           </td>
                           <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? '#10b981' : 'inherit' }}>
-                            {item.currency} {item.unit_price.toFixed(2)}
+                            {formatCurrency(item.unit_price, item.currency)}
                           </td>
                           <td>{item.moq ? parseInt(item.moq).toLocaleString() : '-'}</td>
                           <td>{item.incoterm || '-'}</td>

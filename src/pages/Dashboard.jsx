@@ -7,18 +7,8 @@ import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { BuyingIntentCommandSelect } from '../components';
 
-// Formatting helper (display only)
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-  }).format(amount);
-};
-
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('en-US').format(num);
-};
+// Display only. These hardcoded 'USD', so a CNY quote showed a dollar sign.
+import { formatCurrency, formatNumber, convertAmount, normalizeCurrency } from '../utils/currency';
 
 // ProductSelector removed - now using BuyingIntentCommandSelect
 
@@ -28,8 +18,11 @@ const formatNumber = (num) => {
 function Dashboard() {
   const navigate = useNavigate();
   const { state, computed } = useAppContext();
-  const { products, quotes } = state;
+  const { products, quotes, settings } = state;
   const { t } = useLanguage();
+  // Base currency for cross-quote comparison, from Settings
+  const baseCurrency = normalizeCurrency(settings?.currency);
+  const fxRates = settings?.fxRates;
 
   // Product selection for best price
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -70,7 +63,7 @@ function Dashboard() {
     if (productQuotes.length === 0) return null;
 
     let bestQuote = null;
-    let lowestPrice = Infinity;
+    let lowestComparable = Infinity;
 
     productQuotes.forEach(quote => {
       const unit_price = parseFloat(quote.unitPrice) || 0;
@@ -79,18 +72,27 @@ function Dashboard() {
       // Only validate unit_price - MOQ has no influence on best price
       if (unit_price <= 0) return;
 
-      if (unit_price < lowestPrice) {
-        lowestPrice = unit_price;
+      // Compare in the base currency. Comparing raw unit_price treated a
+      // CNY figure as if it were the same magnitude as a USD one.
+      const currency = normalizeCurrency(quote.currency);
+      const comparablePrice = convertAmount(unit_price, currency, baseCurrency, fxRates);
+      if (comparablePrice === null) return; // no rate: cannot rank it
+
+      if (comparablePrice < lowestComparable) {
+        lowestComparable = comparablePrice;
         bestQuote = {
           ...quote,
           unit_price,
+          currency,
+          comparablePrice,
+          isConverted: currency !== baseCurrency,
           quantity,
         };
       }
     });
 
     return bestQuote;
-  }, [selectedProductId, quotes]);
+  }, [selectedProductId, quotes, baseCurrency, fxRates]);
 
   // Quote count for selected product
   const productQuoteCount = useMemo(() => {
@@ -308,7 +310,14 @@ function Dashboard() {
                     <span className="best-quote-product">{bestQuoteForProduct.incoterm || 'FOB'}</span>
                   </div>
                   <div className="best-quote-price landed">
-                    <div className="best-quote-unit">{formatCurrency(bestQuoteForProduct.unit_price)}/unit</div>
+                    <div className="best-quote-unit">
+                      {formatCurrency(bestQuoteForProduct.unit_price, bestQuoteForProduct.currency)}/unit
+                      {bestQuoteForProduct.isConverted && (
+                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>
+                          ≈ {formatCurrency(bestQuoteForProduct.comparablePrice, baseCurrency)}/unit
+                        </span>
+                      )}
+                    </div>
                     <div className="best-quote-label">{t('dashboard.unitPrice')}</div>
                   </div>
                 </div>

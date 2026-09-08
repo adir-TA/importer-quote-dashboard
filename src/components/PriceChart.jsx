@@ -9,10 +9,12 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
+// Hardcoded '$' before, mislabelling every non-USD price.
+import { formatCurrency } from '../utils/currency';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
 
-function PriceChart({ quotes, productId }) {
+function PriceChart({ quotes, productId, currency = 'USD' }) {
   const chartData = useMemo(() => {
     // Filter quotes for this product (handle both snake_case and camelCase)
     const productQuotes = quotes.filter(q => (q.product_id || q.productId) === productId);
@@ -124,7 +126,7 @@ function PriceChart({ quotes, productId }) {
             <YAxis 
               stroke="var(--text-muted)"
               fontSize={12}
-              tickFormatter={(value) => `$${value}`}
+              tickFormatter={(value) => formatCurrency(value, currency)}
             />
             <Tooltip
               contentStyle={{
@@ -132,7 +134,7 @@ function PriceChart({ quotes, productId }) {
                 border: '1px solid var(--border)',
                 borderRadius: '8px'
               }}
-              formatter={(value) => [`$${value.toFixed(2)}`, '']}
+              formatter={(value) => [formatCurrency(value, currency), '']}
             />
             <Legend />
             {chartData.suppliers.map((supplier, idx) => (

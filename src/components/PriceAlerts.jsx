@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { TrendingUp, TrendingDown, AlertTriangle, ArrowRight } from 'lucide-react';
+// Hardcoded '$' before, mislabelling every non-USD price.
+import { formatCurrency } from '../utils/currency';
 
 function PriceAlerts({ quotes, products }) {
   const alerts = useMemo(() => {
@@ -91,9 +93,9 @@ function PriceAlerts({ quotes, products }) {
             <div className="alert-supplier">{alert.supplierName}</div>
           </div>
           <div className="alert-prices">
-            <span className="price-old">${alert.previousPrice.toFixed(2)}</span>
+            <span className="price-old">{formatCurrency(alert.previousPrice, alert.currency)}</span>
             <ArrowRight size={14} />
-            <span className="price-new">${alert.latestPrice.toFixed(2)}</span>
+            <span className="price-new">{formatCurrency(alert.latestPrice, alert.currency)}</span>
           </div>
           <div className={`alert-badge ${alert.type}`}>
             {alert.type === 'increase' ? '+' : ''}{alert.percentChange.toFixed(1)}%

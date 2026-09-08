@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
+import { formatCurrency as formatMoney } from '../utils/currency';
 import { DollarSign, TrendingUp, TrendingDown, AlertTriangle, Check, Edit2, X } from 'lucide-react';
 
-function OrderCostTracking({ order, onUpdate }) {
+function OrderCostTracking({ order, onUpdate, currency = 'USD' }) {
   const [editing, setEditing] = useState(false);
   const [actualCosts, setActualCosts] = useState({
     unitPrice: order.actualUnitPrice || '',
@@ -44,10 +45,9 @@ function OrderCostTracking({ order, onUpdate }) {
     setEditing(false);
   };
 
-  const formatCurrency = (val) => {
-    const num = parseFloat(val) || 0;
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(num);
-  };
+  // Hardcoded 'USD' before, so a CNY order's costs were labelled with a
+  // dollar sign. Falls back to USD only when the order has no currency.
+  const formatCurrency = (val) => formatMoney(val, currency || 'USD');
 
   return (
     <div className="cost-tracking-card">
