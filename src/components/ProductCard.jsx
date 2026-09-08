@@ -146,8 +146,6 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
                 borderRadius: 'var(--radius-xs)',
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                textTransform: 'uppercase',
-                letterSpacing: '0.3px',
                 whiteSpace: 'nowrap',
               }}>
                 Draft

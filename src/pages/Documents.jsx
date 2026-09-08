@@ -151,8 +151,6 @@ function Documents() {
             <h3 style={{
               fontSize: 'var(--text-base)',
               fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
               color: 'var(--text-muted)',
               marginBottom: '20px'
             }}>
@@ -181,7 +179,7 @@ function Documents() {
               background: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-md)',
             }}>
-              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', }}>
                 Quick Stats
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

@@ -145,9 +145,7 @@ export function InlineRenameField({
           borderRadius: 'var(--radius-xs)',
           fontSize: 'var(--text-xs)',
           fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.3px',
-        }}>
+          }}>
           Draft
         </span>
       )}

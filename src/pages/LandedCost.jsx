@@ -5,6 +5,7 @@ import {
   Package, ChevronDown, Search, X, AlertCircle, AlertTriangle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { LoadingState } from '../components';
 import { useLanguage } from '../context/LanguageContext';
 
 // DISPLAY ONLY - never used inside calculations.
@@ -223,8 +224,6 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                     fontSize: 'var(--text-xs)',
                     fontWeight: 700,
                     color: 'var(--text-secondary)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
                     position: 'sticky',
                     top: '72px',
                     zIndex: 5,
@@ -703,23 +702,13 @@ function LandedCost() {
       <div className="content">
         {/* Loading State */}
         {loadingCounts ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 20px',
-            gap: '16px',
-          }}>
-            <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>{t('landedCost.loadingIntents')}</p>
-          </div>
+          <LoadingState label={t('landedCost.loadingIntents')} />
         ) : (
           <>
         {/* Recently Used Buying Intents */}
         {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px' }}>
               Recently Used
             </h3>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>

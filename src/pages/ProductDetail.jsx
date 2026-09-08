@@ -1003,8 +1003,6 @@ function ProductDetail() {
             <h3 style={{
               fontSize: 'var(--text-base)',
               fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
               color: 'var(--text-muted)',
               marginBottom: '20px'
             }}>
@@ -1014,7 +1012,7 @@ function ProductDetail() {
             {/* Product Image Preview */}
             {product.image_url && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, }}>
                   Product Image
                 </div>
                 <img
@@ -1050,7 +1048,7 @@ function ProductDetail() {
 
             {product.category && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, }}>
                   Category
                 </div>
                 <div style={{
@@ -1070,7 +1068,7 @@ function ProductDetail() {
             {/* Specifications (or fallback to description) */}
             {(product.specs && product.specs.length > 0) ? (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, }}>
                   Specifications
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1088,7 +1086,7 @@ function ProductDetail() {
               </div>
             ) : product.description && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, }}>
                   Description
                 </div>
                 <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: 'var(--text-md)', lineHeight: '1.6' }}>
@@ -1104,7 +1102,7 @@ function ProductDetail() {
               borderRadius: 'var(--radius-md)',
               marginTop: '24px'
             }}>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, }}>
                 Quick Actions
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

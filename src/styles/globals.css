@@ -109,6 +109,13 @@
   --space-10: 40px;
 
   --transition: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ---- Breakpoints (documentation - media queries cannot read vars) ----
+     1200px  wide      grids drop a column
+      968px  tablet    two-pane layouts stack
+      768px  mobile    sidebar becomes a drawer, header stacks
+      400px  small     tighten padding, full-width buttons
+     Pick one of these; do not invent a new tier. */
   --sidebar-width: 248px;
 }
 
@@ -3051,7 +3058,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 
 /* Ensure auto-fit grids work well on mobile */
-@media (max-width: 640px) {
+@media (max-width: 768px) {
   div[style*="repeat(auto-fit"],
   div[style*='repeat(auto-fit'] {
     grid-template-columns: 1fr !important;
@@ -3127,3 +3134,18 @@ html {
     max-width: 100% !important;
   }
 }
+
+/* ---------- Shared loading treatment ---------- */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: 64px 20px;
+}
+.loading-state-label {
+  color: var(--text-muted);
+  font-size: var(--text-base);
+}
+.loading-state.is-inline { padding: var(--space-5) 0; }

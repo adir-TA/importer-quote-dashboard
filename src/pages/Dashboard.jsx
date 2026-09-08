@@ -277,8 +277,6 @@ function Dashboard() {
               fontSize: 'var(--text-xs)', 
               fontWeight: 600, 
               color: 'var(--text-muted)', 
-              textTransform: 'uppercase', 
-              letterSpacing: '0.05em',
               marginBottom: '8px'
             }}>
               {t('dashboard.selectBuyingIntent')}

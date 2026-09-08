@@ -344,8 +344,36 @@
 .cgen-count { font-size: var(--text-sm); color: var(--text-muted); }
 .cgen-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 
-@media (max-width: 900px) {
+@media (max-width: 968px) {
   .cgen-body { grid-template-columns: 1fr; }
   .cgen-pick { max-height: none; }
   .cgrid-wrap { max-height: 70vh; }
+}
+
+@media (max-width: 768px) {
+  /* On a phone the pinned columns alone (name + four derived) are wider than
+     the viewport, which leaves no room to actually scroll the branches. Keep
+     only the product name pinned; the totals are then reached by scrolling to
+     the end of the row, which is where they already are. */
+  /* Clear only the HORIZONTAL pin. Setting position:static here would also
+     kill the vertical sticky header, and `.cgrid thead th` outranks a bare
+     `.cgrid-calc-h`, which would leave the header pinned while the body
+     scrolled - header and values silently misaligned. */
+  .cgrid .cgrid-calc,
+  .cgrid .cgrid-input-calc,
+  .cgrid thead th.cgrid-calc-h,
+  .cgrid tfoot td.cgrid-calc {
+    inset-inline-end: auto;
+    --cgrid-calc-w: 76px;
+  }
+  .cgrid tbody .cgrid-calc,
+  .cgrid tbody .cgrid-input-calc { position: static; }
+  .cgrid .cgrid-name,
+  .cgrid .cgrid-name-h { min-width: 150px; max-width: 170px; }
+  .cgrid td input { width: 62px; }
+  .cgen-page { padding: 18px 16px; max-height: none; }
+  .cgen-page-cols { columns: 1; }
+  .cgen-footer { flex-direction: column; align-items: stretch; }
+  .cgen-actions { justify-content: stretch; }
+  .cgen-actions .btn { flex: 1; }
 }

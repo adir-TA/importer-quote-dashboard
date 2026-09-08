@@ -452,8 +452,6 @@ function BuyingIntentCommandSelect({
                   padding: '8px 12px',
                   fontSize: 'var(--text-xs)',
                   fontWeight: 700,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px',
                   color: 'var(--text-secondary)',
                   background: 'var(--grey-25)',
                   display: 'flex',
@@ -486,8 +484,6 @@ function BuyingIntentCommandSelect({
                     padding: '8px 12px',
                     fontSize: 'var(--text-xs)',
                     fontWeight: 700,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
                     color: 'var(--text-secondary)',
                     background: 'var(--grey-25)',
                   }}>

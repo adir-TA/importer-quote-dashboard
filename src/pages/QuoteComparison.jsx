@@ -678,17 +678,7 @@ Write ONLY the message.`);
       <div className="content">
         {/* Loading State */}
         {loadingCounts ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 20px',
-            gap: '16px',
-          }}>
-            <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>{t('comparison.loading')}</p>
-          </div>
+          <LoadingState label={t('comparison.loading')} />
         ) : (
           <>
         {/* Stats Summary */}
@@ -775,8 +765,6 @@ Write ONLY the message.`);
             <h3 style={{
               fontSize: 'var(--text-base)',
               fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
               color: 'var(--text-muted)',
               marginBottom: '20px'
             }}>
@@ -801,7 +789,7 @@ Write ONLY the message.`);
             {/* Recently Used */}
             {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
               <div style={{ marginTop: '24px' }}>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', }}>
                   {t('comparison.recentlyUsed')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1066,9 +1054,7 @@ Write ONLY the message.`);
                           borderRadius: 'var(--radius-xs)',
                           fontSize: 'var(--text-xs)',
                           fontWeight: 600,
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.3px',
-                        }}>
+                          }}>
                           Draft
                         </span>
                       )}
@@ -1373,8 +1359,6 @@ Write ONLY the message.`);
                   <h3 style={{
                     fontSize: 'var(--text-base)',
                     fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
                     color: 'var(--text-secondary)',
                     margin: 0,
                   }}>
@@ -1494,8 +1478,6 @@ Write ONLY the message.`);
                   <h3 style={{
                     fontSize: 'var(--text-base)',
                     fontWeight: 600,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.5px',
                     color: 'var(--text-secondary)',
                     margin: 0,
                   }}>
@@ -1822,7 +1804,7 @@ Write ONLY the message.`);
             {/* Recently Used */}
             {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
               <div style={{ marginTop: '24px' }}>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', }}>
                   {t('comparison.recentlyUsed')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

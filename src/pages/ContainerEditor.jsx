@@ -6,6 +6,7 @@ import {
 import { useContainers } from '../context/ContainersContext';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
+import { LoadingState } from '../components';
 import ContainerGrid from '../components/containers/ContainerGrid';
 import GenerateModal from '../components/containers/GenerateModal';
 import {
@@ -314,7 +315,7 @@ function ContainerEditor() {
     boxes: payload.qty.reduce((a, row) => a + row.reduce((b, v) => b + num(v), 0), 0),
   }), [payload]);
 
-  if (loading) return <div className="page"><div className="content"><div className="spinner" /></div></div>;
+  if (loading) return <div className="page"><div className="content"><LoadingState /></div></div>;
 
   if (error) {
     return (

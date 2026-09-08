@@ -4,6 +4,7 @@ import {
   Plus, Search, Container as ContainerIcon, Trash2, Copy, Download, Upload, AlertCircle,
 } from 'lucide-react';
 import { useContainers } from '../context/ContainersContext';
+import { LoadingState } from '../components';
 import { useModal } from '../context/ModalContext';
 import { useLanguage } from '../context/LanguageContext';
 import { formatDate, downloadBlob } from '../utils/helpers';
@@ -164,7 +165,7 @@ function Containers() {
         </div>
 
         {loading ? (
-          <div className="empty-state"><div className="spinner" /></div>
+          <LoadingState />
         ) : filtered.length === 0 ? (
           <div className="empty-state">
             <ContainerIcon size={32} />

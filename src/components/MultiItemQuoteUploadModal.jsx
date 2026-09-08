@@ -51,9 +51,7 @@ function FieldConfidenceBadge({ field, label }) {
             padding: '2px 6px',
             borderRadius: 'var(--radius-xs)',
             fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.3px',
-          }}>
+            }}>
             {sourceStyle.label}
           </span>
         )}
@@ -140,7 +138,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Raw Name (Debug)
@@ -165,7 +162,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Material
@@ -182,7 +178,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Dimensions
@@ -199,7 +194,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Weight
@@ -216,7 +210,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Packing
@@ -233,7 +226,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Carton Dimensions
@@ -250,7 +242,6 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
                 fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 CBM per Carton
@@ -378,9 +369,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
               fontWeight: 600,
               marginBottom: '8px',
               color: 'var(--text-secondary)',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
-            }}>
+              }}>
               Match Breakdown
             </div>
 
@@ -391,9 +380,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                 fontWeight: 600,
                 marginBottom: '6px',
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.3px',
-              }}>
+                }}>
                 Physical Specifications
               </div>
               <div style={{ display: 'grid', gap: '8px' }}>
@@ -458,9 +445,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                 fontWeight: 600,
                 marginBottom: '6px',
                 color: 'var(--text-secondary)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.3px',
-              }}>
+                }}>
                 Material & Naming
               </div>
               <div style={{ display: 'grid', gap: '8px' }}>
@@ -2206,8 +2191,6 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                         fontSize: 'var(--text-xs)',
                                                         fontWeight: 600,
                                                         color: 'var(--text-secondary)',
-                                                        textTransform: 'uppercase',
-                                                        letterSpacing: '0.5px',
                                                         position: 'sticky',
                                                         top: '61px',
                                                         zIndex: 5,

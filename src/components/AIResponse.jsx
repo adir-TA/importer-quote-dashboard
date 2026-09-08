@@ -25,7 +25,7 @@ function AIResponse({ text, isLoading = false, title = 'AI Analysis', showCopy =
         </div>
         <div className="ai-summary-text">
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div className="spinner" style={{ width: '24px', height: '24px' }} />
+            <div className="spinner" style={{ width: 20, height: 20 }} />
             <span style={{ color: 'var(--text-muted)' }}>Analyzing...</span>
           </div>
         </div>

@@ -20,3 +20,4 @@ export { default as GlobalSearch } from './GlobalSearch';
 export { default as BuyingIntentCommandSelect } from './BuyingIntentCommandSelect';
 export { default as EditBuyingIntentModal } from './EditBuyingIntentModal';
 export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as LoadingState } from './LoadingState';

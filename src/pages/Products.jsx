@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Plus, Package, X, Check, ChevronDown, Search, ChevronRight, Grid, List, Table2, TrendingUp, TrendingDown, Edit2, Trash2, Upload, Image as ImageIcon, FileDown, Clock, Type, Filter, Copy } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { LoadingState } from '../components';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
@@ -884,17 +885,7 @@ function Products() {
       <div className="content content-fixed">
         {/* Loading State */}
         {loadingCounts ? (
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '80px 20px',
-            gap: '16px',
-          }}>
-            <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>{t('products.loading')}</p>
-          </div>
+          <LoadingState label={t('products.loading')} />
         ) : (
           <>
         {/* Stats - Prominent at top */}
@@ -1024,8 +1015,6 @@ function Products() {
             <h3 style={{
               fontSize: 'var(--text-base)',
               fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px',
               color: 'var(--text-muted)',
               marginBottom: '20px'
             }}>
@@ -1237,7 +1226,7 @@ function Products() {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--error)',
               }}>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', }}>
                   {selectedProducts.size} {t('products.selected')}
                 </div>
                 <button
@@ -1413,9 +1402,7 @@ function Products() {
                         fontSize: 'var(--text-xs)',
                         fontWeight: 700,
                         color: 'var(--text-muted)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.5px',
-                      }}>
+                        }}>
                         <div></div>
                         <div>{t('products.name')}</div>
                         <div>{t('products.category')}</div>
@@ -1524,8 +1511,7 @@ function Products() {
                                   borderRadius: 'var(--radius-sm)',
                                   fontSize: 'var(--text-xs)',
                                   fontWeight: 600,
-                                  textTransform: 'uppercase',
-                                }}>
+                                  }}>
                                   {t('products.draft')}
                                 </span>
                               ) : (
@@ -1536,8 +1522,7 @@ function Products() {
                                   borderRadius: 'var(--radius-sm)',
                                   fontSize: 'var(--text-xs)',
                                   fontWeight: 600,
-                                  textTransform: 'uppercase',
-                                }}>
+                                  }}>
                                   {t('products.active')}
                                 </span>
                               )}
@@ -1901,7 +1886,7 @@ function Products() {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--error)',
               }}>
-                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', }}>
                   {selectedProducts.size} {t('products.selected')}
                 </div>
                 <button
