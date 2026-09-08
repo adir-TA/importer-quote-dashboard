@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
+  Container,
   GitCompare,
   TrendingDown,
   Calculator,
@@ -36,6 +37,9 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
       { path: '/', icon: LayoutDashboard, label: t('sidebar.dashboard') },
       { path: '/products', icon: Package, label: t('sidebar.buyingIntents') },
       { path: '/comparison', icon: GitCompare, label: t('sidebar.compareQuotes') },
+    ]},
+    { section: t('sidebar.logistics'), items: [
+      { path: '/containers', icon: Container, label: t('sidebar.containers') },
     ]},
     { section: t('sidebar.system'), items: [
       { path: '/settings', icon: Settings, label: t('sidebar.settings') },

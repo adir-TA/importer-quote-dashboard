@@ -7,11 +7,12 @@
     "server": "node server.js",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node tests/supplier-extraction.test.js && node tests/api-error-handling.test.js && node tests/supplier-header-extraction.test.js",
+    "test": "node tests/supplier-extraction.test.js && node tests/api-error-handling.test.js && node tests/supplier-header-extraction.test.js && node tests/container-model.test.js",
     "test:supplier": "node tests/supplier-extraction.test.js",
     "test:api": "node tests/api-error-handling.test.js",
     "test:extraction": "node test-extraction-local.js",
-    "test:header": "node tests/supplier-header-extraction.test.js"
+    "test:header": "node tests/supplier-header-extraction.test.js",
+    "test:containers": "node tests/container-model.test.js"
   },
   "engines": {
     "node": "20.x"

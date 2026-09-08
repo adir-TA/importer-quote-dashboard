@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
 import { ModalProvider } from './context/ModalContext';
+import { ContainersProvider } from './context/ContainersContext';
 import { LanguageProvider } from './context/LanguageContext';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
@@ -13,6 +14,7 @@ import './styles/globals.css';
 import './styles/sidebar.css';
 import './styles/modal.css';
 import './styles/auth.css';
+import './styles/containers.css';
 
 // Teach apiHelpers how to fetch the current access token. Doing it here keeps
 // apiHelpers importable from Node tests without pulling in the browser client.
@@ -28,9 +30,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <LanguageProvider>
           <AuthProvider>
             <AppProvider>
-              <ModalProvider>
-                <App />
-              </ModalProvider>
+              <ContainersProvider>
+                <ModalProvider>
+                  <App />
+                </ModalProvider>
+              </ContainersProvider>
             </AppProvider>
           </AuthProvider>
         </LanguageProvider>

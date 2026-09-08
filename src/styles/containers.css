@@ -1,0 +1,351 @@
+/* ============================================================
+   CONTAINER LOAD PLANNER
+   ------------------------------------------------------------
+   The grid keeps the original tool's functional colours - group
+   colours and the total / capacity / remaining / max fills are
+   set inline from the palette, because they also reach the
+   generated .xlsx. Everything around them uses the app's tokens.
+   ============================================================ */
+
+/* ---------- List ---------- */
+.ccard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.ccard {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  cursor: pointer;
+  position: relative;
+}
+.ccard-main { min-width: 0; }
+.ccard-title {
+  font-weight: 600;
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ccard-no { font-size: var(--text-sm); color: var(--text-secondary); margin-top: 2px; }
+.ccard-meta { font-size: var(--text-xs); color: var(--text-muted); }
+.ccard-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: var(--space-2);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.ccard:hover .ccard-actions,
+.ccard:focus-within .ccard-actions { opacity: 1; }
+
+/* ---------- Editor chrome ---------- */
+.cname-row { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+
+.csaved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-xs);
+  color: var(--success);
+}
+
+.cstatus {
+  font-size: var(--text-sm);
+  color: var(--accent-text);
+  background: var(--accent-light);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-sm);
+  padding: 7px 11px;
+  margin-bottom: var(--space-3);
+}
+
+/* ---------- Branch groups ---------- */
+.cgroups { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cgroups-break { flex-basis: 100%; height: 0; }
+.cgroups-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: #16202b; /* the palette is pale, so text stays dark on every group */
+}
+
+/* ---------- Grid ---------- */
+.cgrid-wrap {
+  overflow: auto;
+  max-height: 62vh;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-primary);
+}
+.cgrid-big .cgrid-wrap { max-height: none; }
+
+.cgrid {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  width: max-content;
+  min-width: 100%;
+}
+
+.cgrid th,
+.cgrid td {
+  border-inline-end: 1px solid rgba(22, 32, 43, 0.10);
+  border-bottom: 1px solid rgba(22, 32, 43, 0.10);
+  padding: 0;
+  color: #16202b;
+}
+
+/* Header sticks while scrolling a long product list */
+.cgrid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  padding: 8px 6px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.25;
+  white-space: normal;
+  vertical-align: middle;
+}
+
+/* Product name column sticks while scrolling sideways */
+.cgrid .cgrid-name,
+.cgrid .cgrid-name-h {
+  position: sticky;
+  inset-inline-start: 0;
+  z-index: 4;
+  min-width: 210px;
+  max-width: 260px;
+  text-align: start;
+}
+.cgrid thead .cgrid-name-h { z-index: 5; }
+.cgrid-big .cgrid .cgrid-name,
+.cgrid-big .cgrid .cgrid-name-h { min-width: 290px; }
+
+.cgrid-name { position: relative; }
+.cgrid-nameinput {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 8px 26px 8px 10px;
+  font: inherit;
+  font-weight: 500;
+  color: inherit;
+}
+.cgrid-rowdel {
+  position: absolute;
+  inset-inline-end: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: #6b7684;
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-xs);
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.cgrid-name:hover .cgrid-rowdel { opacity: 1; }
+.cgrid-rowdel:hover { background: rgba(180, 35, 24, 0.12); color: var(--error); }
+
+.cgrid td input {
+  width: 74px;
+  border: 0;
+  background: transparent;
+  padding: 8px 2px;
+  font: inherit;
+  text-align: center;
+  color: inherit;
+}
+.cgrid-big .cgrid td input { width: 92px; padding: 11px 2px; font-size: var(--text-md); }
+.cgrid td input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: #fff;
+}
+.cgrid-zero { color: #97a0ab; }
+
+/* A visible seam between branch groups */
+.cgrid-edge { border-inline-start: 2px solid rgba(22, 32, 43, 0.34); }
+
+.cgrid-store { min-width: 78px; }
+.cgrid-store-name { display: block; }
+
+.cgrid-colcopy {
+  display: block;
+  margin: 3px auto 0;
+  border: 0;
+  background: transparent;
+  color: #41505c;
+  cursor: pointer;
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
+  line-height: 1;
+}
+.cgrid-colcopy:hover { background: rgba(255, 255, 255, 0.75); color: var(--accent); }
+
+/* Column copy mode */
+.cgrid-copysrc { box-shadow: inset 0 0 0 2px var(--accent); }
+.cgrid-pastable { cursor: pointer; animation: cgridPulse 1.6s ease-in-out infinite; }
+.cgrid-copycol { box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.35); }
+@keyframes cgridPulse {
+  0%, 100% { box-shadow: inset 0 0 0 2px #2c6e49; }
+  50%      { box-shadow: inset 0 0 0 3px #47946a; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cgrid-pastable { animation: none; box-shadow: inset 0 0 0 2px #2c6e49; }
+}
+
+/* Derived columns are pinned to the end of the row, so the totals and what
+   is left stay on screen while you scroll sideways through the branches. */
+.cgrid-calc,
+.cgrid-input-calc,
+.cgrid-calc-h {
+  --cgrid-calc-w: 92px;
+  width: var(--cgrid-calc-w);
+  min-width: var(--cgrid-calc-w);
+  max-width: var(--cgrid-calc-w);
+  text-align: center;
+  font-weight: 600;
+  position: sticky;
+  z-index: 2;
+}
+.cgrid thead .cgrid-calc-h { z-index: 4; }
+.cgrid tfoot .cgrid-calc { z-index: 4; }
+
+.cgrid-c-max  { inset-inline-end: 0; }
+.cgrid-c-left { inset-inline-end: var(--cgrid-calc-w); }
+.cgrid-c-cap  { inset-inline-end: calc(var(--cgrid-calc-w) * 2); }
+.cgrid-c-tot  { inset-inline-end: calc(var(--cgrid-calc-w) * 3); }
+/* A seam so the pinned block reads as separate from the scrolling branches */
+.cgrid-c-tot { border-inline-start: 2px solid rgba(22, 32, 43, 0.34); }
+
+.cgrid-calc { padding: 8px 6px; }
+.cgrid-input-calc input { width: 100% !important; }
+
+.cgrid-big .cgrid-calc,
+.cgrid-big .cgrid-input-calc,
+.cgrid-big .cgrid-calc-h { --cgrid-calc-w: 112px; }
+
+.cgrid-neg { color: var(--error); }
+.cgrid-done { color: var(--success); }
+.cgrid-over { box-shadow: inset 0 0 0 2px var(--error); }
+
+.cgrid tfoot td,
+.cgrid tfoot th {
+  position: sticky;
+  bottom: 0;
+  z-index: 3;
+  font-weight: 700;
+  padding: 8px 6px;
+  text-align: center;
+  filter: saturate(0.7) brightness(0.97);
+}
+.cgrid tfoot th { z-index: 5; text-align: start; padding-inline-start: 10px; }
+
+/* ---------- Generate + preview ---------- */
+.cgen-warn { margin-bottom: var(--space-4); }
+
+.cgen-body {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.cgen-pick { max-height: 58vh; overflow-y: auto; padding-inline-end: 4px; }
+.cgen-group {
+  border: 1px solid var(--border);
+  border-inline-start-width: 3px;
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-3);
+  overflow: hidden;
+}
+.cgen-group-head {
+  width: 100%;
+  border: 0;
+  padding: 7px 10px;
+  font: inherit;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: #16202b;
+  cursor: pointer;
+  text-align: start;
+}
+.cgen-branch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.cgen-branch:hover { background: var(--bg-hover); }
+
+.cgen-preview {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--grey-50);
+  min-height: 340px;
+  display: flex;
+  flex-direction: column;
+}
+.cgen-preview-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  background: var(--bg-primary);
+}
+
+/* A page-shaped preview, so what you see is what prints */
+.cgen-page {
+  flex: 1;
+  overflow-y: auto;
+  background: #fff;
+  margin: var(--space-4);
+  padding: 26px 30px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  max-height: 46vh;
+}
+.cgen-page h1 {
+  font-size: 1.6rem;
+  text-align: center;
+  margin-bottom: 18px;
+  letter-spacing: -0.01em;
+}
+.cgen-page p { font-size: 1rem; margin-bottom: 5px; }
+.cgen-page-cols { columns: 2; column-gap: 32px; }
+
+.cgen-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  width: 100%;
+  flex-wrap: wrap;
+}
+.cgen-count { font-size: var(--text-sm); color: var(--text-muted); }
+.cgen-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+
+@media (max-width: 900px) {
+  .cgen-body { grid-template-columns: 1fr; }
+  .cgen-pick { max-height: none; }
+  .cgrid-wrap { max-height: 70vh; }
+}

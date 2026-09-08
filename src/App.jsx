@@ -18,6 +18,8 @@ const Documents = lazy(() => import('./pages/Documents'));
 const AIHelpers = lazy(() => import('./pages/AIHelpers'));
 const Settings = lazy(() => import('./pages/Settings'));
 const LandedCost = lazy(() => import('./pages/LandedCost'));
+const Containers = lazy(() => import('./pages/Containers'));
+const ContainerEditor = lazy(() => import('./pages/ContainerEditor'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Protected route wrapper
@@ -117,6 +119,8 @@ function AppLayout() {
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/comparison" element={<QuoteComparison />} />
           <Route path="/landed-cost" element={<LandedCost />} />
+          <Route path="/containers" element={<Containers />} />
+          <Route path="/containers/:id" element={<ContainerEditor />} />
           <Route path="/settings" element={<Settings />} />
           {/* Hidden routes - not in navigation but still accessible */}
           <Route path="/suppliers" element={<Suppliers />} />
