@@ -5,7 +5,7 @@ import {
   User, Package, Eye
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, canUseAi } from '../context/AppContext';
 import { useModal } from '../context/ModalContext';
 import { calculateMatchConfidence, findBestMatch } from '../utils/buyingIntentMatcher';
 import { generateAutoName, generateAutoDescription } from '../utils/autoNaming';
@@ -568,7 +568,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [buyingIntentSearch, setBuyingIntentSearch] = useState('');
   const [openSpecsPopover, setOpenSpecsPopover] = useState(null); // index of line item with open specs popover
 
-  const hookResult = useMultiItemQuoteExtraction(settings?.hasApiKey, products);
+  const hookResult = useMultiItemQuoteExtraction(canUseAi(settings), products);
 
   const {
     step = 'idle',

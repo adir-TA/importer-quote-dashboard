@@ -268,7 +268,10 @@ function detectAndCorrectQuantityType(data) {
   if (!data || !data.lineItems) return data;
 
   data.lineItems = data.lineItems.map(item => {
-    const rawQty = item.quantity_value ?? item.moq ?? item.quantity;
+    // Pick the first field that actually carries a value. `??` alone let an
+    // empty string or 0 in quantity_value shadow a perfectly good moq.
+    const rawQty = [item.quantity_value, item.moq, item.quantity]
+      .find(v => v !== null && v !== undefined && v !== '');
     // The model sometimes returns "1,000" or "500 pcs" - the numeric
     // comparisons below silently did nothing for those.
     const qtyValue =
@@ -862,7 +865,14 @@ function assertOwnedStoragePath(path, userId) {
 
 // Health check
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', service: 'quote-extraction-api' });
+  res.json({
+    status: 'ok',
+    service: 'quote-extraction-api',
+    // True when the operator supplies a key for everyone. The client needs
+    // this to know AI features are available even when the signed-in user has
+    // not saved a key of their own.
+    serverKeyConfigured: Boolean(process.env.ANTHROPIC_API_KEY),
+  });
 });
 
 // ============================================

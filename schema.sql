@@ -141,7 +141,9 @@ create index if not exists idx_documents_created_at on documents(created_at desc
 create table if not exists user_settings (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users(id) on delete cascade unique,
-  api_key text, -- Anthropic key. Never returned to the browser; see server.js.
+  api_key text, -- Anthropic key. Never selected by the browser; see server.js.
+  -- Lets the client know a key exists without ever receiving its value
+  has_api_key boolean generated always as (api_key is not null and api_key <> '') stored,
   currency text default 'USD', -- Base currency used for cross-currency comparison
   fees jsonb, -- Landed-cost fee rows
   fx_rates jsonb, -- User-editable FX rates, relative to USD

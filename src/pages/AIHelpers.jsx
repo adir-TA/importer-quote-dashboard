@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { FileText, Languages, MessageCircle, FileSearch, DollarSign, Sparkles, Copy, Check, Send, Plus, X, AlertCircle } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, canUseAi } from '../context/AppContext';
 import { AIResponse } from '../components';
 import { generateRFQ, translateText, generateNegotiationMessage, analyzeContract, convertCurrency } from '../utils/aiService';
 import { copyToClipboard } from '../utils/helpers';
@@ -53,7 +53,7 @@ function AIHelpers() {
   };
 
   const handleGenerateRFQ = async () => {
-    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
+    if (!canUseAi(settings)) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     const validProducts = rfqProducts.filter(p => p.name.trim());
     if (validProducts.length === 0) { setError('Please add at least one product'); return; }
     setIsLoading(true);
@@ -67,7 +67,7 @@ function AIHelpers() {
   };
 
   const handleTranslate = async () => {
-    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
+    if (!canUseAi(settings)) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     if (!translateInput.trim()) { setError('Please enter text to translate'); return; }
     setIsLoading(true);
     setResult('');
@@ -80,7 +80,7 @@ function AIHelpers() {
   };
 
   const handleNegotiate = async () => {
-    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
+    if (!canUseAi(settings)) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     if (!currentPrice.trim() || !targetPrice.trim()) { setError('Please enter both prices'); return; }
     setIsLoading(true);
     setResult('');
@@ -93,7 +93,7 @@ function AIHelpers() {
   };
 
   const handleAnalyzeContract = async () => {
-    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
+    if (!canUseAi(settings)) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     if (!contractText.trim()) { setError('Please enter contract text'); return; }
     setIsLoading(true);
     setResult('');

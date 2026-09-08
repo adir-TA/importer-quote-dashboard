@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
 import { DEFAULT_FX_RATES } from '../utils/currency';
+import API_BASE_URL from '../config/api';
 const AppContext = createContext(null);
 
 // Default fees for landed cost calculation
@@ -24,7 +25,17 @@ function isMissingTableError(error) {
 
 // The Anthropic key is never loaded into browser state. The client only ever
 // learns *whether* one is saved; the backend reads the value server-side.
-const DEFAULT_SETTINGS = { hasApiKey: false, currency: 'USD', fxRates: DEFAULT_FX_RATES };
+const DEFAULT_SETTINGS = {
+  hasApiKey: false,      // this user saved their own key
+  serverHasKey: false,   // the deployment supplies a key for everyone
+  currency: 'USD',
+  fxRates: DEFAULT_FX_RATES,
+};
+
+/** Can AI features run at all? Either key source is enough. */
+export function canUseAi(settings) {
+  return Boolean(settings?.hasApiKey || settings?.serverHasKey);
+}
 
 // ============================================
 // PRODUCTION READY - NO FAKE DATA
@@ -88,8 +99,10 @@ export function AppProvider({ children }) {
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
         // maybeSingle: .single() raised PGRST116 (and a console 406) for every
         // user who had not saved settings yet.
-        // api_key is deliberately NOT selected - it must never reach the browser.
-        supabase.from('user_settings').select('id, currency, fees, fx_rates, api_key').maybeSingle(),
+        // api_key is deliberately NOT in the column list - it must never reach
+        // the browser. Whether one exists is derived below from has_api_key,
+        // a generated boolean column (see the 20260908 migration).
+        supabase.from('user_settings').select('id, currency, fees, fx_rates, has_api_key').maybeSingle(),
         supabase.from('quote_line_items').select(`
           *,
           supplier_quote:supplier_quotes(
@@ -141,10 +154,21 @@ export function AppProvider({ children }) {
       setOrders(ordersRes.data || []);
       setDocuments(documentsRes.data || []);
       
+      // Does the deployment provide a key for everyone? Failing this check is
+      // not fatal - fall back to "user must supply their own".
+      let serverHasKey = false;
+      try {
+        const health = await fetch(`${API_BASE_URL}/api/health`);
+        if (health.ok) serverHasKey = Boolean((await health.json())?.serverKeyConfigured);
+      } catch {
+        // offline or API unreachable; leave serverHasKey false
+      }
+
       if (settingsRes.data) {
         setSettings({
           // Only a boolean crosses into the browser, never the key itself
-          hasApiKey: Boolean(settingsRes.data.api_key),
+          hasApiKey: Boolean(settingsRes.data.has_api_key),
+          serverHasKey,
           currency: settingsRes.data.currency || 'USD',
           fxRates: { ...DEFAULT_FX_RATES, ...(settingsRes.data.fx_rates || {}) },
         });
@@ -153,7 +177,7 @@ export function AppProvider({ children }) {
           setFees(settingsRes.data.fees);
         }
       } else {
-        setSettings(DEFAULT_SETTINGS);
+        setSettings({ ...DEFAULT_SETTINGS, serverHasKey });
       }
 
     } catch (error) {
@@ -508,26 +532,53 @@ export function AppProvider({ children }) {
   // These used to touch local state only, so every landed-cost fee edit was
   // lost on reload even though the app read `fees` back from user_settings.
   // Each mutation now writes through to the database.
-  const commitFees = useCallback(async (nextFees) => {
-    setFees(nextFees);
+  // Fee inputs fire on every keystroke, so the local state updates immediately
+  // and the database write is debounced. Writing straight through issued one
+  // upsert per character typed.
+  const feeSaveTimer = useRef(null);
+  const pendingFeesRef = useRef(null);
+  const [feeSaveError, setFeeSaveError] = useState(null);
+
+  const flushFees = useCallback(async () => {
+    if (feeSaveTimer.current) {
+      clearTimeout(feeSaveTimer.current);
+      feeSaveTimer.current = null;
+    }
+
+    const pending = pendingFeesRef.current;
+    if (pending === null) return;
+    pendingFeesRef.current = null;
+
     try {
-      await persistSettings({ fees: nextFees });
+      await persistSettings({ fees: pending });
+      setFeeSaveError(null);
     } catch (error) {
       console.error('Failed to save fees:', error);
-      throw error;
+      setFeeSaveError(error.message || 'Could not save fees');
     }
   }, [user]);
 
+  const commitFees = useCallback((nextFees) => {
+    setFees(nextFees);
+    pendingFeesRef.current = nextFees;
+
+    if (feeSaveTimer.current) clearTimeout(feeSaveTimer.current);
+    feeSaveTimer.current = setTimeout(flushFees, 800);
+  }, [flushFees]);
+
+  // Do not lose an in-flight edit when the provider unmounts
+  useEffect(() => () => { flushFees(); }, [flushFees]);
+
   const updateFees = (newFees) => commitFees(newFees);
 
-  const addFee = async (fee) => {
+  const addFee = (fee) => {
     const newFee = {
       id: `fee-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: fee.name || 'New Fee',
       type: fee.type || 'fixed',
       value: fee.value || 0,
     };
-    await commitFees([...fees, newFee]);
+    commitFees([...fees, newFee]);
     return newFee;
   };
 
@@ -807,6 +858,7 @@ export function AppProvider({ children }) {
         newSettings.apiKey === undefined
           ? prev.hasApiKey
           : Boolean(newSettings.apiKey),
+      serverHasKey: prev.serverHasKey,
     }));
   };
 
@@ -894,7 +946,7 @@ export function AppProvider({ children }) {
     addSupplier, updateSupplier, deleteSupplier,
     addOrder, updateOrder, deleteOrder,
     addDocument, updateDocument, deleteDocument,
-    updateFees, addFee, updateFee, deleteFee, resetFees,
+    updateFees, addFee, updateFee, deleteFee, resetFees, flushFees,
     updateSettings, toggleQuoteSelection, setSelectedQuotes,
     refreshData: fetchAllData,
     clearAllSeedData, clearAllData, exportData,
@@ -909,8 +961,8 @@ export function AppProvider({ children }) {
   }, []);
 
   const state = useMemo(
-    () => ({ products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems }),
-    [products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems]
+    () => ({ products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems, feeSaveError }),
+    [products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems, feeSaveError]
   );
 
   // Memoised so consumers do not re-render on every provider render

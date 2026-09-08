@@ -16,9 +16,27 @@ const FOCUSABLE = [
  * focus restored to the trigger on close, and the page behind locked from
  * scrolling. None of this existed before, so keyboard and screen-reader users
  * could not dismiss a modal at all.
+ *
+ * Escape only dismisses the TOPMOST modal: each modal registers in
+ * `modalStack`, because a per-modal capture-phase listener fires for every
+ * mounted modal and stopPropagation does not stop sibling listeners on the
+ * same node.
  */
+const modalStack = [];
+
 function useModalBehaviour(dialogRef, onDismiss) {
   const previouslyFocused = useRef(null);
+
+  // Register in the stack for the lifetime of this modal
+  const stackEntry = useRef({});
+  useEffect(() => {
+    const entry = stackEntry.current;
+    modalStack.push(entry);
+    return () => {
+      const i = modalStack.indexOf(entry);
+      if (i !== -1) modalStack.splice(i, 1);
+    };
+  }, []);
 
   useEffect(() => {
     previouslyFocused.current = document.activeElement;
@@ -41,6 +59,10 @@ function useModalBehaviour(dialogRef, onDismiss) {
 
   useEffect(() => {
     const handleKeyDown = (event) => {
+      // Only the topmost modal reacts
+      const isTopmost = modalStack[modalStack.length - 1] === stackEntry.current;
+      if (!isTopmost) return;
+
       if (event.key === 'Escape') {
         event.stopPropagation();
         onDismiss?.();
@@ -94,10 +116,15 @@ function Modal({
 }) {
   const dialogRef = useRef(null);
 
-  // Escape / backdrop dismissal maps to the most specific handler available.
+  // Escape / backdrop dismissal maps to exactly ONE handler.
+  // `onCancel?.() ?? onClose?.()` ran both, because onCancel returns
+  // undefined - and ModalProvider's onClose calls onCancel again.
   const handleDismiss = useCallback(() => {
-    if (type === 'confirm') return onCancel?.() ?? onClose?.();
-    return onClose?.();
+    if (type === 'confirm' && onCancel) {
+      onCancel();
+      return;
+    }
+    onClose?.();
   }, [type, onCancel, onClose]);
 
   useModalBehaviour(dialogRef, handleDismiss);

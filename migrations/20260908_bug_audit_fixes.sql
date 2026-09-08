@@ -13,6 +13,16 @@ ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS fees JSONB;
 ALTER TABLE user_settings ADD COLUMN IF NOT EXISTS fx_rates JSONB;
 
 -- --------------------------------------------
+-- 1b. Expose *whether* an API key is set, without exposing the key
+--     The client needs to know if a key is configured, but must never
+--     receive its value. A generated boolean lets the browser select this
+--     column while api_key itself stays server-side.
+-- --------------------------------------------
+ALTER TABLE user_settings
+  ADD COLUMN IF NOT EXISTS has_api_key BOOLEAN
+  GENERATED ALWAYS AS (api_key IS NOT NULL AND api_key <> '') STORED;
+
+-- --------------------------------------------
 -- 2. Missing DELETE policy on user_settings
 -- --------------------------------------------
 DROP POLICY IF EXISTS "Users can delete own settings" ON user_settings;

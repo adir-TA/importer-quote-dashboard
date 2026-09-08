@@ -5,7 +5,7 @@ import {
   TrendingDown, MessageSquare, Trophy, X, Check, CheckCircle2,
   FileDown, Calculator, Package, AlertCircle, AlertTriangle, Filter
 } from 'lucide-react';
-import { useAppContext } from '../context/AppContext';
+import { useAppContext, canUseAi } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { BuyingIntentCommandSelect } from '../components';
@@ -586,7 +586,7 @@ function QuoteComparison() {
       : '');
 
   const runAI = async (action, buildPrompt) => {
-    if (!settings?.hasApiKey) {
+    if (!canUseAi(settings)) {
       setAiError('Add your Anthropic API key in Settings to use the AI analysis.');
       return;
     }
@@ -727,7 +727,9 @@ Write ONLY the message.`);
                 <div className="stat-content">
                   <div className="stat-label">{t('comparison.potentialSavings')}</div>
                   <div className="stat-value" style={{ fontSize: '1.5rem' }}>
-                    {formatCurrency((otherQuotes[0].comparablePrice ?? 0) - (bestQuote.comparablePrice ?? 0), baseCurrency)}
+                    {otherQuotes[0].comparablePrice !== null && bestQuote.comparablePrice !== null
+                      ? formatCurrency(otherQuotes[0].comparablePrice - bestQuote.comparablePrice, baseCurrency)
+                      : '—'}
                   </div>
                 </div>
               </div>

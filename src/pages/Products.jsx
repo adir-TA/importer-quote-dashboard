@@ -6,7 +6,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
-import { filterBySearch } from '../utils/helpers';
+import { filterBySearch, sanitizeCell, downloadBlob } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
 import { uploadToStorage, validateFile, safeExtension, IMAGE_MIME_TYPES, MAX_IMAGE_BYTES } from '../utils/storageUpload';
 import { EXPORT_THEMES } from '../utils/exportThemes';

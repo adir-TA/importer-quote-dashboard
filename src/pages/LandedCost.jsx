@@ -424,7 +424,7 @@ function LandedCost() {
   const navigate = useNavigate();
   const { state, computed } = useAppContext();
   const { t } = useLanguage();
-  const { fees, products, settings } = state;
+  const { fees, products, settings, feeSaveError } = state;
   // Fees are denominated in the base currency, so the whole landed-cost
   // calculation runs in the base currency. Adding a fixed $500 freight fee to
   // a CNY FOB total (as before) mixed units and produced a meaningless number.
@@ -666,6 +666,9 @@ function LandedCost() {
     actions.updateFee(feeId, { [field]: field === 'value' ? parseFloat(value) || 0 : value });
   };
 
+  // The write is debounced in AppContext; blurring commits it immediately.
+  const handleFeeBlur = () => actions.flushFees();
+
   const handleAddFee = () => {
     actions.addFee({ name: 'New Fee', type: 'fixed', value: 0 });
   };
@@ -798,9 +801,18 @@ function LandedCost() {
               </div>
               <div className="card-body">
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
-                  These fees apply to all landed cost calculations. <strong>Fixed ($)</strong> fees are per shipment. 
-                  <strong> Percentage (%)</strong> fees apply to FOB total.
+                  {t('landedCost.feesHint')} <strong>{t('landedCost.fixedFee')}</strong>{' '}
+                  {t('landedCost.perShipment')}. <strong>{t('landedCost.percentageFee')}</strong>{' '}
+                  applies to FOB total. Amounts are in {baseCurrency}.
                 </p>
+
+                {/* A failed background save must not be silent */}
+                {feeSaveError && (
+                  <div className="validation-error" role="alert" style={{ marginBottom: '16px' }}>
+                    <AlertCircle size={16} />
+                    <span>Could not save your fees: {feeSaveError}</span>
+                  </div>
+                )}
 
                 <div className="fees-list">
                   {fees.map((fee) => (
@@ -810,6 +822,7 @@ function LandedCost() {
                         className="form-input"
                         value={fee.name}
                         onChange={(e) => handleFeeChange(fee.id, 'name', e.target.value)}
+                        onBlur={handleFeeBlur}
                         placeholder="Fee name"
                         style={{ flex: 2 }}
                       />
@@ -831,6 +844,7 @@ function LandedCost() {
                           className="form-input"
                           value={fee.value}
                           onChange={(e) => handleFeeChange(fee.id, 'value', e.target.value)}
+                          onBlur={handleFeeBlur}
                           step={fee.type === 'percentage' ? '0.1' : '1'}
                           min="0"
                         />

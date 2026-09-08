@@ -70,15 +70,23 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
     // window.open() after an await is outside the user-gesture window, so
     // popup blockers silently swallowed it and "Download" appeared to do
     // nothing. Open the tab synchronously, then point it at the signed URL.
-    const tab = window.open('', '_blank', 'noopener,noreferrer');
+    //
+    // NOTE: no 'noopener' feature here - it makes window.open() return null,
+    // which would leave nothing to navigate. We sever the reference manually
+    // below instead.
+    const tab = window.open('', '_blank');
 
     try {
       const signedUrl = await getDocumentSignedUrl(doc.file_path);
       if (tab) {
-        tab.location.href = signedUrl;
+        // Cut the opener link before navigating, so the storage origin cannot
+        // reach back into this window.
+        try { tab.opener = null; } catch { /* cross-origin, already severed */ }
+        tab.location.replace(signedUrl);
       } else {
-        // Popup blocked entirely - fall back to navigating in place
-        window.location.href = signedUrl;
+        // Popup blocked entirely - tell the user rather than navigating the
+        // app away and losing their place.
+        setActionError('Your browser blocked the download tab. Allow popups for this site, or use Preview.');
       }
     } catch (err) {
       tab?.close();

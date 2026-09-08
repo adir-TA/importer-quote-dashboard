@@ -484,13 +484,15 @@ async function processExcel(file) {
 
   const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
 
-  try {
-    if (isCsv) {
-      // exceljs's csv.read wants a stream; parse the text ourselves instead.
-      const text = new TextDecoder().decode(arrayBuffer);
-      return await extractFromText(`CSV spreadsheet data:\n\n${text.slice(0, 100000)}`);
-    }
+  if (isCsv) {
+    // Outside the try below: extraction errors (session expired, no API key,
+    // rate limited) must reach the user, not be rewritten as "could not read
+    // that spreadsheet".
+    const text = new TextDecoder().decode(arrayBuffer);
+    return extractFromText(`CSV spreadsheet data:\n\n${text.slice(0, 100000)}`);
+  }
 
+  try {
     await workbook.xlsx.load(arrayBuffer);
   } catch (error) {
     if (/\.xls$/i.test(file.name)) {
