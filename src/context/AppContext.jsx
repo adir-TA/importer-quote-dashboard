@@ -61,39 +61,6 @@ async function loadUserSettings() {
 }
 
 /**
- * Durable buffer for unsaved fee edits.
- *
- * A pagehide/visibilitychange flush issues an ordinary supabase-js request,
- * and browsers cancel non-keepalive requests during teardown - so closing the
- * tab within the debounce window could still lose the edit. Mirroring the
- * pending fees into localStorage lets the next load finish the write.
- */
-const PENDING_FEES_KEY = 'ha-tools-pending-fees';
-
-function readPendingFees(userId) {
-  try {
-    const raw = localStorage.getItem(PENDING_FEES_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    // Scoped to the user who made the edit, so it can never be replayed
-    // into a different account's settings row.
-    if (!parsed || parsed.userId !== userId || !Array.isArray(parsed.fees)) return null;
-    return parsed.fees;
-  } catch {
-    return null;
-  }
-}
-
-function writePendingFees(userId, fees) {
-  try {
-    if (fees === null) localStorage.removeItem(PENDING_FEES_KEY);
-    else localStorage.setItem(PENDING_FEES_KEY, JSON.stringify({ userId, fees }));
-  } catch {
-    // Storage unavailable (private mode / blocked). Best effort only.
-  }
-}
-
-/**
  * Ask the API whether the deployment supplies an Anthropic key for everyone.
  * Bounded by a timeout: an unresponsive API host must not hold the app on its
  * loading spinner after all the Supabase data has arrived.
@@ -177,7 +144,6 @@ export function AppProvider({ children }) {
         feeSaveTimer.current = null;
       }
       pendingFeesRef.current = null;
-      writePendingFees(user?.id, null);
       setFeeSaveError(null);
       setSettingsLoadFailed(false);
       setLoading(false);
@@ -280,23 +246,6 @@ export function AppProvider({ children }) {
         // Load saved fees if available
         if (Array.isArray(settingsRes.data.fees) && settingsRes.data.fees.length > 0) {
           setFees(settingsRes.data.fees);
-        }
-
-        // Finish a fee edit that was still in the debounce window when the
-        // tab was closed. Scoped to this user by readPendingFees().
-        const recovered = readPendingFees(user.id);
-        if (recovered) {
-          console.warn('[AppContext] Recovering unsaved fee changes from the last session');
-          setFees(recovered);
-          try {
-            await supabase
-              .from('user_settings')
-              .upsert({ user_id: user.id, fees: recovered }, { onConflict: 'user_id' })
-              .throwOnError();
-            writePendingFees(user.id, null);
-          } catch (error) {
-            console.error('[AppContext] Failed to recover pending fees:', error);
-          }
         }
       } else {
         // No row yet - a genuinely new user
@@ -691,8 +640,7 @@ export function AppProvider({ children }) {
         // Only clear if nothing newer arrived while we were writing
         if (pendingFeesRef.current === pending) {
           pendingFeesRef.current = null;
-          writePendingFees(user?.id, null);
-        }
+            }
         setFeeSaveError(null);
       } catch (error) {
         console.error('Failed to save fees:', error);
@@ -707,6 +655,8 @@ export function AppProvider({ children }) {
   const commitFees = useCallback((nextFees) => {
     setFees(nextFees);
 
+    if (!user) return; // signed out mid-edit; keep it local
+
     if (settingsLoadFailed) {
       // Settings could not be read, so we do not know what we would be
       // overwriting. Keep the edit local rather than persisting a guess.
@@ -715,14 +665,14 @@ export function AppProvider({ children }) {
     }
 
     pendingFeesRef.current = nextFees;
-    writePendingFees(user.id, nextFees);
 
     if (feeSaveTimer.current) clearTimeout(feeSaveTimer.current);
-    feeSaveTimer.current = setTimeout(flushFees, 800);
-  }, [flushFees, settingsLoadFailed]);
+    feeSaveTimer.current = setTimeout(flushFees, 400);
+  }, [flushFees, settingsLoadFailed, user]);
 
-  // Do not lose an in-flight edit when the tab is closed, hidden or reloaded.
-  // The unmount cleanup alone cannot cover teardown - it cannot await.
+  // Best-effort flush when the tab is hidden or closed. Browsers cancel
+  // non-keepalive requests during teardown, so this is not a guarantee - the
+  // real protections are the short debounce and the flush on blur.
   useEffect(() => {
     const handlePageHide = () => { flushFees(); };
     const handleVisibility = () => {
