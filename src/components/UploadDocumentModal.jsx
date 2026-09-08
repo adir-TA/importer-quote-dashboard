@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Upload, FileText, AlertCircle, Check, Copy, Eye } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import API_BASE_URL from '../config/api';
+import { uploadToStorage, validateFile, safeExtension, DOCUMENT_MIME_TYPES, MAX_DOCUMENT_BYTES } from '../utils/storageUpload';
 
 const DOCUMENT_TYPES = [
   { value: 'PI', label: 'Proforma Invoice' },
@@ -133,33 +133,19 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
     setError('');
 
     try {
-      // Step 1: Get presigned upload URL from backend (bypasses RLS, no size limit)
-      const fileExtension = file.name.split('.').pop();
+      // Reject unsupported types / oversized files up front rather than after
+      // a long upload that the bucket then refuses.
+      const validationError = validateFile(file, {
+        allowedTypes: DOCUMENT_MIME_TYPES,
+        maxBytes: MAX_DOCUMENT_BYTES,
+        label: 'document',
+      });
+      if (validationError) throw new Error(validationError);
+
+      const fileExtension = safeExtension(file.name);
       const storagePath = `${user.id}/buying-intents/${buyingIntentId}/${Date.now()}.${fileExtension}`;
 
-      const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bucket: 'documents', path: storagePath }),
-      });
-
-      if (!urlResponse.ok) {
-        const err = await urlResponse.json().catch(() => ({}));
-        throw new Error(err.error || 'Failed to prepare upload');
-      }
-
-      const { signedUrl } = await urlResponse.json();
-
-      // Step 2: Upload file directly to Supabase Storage (no Vercel size limit)
-      const uploadResponse = await fetch(signedUrl, {
-        method: 'PUT',
-        headers: { 'Content-Type': file.type },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('File upload failed');
-      }
+      await uploadToStorage({ bucket: 'documents', path: storagePath, file });
 
       const finalFileName = `${customFileName}.${fileExtension}`;
 

@@ -6,23 +6,10 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
-// ============================================
-// FORMATTING HELPERS (Display only - never in calculations)
-// ============================================
-const formatCurrency = (amount) => {
-  // DISPLAY ONLY: Format number as USD currency
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-};
-
-const formatNumber = (num) => {
-  // DISPLAY ONLY: Format number with thousand separators
-  return new Intl.NumberFormat('en-US').format(num);
-};
+// DISPLAY ONLY - never used inside calculations.
+// These previously hardcoded 'USD', so a CNY quote's landed cost was labelled
+// with a dollar sign. See src/utils/currency.js.
+import { formatCurrency, formatNumber, convertAmount, normalizeCurrency } from '../utils/currency';
 
 // ============================================
 // SEARCHABLE PRODUCT SELECTOR COMPONENT
@@ -365,7 +352,7 @@ function QuoteSelector({ quotes, selectedQuoteId, onSelect, productName }) {
             <>
               <strong>{selectedQuote.supplierName}</strong>
               <span className="quote-details">
-                {formatCurrency(selectedQuote.unitPrice)}/unit • {selectedQuote.incoterm || 'FOB'}
+                {formatCurrency(selectedQuote.unitPrice, selectedQuote.currency)}/unit • {selectedQuote.incoterm || 'FOB'}
               </span>
             </>
           ) : (
@@ -414,7 +401,7 @@ function QuoteSelector({ quotes, selectedQuoteId, onSelect, productName }) {
                       <span className="quote-incoterm">{quote.incoterm || 'FOB'}</span>
                     </div>
                     <div className="quote-option-price">
-                      {formatCurrency(unitPrice)}/unit
+                      {formatCurrency(unitPrice, quote.currency)}/unit
                     </div>
                     {quote.id === selectedQuoteId && <Check size={16} className="option-check" />}
                   </button>
@@ -434,7 +421,12 @@ function QuoteSelector({ quotes, selectedQuoteId, onSelect, productName }) {
 function LandedCost() {
   const navigate = useNavigate();
   const { state, computed } = useAppContext();
-  const { fees, products } = state;
+  const { fees, products, settings } = state;
+  // Fees are denominated in the base currency, so the whole landed-cost
+  // calculation runs in the base currency. Adding a fixed $500 freight fee to
+  // a CNY FOB total (as before) mixed units and produced a meaningless number.
+  const baseCurrency = normalizeCurrency(settings?.currency);
+  const fxRates = settings?.fxRates;
 
   // State
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -526,13 +518,24 @@ function LandedCost() {
     
     const errors = [];
     const warnings = [];
-    const unitPrice = parseFloat(selectedQuote.unitPrice);
+    const quoteCurrency = normalizeCurrency(selectedQuote.currency);
+    const quotedPrice = parseFloat(selectedQuote.unitPrice);
     const moq = parseInt(selectedQuote.moq) || 1;
     const qty = customQuantity ? parseInt(customQuantity) : moq;
-    
+
+    // Convert into the base currency before anything is added to it
+    const unitPrice =
+      quoteCurrency === baseCurrency
+        ? quotedPrice
+        : convertAmount(quotedPrice, quoteCurrency, baseCurrency, fxRates);
+
     // Safety check: unit_price must be > 0
-    if (isNaN(unitPrice) || unitPrice <= 0) {
-      errors.push('Unit price must be greater than $0');
+    if (isNaN(quotedPrice) || quotedPrice <= 0) {
+      errors.push('Unit price must be greater than 0');
+    } else if (unitPrice === null) {
+      errors.push(
+        `No ${baseCurrency} exchange rate for ${quoteCurrency}. Add one in Settings to calculate landed cost.`
+      );
     }
     
     // Safety check: quantity must be > 0
@@ -549,11 +552,15 @@ function LandedCost() {
       valid: errors.length === 0,
       errors,
       warnings,
-      unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
+      // Always expressed in baseCurrency from here on
+      unitPrice: unitPrice === null || isNaN(unitPrice) ? 0 : unitPrice,
+      quotedPrice: isNaN(quotedPrice) ? 0 : quotedPrice,
+      quoteCurrency,
+      isConverted: quoteCurrency !== baseCurrency,
       quantity: isNaN(qty) || qty <= 0 ? 1 : qty,
       moq,
     };
-  }, [selectedQuote, customQuantity]);
+  }, [selectedQuote, customQuantity, baseCurrency, fxRates]);
 
   // ============================================
   // LANDED COST CALCULATION
@@ -933,10 +940,15 @@ function LandedCost() {
                       <div className="result-hero">
                         <div className="result-label">Landed Cost</div>
                         <div className="result-value">
-                          {formatCurrency(calculation.landed_per_unit)}<span className="result-unit">/unit</span>
+                          {formatCurrency(calculation.landed_per_unit, baseCurrency)}<span className="result-unit">/unit</span>
                         </div>
                         <div className="result-subtext">
-                          vs {formatCurrency(calculation.unit_price)}/unit FOB
+                          vs {formatCurrency(calculation.unit_price, baseCurrency)}/unit FOB
+                          {validation.isConverted && (
+                            <span style={{ color: 'var(--text-muted)' }}>
+                              {' '}(quoted {formatCurrency(validation.quotedPrice, validation.quoteCurrency)})
+                            </span>
+                          )}
                           {calculation.fee_markup_percent > 0 && (
                             <span className="result-badge">
                               +{calculation.fee_markup_percent.toFixed(1)}% fees
@@ -950,7 +962,7 @@ function LandedCost() {
                         <div className="breakdown-section-title">Order Summary</div>
                         <div className="breakdown-row">
                           <span>Unit Price (FOB)</span>
-                          <span>{formatCurrency(calculation.unit_price)}/unit</span>
+                          <span>{formatCurrency(calculation.unit_price, baseCurrency)}/unit</span>
                         </div>
                         <div className="breakdown-row">
                           <span>Quantity</span>
@@ -958,7 +970,7 @@ function LandedCost() {
                         </div>
                         <div className="breakdown-row highlight">
                           <span>FOB Total</span>
-                          <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(calculation.FOB_total)}</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(calculation.FOB_total, baseCurrency)}</span>
                         </div>
 
                         <div className="breakdown-section-title" style={{ marginTop: '16px' }}>
@@ -972,22 +984,22 @@ function LandedCost() {
                                 {fee.type === 'percentage' ? `(${fee.value}% of FOB)` : '(fixed $)'}
                               </span>
                             </span>
-                            <span>{formatCurrency(fee.amount)}</span>
+                            <span>{formatCurrency(fee.amount, baseCurrency)}</span>
                           </div>
                         ))}
                         <div className="breakdown-row highlight">
                           <span>Total Import Fees</span>
-                          <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_fees)}</span>
+                          <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_fees, baseCurrency)}</span>
                         </div>
 
                         {/* Total section - visually secondary, $/unit emphasized */}
                         <div className="breakdown-row total" style={{ marginTop: '12px' }}>
                           <span>Total Landed Cost</span>
-                          <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_landed)}</span>
+                          <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_landed, baseCurrency)}</span>
                         </div>
                         <div className="breakdown-row total-unit">
                           <span>Landed Cost Per Unit</span>
-                          <span style={{ fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(calculation.landed_per_unit)}/unit</span>
+                          <span style={{ fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(calculation.landed_per_unit, baseCurrency)}/unit</span>
                         </div>
 
                         {/* Large order info text */}
@@ -1004,7 +1016,7 @@ function LandedCost() {
                             gap: '8px'
                           }}>
                             <AlertCircle size={14} />
-                            <span>Large quantities increase total order value. Per-unit cost ({formatCurrency(calculation.landed_per_unit)}/unit) is the key comparison metric.</span>
+                            <span>Large quantities increase total order value. Per-unit cost ({formatCurrency(calculation.landed_per_unit, baseCurrency)}/unit) is the key comparison metric.</span>
                           </div>
                         )}
                       </div>

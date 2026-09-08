@@ -8,7 +8,6 @@ import {
   Products,
   ProductDetail,
   QuoteComparison,
-  PortfolioComparison,
   Suppliers,
   Orders,
   Documents,
@@ -17,6 +16,7 @@ import {
   Login,
   Signup,
   LandedCost,
+  NotFound,
 } from './pages';
 
 // Protected route wrapper
@@ -114,7 +114,6 @@ function AppLayout() {
           <Route path="/products" element={<Products />} />
           <Route path="/products/:id" element={<ProductDetail />} />
           <Route path="/comparison" element={<QuoteComparison />} />
-          {/* <Route path="/portfolio" element={<PortfolioComparison />} /> */}
           <Route path="/landed-cost" element={<LandedCost />} />
           <Route path="/settings" element={<Settings />} />
           {/* Hidden routes - not in navigation but still accessible */}
@@ -122,6 +121,8 @@ function AppLayout() {
           <Route path="/orders" element={<Orders />} />
           <Route path="/documents" element={<Documents />} />
           <Route path="/ai-helpers" element={<AIHelpers />} />
+          {/* Catch-all: an unknown URL used to render an empty content area */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
 

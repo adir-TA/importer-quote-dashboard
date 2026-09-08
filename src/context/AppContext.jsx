@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from './AuthContext';
+import { DEFAULT_FX_RATES } from '../utils/currency';
 const AppContext = createContext(null);
 
 // Default fees for landed cost calculation
@@ -10,6 +11,20 @@ const DEFAULT_FEES = [
   { id: 'insurance', name: 'Insurance', type: 'percentage', value: 1 },
   { id: 'broker', name: 'Broker Fee', type: 'fixed', value: 150 },
 ];
+
+// The app still reads and writes the pre-migration single-item quotes table.
+// Kept in one place so it is obvious this is legacy, and so a deployment that
+// has already dropped it degrades gracefully instead of erroring on every load.
+const LEGACY_QUOTES_TABLE = 'quotes_old';
+
+/** Postgres 42P01 = undefined_table. Supabase surfaces it as PGRST205 too. */
+function isMissingTableError(error) {
+  return error?.code === '42P01' || error?.code === 'PGRST205';
+}
+
+// The Anthropic key is never loaded into browser state. The client only ever
+// learns *whether* one is saved; the backend reads the value server-side.
+const DEFAULT_SETTINGS = { hasApiKey: false, currency: 'USD', fxRates: DEFAULT_FX_RATES };
 
 // ============================================
 // PRODUCTION READY - NO FAKE DATA
@@ -25,7 +40,7 @@ export function AppProvider({ children }) {
   const [orders, setOrders] = useState([]);
   const [documents, setDocuments] = useState([]);
   const [fees, setFees] = useState(DEFAULT_FEES);
-  const [settings, setSettings] = useState({ apiKey: '', currency: 'USD' });
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [selectedQuotes, setSelectedQuotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
@@ -45,7 +60,7 @@ export function AppProvider({ children }) {
       setOrders([]);
       setDocuments([]);
       setFees(DEFAULT_FEES);
-      setSettings({ apiKey: '', currency: 'USD' });
+      setSettings(DEFAULT_SETTINGS);
       setSelectedQuotes([]);
       setAllLineItems([]);
       allLineItemsRef.current = [];
@@ -66,11 +81,15 @@ export function AppProvider({ children }) {
     try {
       const [productsRes, quotesRes, suppliersRes, ordersRes, documentsRes, settingsRes, lineItemsRes] = await Promise.all([
         supabase.from('products').select('*').order('created_at', { ascending: false }),
-        supabase.from('quotes_old').select('*').order('created_at', { ascending: false }),
+        // Legacy single-item quotes. Tolerated as missing - see LEGACY_QUOTES_TABLE.
+        supabase.from(LEGACY_QUOTES_TABLE).select('*').order('created_at', { ascending: false }),
         supabase.from('suppliers').select('*').order('created_at', { ascending: false }),
         supabase.from('orders').select('*').order('created_at', { ascending: false }),
         supabase.from('documents').select('*').order('created_at', { ascending: false }),
-        supabase.from('user_settings').select('*').single(),
+        // maybeSingle: .single() raised PGRST116 (and a console 406) for every
+        // user who had not saved settings yet.
+        // api_key is deliberately NOT selected - it must never reach the browser.
+        supabase.from('user_settings').select('id, currency, fees, fx_rates, api_key').maybeSingle(),
         supabase.from('quote_line_items').select(`
           *,
           supplier_quote:supplier_quotes(
@@ -89,6 +108,11 @@ export function AppProvider({ children }) {
           )
         `).order('created_at', { ascending: false }),
       ]);
+
+      // A dropped legacy table is a normal state, not a failure to surface
+      if (quotesRes.error && !isMissingTableError(quotesRes.error)) {
+        console.error('Error loading legacy quotes:', quotesRes.error.message);
+      }
 
       // Transform quotes to new structure if needed
       const transformedQuotes = (quotesRes.data || []).map(q => ({
@@ -119,19 +143,24 @@ export function AppProvider({ children }) {
       
       if (settingsRes.data) {
         setSettings({
-          apiKey: settingsRes.data.api_key || '',
+          // Only a boolean crosses into the browser, never the key itself
+          hasApiKey: Boolean(settingsRes.data.api_key),
           currency: settingsRes.data.currency || 'USD',
+          fxRates: { ...DEFAULT_FX_RATES, ...(settingsRes.data.fx_rates || {}) },
         });
         // Load saved fees if available
-        if (settingsRes.data.fees) {
+        if (Array.isArray(settingsRes.data.fees) && settingsRes.data.fees.length > 0) {
           setFees(settingsRes.data.fees);
         }
+      } else {
+        setSettings(DEFAULT_SETTINGS);
       }
 
     } catch (error) {
       console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   // Product actions
@@ -249,11 +278,16 @@ export function AppProvider({ children }) {
       'Silicone Phone Case'
     ];
 
+    if (!user) throw new Error('User not authenticated');
+
     try {
-      // Delete all products with these fake names
+      // Scoped to the signed-in user. This previously deleted by name alone,
+      // so a real Buying Intent that happened to be called e.g. "LED Desk Lamp"
+      // was destroyed along with the seed rows.
       const { error } = await supabase
         .from('products')
         .delete()
+        .eq('user_id', user.id)
         .in('name', FAKE_PRODUCT_NAMES);
 
       if (error) throw error;
@@ -288,7 +322,7 @@ export function AppProvider({ children }) {
     }
 
     const { data, error } = await supabase
-      .from('quotes_old')
+      .from(LEGACY_QUOTES_TABLE)
       .insert({
         user_id: user.id,
         product_id: newQuote.product_id,
@@ -331,7 +365,7 @@ export function AppProvider({ children }) {
     }
 
     const { data, error } = await supabase
-      .from('quotes_old')
+      .from(LEGACY_QUOTES_TABLE)
       .update({
         supplier_name: updatedQuote.supplierName,
         fields: {
@@ -367,7 +401,7 @@ export function AppProvider({ children }) {
       return;
     }
 
-    const { error } = await supabase.from('quotes_old').delete().eq('id', quoteId);
+    const { error } = await supabase.from(LEGACY_QUOTES_TABLE).delete().eq('id', quoteId);
     if (error) throw error;
     setQuotes(prev => prev.filter(q => q.id !== quoteId));
     setSelectedQuotes(prev => prev.filter(id => id !== quoteId));
@@ -432,9 +466,35 @@ export function AppProvider({ children }) {
       .insert(lineItemsToInsert)
       .select();
 
-    if (lineItemsError) throw lineItemsError;
+    if (lineItemsError) {
+      // Roll the parent row back. Without this, a failed line-item insert left
+      // an empty supplier_quotes row behind on every retry.
+      const { error: rollbackError } = await supabase
+        .from('supplier_quotes')
+        .delete()
+        .eq('id', quoteData.id);
+      if (rollbackError) {
+        console.error('[AppContext] Failed to roll back orphaned supplier quote:', rollbackError.message);
+      }
+      throw lineItemsError;
+    }
 
     console.log(`✅ [AppContext] Saved supplier quote with ${lineItemsData.length} line items`);
+
+    // Fold the new rows into the in-memory line-item cache. This step was
+    // missing, so a freshly uploaded quote did not appear (and quote counts did
+    // not move) until the user did a full page reload.
+    const enrichedLineItems = lineItemsData.map(item => ({
+      ...item,
+      supplierName: quoteData.supplier_name,
+      currency: quoteData.currency || 'USD',
+      incoterm: quoteData.incoterm || '',
+      supplier: quoteData,
+      supplier_quote: quoteData,
+    }));
+
+    allLineItemsRef.current = [...enrichedLineItems, ...allLineItemsRef.current];
+    setAllLineItems(allLineItemsRef.current);
 
     return {
       ...quoteData,
@@ -442,33 +502,42 @@ export function AppProvider({ children }) {
     };
   };
 
-  // Fee actions
-  const updateFees = (newFees) => {
-    setFees(newFees);
-  };
+  // ============================================
+  // FEE ACTIONS
+  // ============================================
+  // These used to touch local state only, so every landed-cost fee edit was
+  // lost on reload even though the app read `fees` back from user_settings.
+  // Each mutation now writes through to the database.
+  const commitFees = useCallback(async (nextFees) => {
+    setFees(nextFees);
+    try {
+      await persistSettings({ fees: nextFees });
+    } catch (error) {
+      console.error('Failed to save fees:', error);
+      throw error;
+    }
+  }, [user]);
 
-  const addFee = (fee) => {
+  const updateFees = (newFees) => commitFees(newFees);
+
+  const addFee = async (fee) => {
     const newFee = {
-      id: `fee-${Date.now()}`,
+      id: `fee-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       name: fee.name || 'New Fee',
       type: fee.type || 'fixed',
       value: fee.value || 0,
     };
-    setFees(prev => [...prev, newFee]);
+    await commitFees([...fees, newFee]);
     return newFee;
   };
 
-  const updateFee = (feeId, updates) => {
-    setFees(prev => prev.map(f => f.id === feeId ? { ...f, ...updates } : f));
-  };
+  const updateFee = (feeId, updates) =>
+    commitFees(fees.map(f => (f.id === feeId ? { ...f, ...updates } : f)));
 
-  const deleteFee = (feeId) => {
-    setFees(prev => prev.filter(f => f.id !== feeId));
-  };
+  const deleteFee = (feeId) => commitFees(fees.filter(f => f.id !== feeId));
 
-  const resetFees = () => {
-    setFees(DEFAULT_FEES);
-  };
+  const resetFees = () => commitFees(DEFAULT_FEES);
+
 
   // ============================================
   // LANDED COST CALCULATION
@@ -700,14 +769,79 @@ export function AppProvider({ children }) {
     return data || [];
   }, [user]);
 
+  /**
+   * Persist user settings.
+   *
+   * `apiKey` is write-only: pass a string to replace the stored key, pass null
+   * to clear it, omit it to leave it untouched. It is never read back into
+   * browser state - only the `hasApiKey` flag is.
+   */
+  const persistSettings = async (patch) => {
+    if (!user) throw new Error('User not authenticated');
+
+    const row = {};
+    if (patch.currency !== undefined) row.currency = patch.currency;
+    if (patch.fees !== undefined) row.fees = patch.fees;
+    if (patch.fxRates !== undefined) row.fx_rates = patch.fxRates;
+    if (patch.apiKey !== undefined) row.api_key = patch.apiKey || null;
+
+    if (Object.keys(row).length === 0) return;
+
+    // onConflict on the unique user_id avoids the select-then-branch race that
+    // could insert two rows for the same user.
+    const { error } = await supabase
+      .from('user_settings')
+      .upsert({ user_id: user.id, ...row }, { onConflict: 'user_id' });
+
+    if (error) throw error;
+  };
+
   const updateSettings = async (newSettings) => {
-    const { data: existing } = await supabase.from('user_settings').select('id').eq('user_id', user.id).single();
-    if (existing) {
-      await supabase.from('user_settings').update({ api_key: newSettings.apiKey, currency: newSettings.currency }).eq('user_id', user.id);
-    } else {
-      await supabase.from('user_settings').insert({ user_id: user.id, api_key: newSettings.apiKey, currency: newSettings.currency });
+    await persistSettings(newSettings);
+
+    setSettings(prev => ({
+      ...prev,
+      currency: newSettings.currency ?? prev.currency,
+      fxRates: newSettings.fxRates ?? prev.fxRates,
+      hasApiKey:
+        newSettings.apiKey === undefined
+          ? prev.hasApiKey
+          : Boolean(newSettings.apiKey),
+    }));
+  };
+
+  /**
+   * Export everything the signed-in user owns as a JSON backup object.
+   * The Settings page called actions.exportData(), which did not exist and
+   * threw a TypeError on click.
+   */
+  const exportData = () => ({
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    // Deliberately excludes user_settings: it holds the API key.
+    data: { products, quotes, suppliers, orders, documents, lineItems: allLineItems },
+  });
+
+  /**
+   * Permanently delete every row this user owns.
+   * The "Clear all data" button previously removed an unused localStorage key
+   * and reloaded, so it claimed to delete everything and deleted nothing.
+   */
+  const clearAllData = async () => {
+    if (!user) throw new Error('User not authenticated');
+
+    // Order matters: quote_line_items and documents cascade from their parents,
+    // but delete explicitly so nothing is left if a cascade is missing.
+    const tables = ['documents', 'supplier_quotes', LEGACY_QUOTES_TABLE, 'orders', 'suppliers', 'products'];
+
+    for (const table of tables) {
+      const { error } = await supabase.from(table).delete().eq('user_id', user.id);
+      if (error && !isMissingTableError(error)) {
+        throw new Error(`Failed to clear ${table}: ${error.message}`);
+      }
     }
-    setSettings(newSettings);
+
+    await fetchAllData();
   };
 
   const toggleQuoteSelection = (quoteId) => {
@@ -729,8 +863,11 @@ export function AppProvider({ children }) {
    */
   const getLineItemsForBuyingIntent = useCallback((buyingIntentId) => {
     if (!user) return [];
-    return allLineItemsRef.current.filter(item => item.linked_buying_intent_id === buyingIntentId);
-  }, [user]);
+    // Reads `allLineItems` (state), not the ref. Keying off the ref meant the
+    // callback identity never changed when line items did, so memoised
+    // consumers kept showing stale counts after an upload.
+    return allLineItems.filter(item => item.linked_buying_intent_id === buyingIntentId);
+  }, [user, allLineItems]);
 
   // Legacy alias for backwards compatibility
   const getLineItemsForProduct = getLineItemsForBuyingIntent;
@@ -745,22 +882,42 @@ export function AppProvider({ children }) {
   }), [getProductQuotes, getSupplierQuotes, getProductById, getActiveOrders, getDocumentCategories,
        getLineItemsForBuyingIntent, getDocumentsForBuyingIntent, calculateLandedCost]);
 
-  const value = {
-    state: { products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading },
-    actions: {
-      addProduct, updateProduct, deleteProduct, finalizeBuyingIntent,
-      addQuote, updateQuote, deleteQuote,
-      addSupplierQuote, // NEW: Multi-item quote support
-      addSupplier, updateSupplier, deleteSupplier,
-      addOrder, updateOrder, deleteOrder,
-      addDocument, updateDocument, deleteDocument,
-      updateFees, addFee, updateFee, deleteFee, resetFees,
-      updateSettings, toggleQuoteSelection, setSelectedQuotes,
-      refreshData: fetchAllData,
-      clearAllSeedData,
-    },
-    computed: computedMemo,
+  // Actions are only ever invoked from event handlers, never used as render
+  // inputs, so we expose a referentially stable facade that always dispatches
+  // to the latest closure. Without this the whole context value changed
+  // identity on every provider render and re-rendered every consumer.
+  const latestActions = useRef({});
+  latestActions.current = {
+    addProduct, updateProduct, deleteProduct, finalizeBuyingIntent,
+    addQuote, updateQuote, deleteQuote,
+    addSupplierQuote, // NEW: Multi-item quote support
+    addSupplier, updateSupplier, deleteSupplier,
+    addOrder, updateOrder, deleteOrder,
+    addDocument, updateDocument, deleteDocument,
+    updateFees, addFee, updateFee, deleteFee, resetFees,
+    updateSettings, toggleQuoteSelection, setSelectedQuotes,
+    refreshData: fetchAllData,
+    clearAllSeedData, clearAllData, exportData,
   };
+
+  const actions = useMemo(() => {
+    const stable = {};
+    for (const key of Object.keys(latestActions.current)) {
+      stable[key] = (...args) => latestActions.current[key](...args);
+    }
+    return stable;
+  }, []);
+
+  const state = useMemo(
+    () => ({ products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems }),
+    [products, quotes, suppliers, orders, documents, fees, settings, selectedQuotes, loading, allLineItems]
+  );
+
+  // Memoised so consumers do not re-render on every provider render
+  const value = useMemo(
+    () => ({ state, actions, computed: computedMemo }),
+    [state, actions, computedMemo]
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

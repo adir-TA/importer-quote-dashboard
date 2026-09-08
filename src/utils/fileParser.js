@@ -134,105 +134,11 @@ export async function pdfToBase64(file) {
   });
 }
 
-// Extract data using AI (placeholder for API integration)
-export async function extractWithAI(fileData, apiKey) {
-  if (!apiKey) {
-    throw new Error('API key is required for AI extraction');
-  }
+// NOTE: extractWithAI() lived here and POSTed straight to api.anthropic.com
+// from the browser (CORS-blocked, and it would have exposed the API key).
+// Nothing referenced it. Quote extraction goes through the backend via
+// src/utils/quoteExtractionService.js.
 
-  // Build the message based on file type
-  let content = [];
-  
-  if (fileData.type === 'image') {
-    content = [
-      {
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: fileData.mimeType,
-          data: fileData.base64
-        }
-      },
-      {
-        type: 'text',
-        text: `Extract all quote/pricing information from this image. Return a JSON object with field names as keys and values. Look for: supplier name, product details, price, MOQ, lead time, payment terms, shipping terms, packaging info, etc. Only return valid JSON, no explanation.`
-      }
-    ];
-  } else if (fileData.type === 'pdf') {
-    content = [
-      {
-        type: 'document',
-        source: {
-          type: 'base64',
-          media_type: 'application/pdf',
-          data: fileData.base64
-        }
-      },
-      {
-        type: 'text',
-        text: `Extract all quote/pricing information from this PDF. Return a JSON object with field names as keys and values. Look for: supplier name, product details, price, MOQ, lead time, payment terms, shipping terms, packaging info, etc. Only return valid JSON, no explanation.`
-      }
-    ];
-  } else {
-    // For Excel/CSV, we already have the data parsed
-    return {
-      success: true,
-      fields: fileData.fields || {},
-      supplier: ''
-    };
-  }
-
-  try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{
-          role: 'user',
-          content
-        }]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = data.content[0].text;
-    
-    // Try to parse as JSON
-    try {
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const parsed = JSON.parse(jsonMatch[0]);
-        return {
-          success: true,
-          fields: parsed,
-          supplier: parsed.supplier || parsed.Supplier || parsed['Supplier Name'] || ''
-        };
-      }
-    } catch (e) {
-      // If JSON parsing fails, return raw text
-    }
-    
-    return {
-      success: true,
-      fields: { 'Raw Data': text },
-      supplier: ''
-    };
-  } catch (error) {
-    throw new Error('AI extraction failed: ' + error.message);
-  }
-}
-
-// Main file parser function
 export async function parseFile(file) {
   const extension = file.name.split('.').pop().toLowerCase();
   
@@ -261,5 +167,4 @@ export default {
   parseCSV,
   imageToBase64,
   pdfToBase64,
-  extractWithAI
 };

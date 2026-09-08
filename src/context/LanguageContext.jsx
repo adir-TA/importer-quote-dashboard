@@ -1,11 +1,17 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import translations from '../i18n/translations';
 
 const LanguageContext = createContext(null);
 
 export function LanguageProvider({ children }) {
+  // localStorage access throws outright in some privacy modes. An unguarded
+  // read here white-screened the entire app before it rendered anything.
   const [language, setLanguage] = useState(() => {
-    return localStorage.getItem('ha-tools-language') || 'en';
+    try {
+      return localStorage.getItem('ha-tools-language') || 'en';
+    } catch {
+      return 'en';
+    }
   });
 
   const isRTL = language === 'he';
@@ -14,7 +20,11 @@ export function LanguageProvider({ children }) {
   useEffect(() => {
     document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
-    localStorage.setItem('ha-tools-language', language);
+    try {
+      localStorage.setItem('ha-tools-language', language);
+    } catch {
+      // Persisting the preference is best-effort
+    }
   }, [language, isRTL]);
 
   const toggleLanguage = useCallback(() => {
@@ -44,8 +54,13 @@ export function LanguageProvider({ children }) {
     return value;
   }, [language]);
 
+  const value = useMemo(
+    () => ({ language, setLanguage, toggleLanguage, isRTL, t }),
+    [language, toggleLanguage, isRTL, t]
+  );
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage, toggleLanguage, isRTL, t }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { Settings as SettingsIcon, Key, Globe, Database, Trash2, Download, Upload, Check, Eye, EyeOff } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Key, Trash2, Download, Check, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
+import { DEFAULT_FX_RATES, SUPPORTED_CURRENCIES } from '../utils/currency';
+import { downloadBlob } from '../utils/helpers';
 
 function Settings() {
   const { state, actions } = useAppContext();
@@ -10,15 +12,80 @@ function Settings() {
   const { confirm, alert: showAlert } = useModal();
   const { settings, products, quotes, suppliers, orders, documents } = state;
 
-  const [apiKey, setApiKey] = useState(settings.apiKey || '');
+  // The API key is write-only: the browser only ever learns whether one is
+  // stored (settings.hasApiKey), never its value.
+  const [apiKeyInput, setApiKeyInput] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [currency, setCurrency] = useState(settings.currency || 'USD');
+  const [rates, setRates] = useState(() => ({ ...DEFAULT_FX_RATES, ...(settings.fxRates || {}) }));
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const handleSaveSettings = () => {
-    actions.updateSettings({ apiKey, currency });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  // Re-sync when settings finish loading from the database
+  useEffect(() => {
+    setCurrency(settings.currency || 'USD');
+    setRates({ ...DEFAULT_FX_RATES, ...(settings.fxRates || {}) });
+  }, [settings.currency, settings.fxRates]);
+
+  const handleRateChange = (code, value) => {
+    setRates(prev => ({ ...prev, [code]: value }));
+  };
+
+  const handleSaveSettings = async () => {
+    setSaveError('');
+
+    // Validate the rate table before writing it - a bad rate silently corrupts
+    // every price comparison in the app.
+    const cleanedRates = {};
+    for (const [code, value] of Object.entries(rates)) {
+      const num = typeof value === 'number' ? value : parseFloat(value);
+      if (!Number.isFinite(num) || num <= 0) {
+        setSaveError(`Exchange rate for ${code} must be a positive number.`);
+        return;
+      }
+      cleanedRates[code] = num;
+    }
+
+    if (!Number.isFinite(cleanedRates[currency])) {
+      setSaveError(`Add an exchange rate for your base currency (${currency}).`);
+      return;
+    }
+
+    setBusy(true);
+    try {
+      await actions.updateSettings({
+        currency,
+        fxRates: cleanedRates,
+        // Only send the key when the user actually typed a new one
+        ...(apiKeyInput.trim() ? { apiKey: apiKeyInput.trim() } : {}),
+      });
+      setApiKeyInput('');
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (error) {
+      setSaveError(error.message || 'Failed to save settings');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRemoveApiKey = async () => {
+    const confirmed = await confirm({
+      title: 'Remove API key',
+      message: 'Quote extraction and the AI helpers will stop working until you add a key again.',
+      type: 'danger',
+      confirmText: 'Remove key',
+    });
+    if (!confirmed) return;
+
+    try {
+      await actions.updateSettings({ apiKey: null });
+      setApiKeyInput('');
+      showAlert({ title: 'Removed', message: 'Your API key has been deleted.', type: 'success' });
+    } catch (error) {
+      setSaveError(error.message || 'Failed to remove API key');
+    }
   };
 
   const handleClearSeedData = async () => {
@@ -42,42 +109,36 @@ function Settings() {
   const handleClearAllData = async () => {
     const confirmed = await confirm({
       title: 'Clear All Data',
-      message: 'This will permanently delete all products, quotes, suppliers, orders, and documents. This cannot be undone!',
+      message: 'This will permanently delete all Buying Intents, quotes, suppliers, orders, and documents. This cannot be undone!',
       type: 'danger',
       confirmText: 'Delete Everything'
     });
 
-    if (confirmed) {
-      localStorage.removeItem('ha-tools-state');
-      window.location.reload();
+    if (!confirmed) return;
+
+    setBusy(true);
+    try {
+      // This used to just remove an unused localStorage key and reload, so it
+      // told the user everything was deleted while deleting nothing.
+      await actions.clearAllData();
+      showAlert({ title: 'Deleted', message: 'All of your data has been removed.', type: 'success' });
+    } catch (error) {
+      showAlert({ title: 'Error', message: 'Failed to clear data: ' + error.message, type: 'error' });
+    } finally {
+      setBusy(false);
     }
   };
 
   const handleExportBackup = () => {
-    actions.exportData();
-  };
-
-  const handleImportBackup = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
-      const file = e.target.files[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const data = JSON.parse(event.target.result);
-            actions.importData(data);
-            showAlert({ title: 'Success', message: 'Data imported successfully!', type: 'success' });
-          } catch (err) {
-            showAlert({ title: 'Error', message: 'Failed to import: Invalid file format', type: 'error' });
-          }
-        };
-        reader.readAsText(file);
-      }
-    };
-    input.click();
+    try {
+      const backup = actions.exportData();
+      downloadBlob(
+        new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' }),
+        `ha-tools-backup-${new Date().toISOString().split('T')[0]}.json`
+      );
+    } catch (error) {
+      showAlert({ title: 'Error', message: 'Failed to export: ' + error.message, type: 'error' });
+    }
   };
 
   const stats = [
@@ -124,29 +185,90 @@ function Settings() {
                 <input
                   type={showApiKey ? 'text' : 'password'}
                   className="form-input"
-                  placeholder="sk-ant-..."
-                  value={apiKey}
-                  onChange={e => setApiKey(e.target.value)}
+                  placeholder={settings.hasApiKey ? '•••••••••••••••• (saved)' : 'sk-ant-...'}
+                  value={apiKeyInput}
+                  onChange={e => setApiKeyInput(e.target.value)}
+                  autoComplete="off"
+                  spellCheck={false}
                 />
-                <button className="icon-btn" onClick={() => setShowApiKey(!showApiKey)}>
+                <button
+                  type="button"
+                  className="icon-btn"
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  aria-label={showApiKey ? 'Hide key' : 'Show key'}
+                >
                   {showApiKey ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
+                {settings.hasApiKey && (
+                  <button type="button" className="btn btn-secondary" onClick={handleRemoveApiKey}>
+                    Remove
+                  </button>
+                )}
               </div>
-              <p className="form-hint">{t('settings.apiKeyHint')}</p>
+              <p className="form-hint">
+                {settings.hasApiKey
+                  ? 'A key is saved. It is stored server-side and never sent back to your browser — type a new one to replace it.'
+                  : t('settings.apiKeyHint')}
+              </p>
             </div>
-            <div className="form-group" style={{ marginBottom: 0 }}>
+
+            <div className="form-group">
               <label className="form-label">{t('settings.defaultCurrency')}</label>
-              <select className="form-select" value={currency} onChange={e => setCurrency(e.target.value)} style={{ maxWidth: '200px' }}>
-                <option value="USD">USD ($)</option>
-                <option value="EUR">EUR (€)</option>
-                <option value="GBP">GBP (£)</option>
-                <option value="CNY">CNY (¥)</option>
-                <option value="ILS">ILS (₪)</option>
+              <select
+                className="form-select"
+                value={currency}
+                onChange={e => setCurrency(e.target.value)}
+                style={{ maxWidth: '200px' }}
+              >
+                {SUPPORTED_CURRENCIES.map(code => (
+                  <option key={code} value={code}>{code}</option>
+                ))}
               </select>
+              <p className="form-hint">
+                Quotes in other currencies are converted to this currency for ranking and landed cost.
+              </p>
             </div>
+
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label">Exchange rates</label>
+              <p className="form-hint" style={{ marginTop: 0, marginBottom: '12px' }}>
+                Units of each currency per 1 USD. These are manual — update them
+                to match your bank's rates, they are not fetched live.
+              </p>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+                gap: '12px',
+              }}>
+                {SUPPORTED_CURRENCIES.map(code => (
+                  <div key={code}>
+                    <label className="form-label" style={{ fontSize: '0.8rem' }} htmlFor={`rate-${code}`}>
+                      {code}
+                    </label>
+                    <input
+                      id={`rate-${code}`}
+                      type="number"
+                      step="0.0001"
+                      min="0"
+                      className="form-input"
+                      value={rates[code] ?? ''}
+                      disabled={code === 'USD'}
+                      onChange={e => handleRateChange(code, e.target.value)}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {saveError && (
+              <div className="auth-error" role="alert" style={{ marginTop: '16px' }}>
+                <AlertCircle size={18} />
+                <span>{saveError}</span>
+              </div>
+            )}
           </div>
           <div className="modal-footer" style={{ borderTop: '1px solid var(--border)' }}>
-            <button className="btn btn-primary" onClick={handleSaveSettings}>
+            <button className="btn btn-primary" onClick={handleSaveSettings} disabled={busy}>
               {saved ? <><Check size={16} /> {t('settings.saved')}</> : t('settings.saveSettings')}
             </button>
           </div>
@@ -165,10 +287,14 @@ function Settings() {
               <button className="btn btn-secondary" onClick={handleExportBackup}>
                 <Download size={16} /> {t('settings.exportBackup')}
               </button>
-              <button className="btn btn-secondary" onClick={handleImportBackup}>
-                <Upload size={16} /> {t('settings.importBackup')}
-              </button>
             </div>
+            {/* The Import button called actions.importData(), which never
+                existed and threw a TypeError. Restoring a backup needs
+                conflict handling that does not exist yet, so the button is
+                removed rather than left broken. */}
+            <p className="form-hint" style={{ marginTop: '12px' }}>
+              Your API key is never included in the backup file.
+            </p>
           </div>
         </div>
 
@@ -182,10 +308,10 @@ function Settings() {
               {t('settings.dangerDesc')}
             </p>
             <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
-              <button className="btn" onClick={handleClearSeedData} style={{ background: '#f59e0b', color: 'white', padding: '12px 20px' }}>
+              <button className="btn" onClick={handleClearSeedData} disabled={busy} style={{ background: '#f59e0b', color: 'white', padding: '12px 20px' }}>
                 <Trash2 size={16} /> {t('settings.deleteFakeSeed')}
               </button>
-              <button className="btn btn-danger" onClick={handleClearAllData}>
+              <button className="btn btn-danger" onClick={handleClearAllData} disabled={busy}>
                 <Trash2 size={16} /> {t('settings.clearAllData')}
               </button>
             </div>

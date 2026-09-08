@@ -10,7 +10,8 @@ import UploadDocumentModal from '../components/UploadDocumentModal';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { useAuth } from '../context/AuthContext';
-import API_BASE_URL from '../config/api';
+import { uploadToStorage, validateFile, safeExtension, IMAGE_MIME_TYPES, MAX_IMAGE_BYTES } from '../utils/storageUpload';
+import { downloadBlob } from '../utils/helpers';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CNY', 'ILS'];
 const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
@@ -19,12 +20,21 @@ const INCOTERMS = ['FOB', 'CIF', 'EXW', 'DDP', 'DAP', 'CFR'];
 async function getImageDimensions(buffer) {
   return new Promise((resolve, reject) => {
     const blob = new Blob([buffer]);
+    const url = URL.createObjectURL(blob);
     const img = new Image();
+
+    // The object URL was never revoked, leaking a blob per exported image.
+    const cleanup = () => URL.revokeObjectURL(url);
+
     img.onload = () => {
+      cleanup();
       resolve({ width: img.width, height: img.height });
     };
-    img.onerror = reject;
-    img.src = URL.createObjectURL(blob);
+    img.onerror = (err) => {
+      cleanup();
+      reject(err);
+    };
+    img.src = url;
   });
 }
 
@@ -315,13 +325,10 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
     : `RFQ_${productList.length}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
 
   const buffer = await workbook.xlsx.writeBuffer();
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-  const url = window.URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  window.URL.revokeObjectURL(url);
+  downloadBlob(
+    new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+    filename
+  );
 }
 
 function ProductDetail() {
@@ -784,31 +791,23 @@ function ProductDetail() {
 
       // Handle image upload if changed
       if (selectedImage) {
-        const fileExt = selectedImage.name.split('.').pop();
+        // Validate before uploading - there was no size or type check at all,
+        // so an oversized or non-image file failed opaquely at the bucket.
+        const validationError = validateFile(selectedImage, {
+          allowedTypes: IMAGE_MIME_TYPES,
+          maxBytes: MAX_IMAGE_BYTES,
+          label: 'image',
+        });
+        if (validationError) throw new Error(validationError);
+
+        const fileExt = safeExtension(selectedImage.name, 'png');
         const storagePath = `${user.id}/products/${Date.now()}.${fileExt}`;
 
-        // Get presigned upload URL from backend (bypasses RLS, no size limit)
-        const urlResponse = await fetch(`${API_BASE_URL}/api/storage/create-upload-url`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bucket: 'business-cards', path: storagePath }),
+        const { publicUrl } = await uploadToStorage({
+          bucket: 'business-cards',
+          path: storagePath,
+          file: selectedImage,
         });
-
-        if (!urlResponse.ok) {
-          const err = await urlResponse.json().catch(() => ({}));
-          throw new Error(err.error || 'Failed to prepare image upload');
-        }
-
-        const { signedUrl, publicUrl } = await urlResponse.json();
-
-        // Upload directly to Supabase Storage (no Vercel size limit)
-        const uploadResponse = await fetch(signedUrl, {
-          method: 'PUT',
-          headers: { 'Content-Type': selectedImage.type },
-          body: selectedImage,
-        });
-
-        if (!uploadResponse.ok) throw new Error('Image upload failed');
 
         imageData = {
           image_storage_path: storagePath,

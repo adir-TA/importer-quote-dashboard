@@ -1,7 +1,46 @@
 // ============================================
-// API HELPERS - SAFE JSON PARSING
+// API HELPERS - AUTH + SAFE JSON PARSING
 // ============================================
-// Utilities for handling API responses that might not be valid JSON
+// Utilities for calling the backend API and handling responses that might not
+// be valid JSON.
+
+// The access-token source is injected rather than imported, so this module
+// stays free of browser-only dependencies and remains unit-testable in Node.
+let accessTokenProvider = async () => null;
+
+/**
+ * Register how to obtain the current Supabase access token.
+ * Called once at startup (see src/main.jsx).
+ */
+export function setAccessTokenProvider(provider) {
+  accessTokenProvider = typeof provider === 'function' ? provider : async () => null;
+}
+
+/** Current access token, or null when signed out / not wired up. */
+export async function getAccessToken() {
+  try {
+    return (await accessTokenProvider()) || null;
+  } catch (error) {
+    console.error('[getAccessToken] Failed to read session:', error);
+    return null;
+  }
+}
+
+/**
+ * fetch() with the Supabase bearer token attached.
+ * Use this for every call to the backend API - every /api route now requires
+ * it. The backend used to trust a `userId` field in the request body instead.
+ */
+export async function authFetch(url, options = {}) {
+  const token = await getAccessToken();
+  const headers = new Headers(options.headers || {});
+
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  return fetch(url, { ...options, headers });
+}
 
 /**
  * Safely parse JSON text without throwing
@@ -37,7 +76,7 @@ export function parseJsonSafe(text) {
  */
 export async function fetchJson(url, options = {}) {
   try {
-    const response = await fetch(url, options);
+    const response = await authFetch(url, options);
 
     // Read as text first (safer than response.json())
     const text = await response.text();
@@ -214,13 +253,26 @@ export function formatApiError(error, httpStatus = null) {
     'INVALID_JSON': 'Invalid server response format',
     'INVALID_RESPONSE': 'Invalid server response format',
     'NETWORK_ERROR': 'Network connection failed - check your connection',
+    'UNAUTHENTICATED': 'Your session has expired - please sign in again',
+    'FORBIDDEN_PATH': 'You do not have access to that file',
+    'INVALID_BUCKET': 'Unknown storage location',
+    'MISSING_FIELDS': 'Request is missing required information',
+    'MISSING_TEXT': 'Paste some quote text first',
+    'MISSING_PROMPT': 'Nothing to send to the AI',
+    'STORAGE_ERROR': 'File storage error - please try again',
+    'AI_REQUEST_FAILED': 'AI request failed - please try again',
+    'NOT_FOUND': 'The requested item no longer exists',
+    'DB_ERROR': 'Database error - please try again',
+    'INVALID_FILE': 'That file type is not supported',
   };
 
   let contextMessage = codeMessages[code] || 'An error occurred';
 
   // Add HTTP status context if available
   if (status) {
-    if (status === 401 || status === 403) {
+    if (status === 401 && code === 'UNAUTHENTICATED') {
+      contextMessage = 'Your session has expired - please sign in again';
+    } else if (status === 401 || status === 403) {
       contextMessage = 'Missing or invalid API key - add your Anthropic API key in Settings';
     } else if (status === 429) {
       contextMessage = 'Rate limited by API - please wait a moment and try again';

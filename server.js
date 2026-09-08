@@ -16,12 +16,23 @@ dotenv.config();
 const supabaseUrl = process.env.VITE_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseServiceKey) {
+const supabaseConfigured = Boolean(supabaseUrl && supabaseServiceKey);
+
+if (!supabaseConfigured) {
+  // NOTE: deliberately NOT process.exit(1). Under serverless this module is the
+  // function entrypoint, so exiting here killed every invocation - including the
+  // health checks meant to diagnose the missing configuration. Fail per-request
+  // instead, with a readable error.
   console.error('❌ Missing Supabase credentials. Add VITE_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY to .env');
-  process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseServiceKey);
+// Service-role client. Bypasses RLS, so every route that uses it MUST first
+// establish who the caller is (see requireAuth) and scope the query to them.
+const supabase = supabaseConfigured
+  ? createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
+  : null;
 
 // ============================================
 // UTILITY: CRASH-PROOF JSON RESPONSE HELPER
@@ -32,9 +43,12 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey);
  * Handles: circular refs, BigInt, Buffer, Error, undefined, functions, symbols
  */
 function safeSerialize(obj) {
-  const seen = new WeakSet();
+  // Tracks the ancestor chain of the value currently being serialized.
+  // A plain WeakSet of everything visited would flag legitimately *shared*
+  // (non-circular) references as '[Circular]'.
+  const ancestors = [];
 
-  return JSON.stringify(obj, (key, value) => {
+  return JSON.stringify(obj, function replacer(key, value) {
     // Handle primitives
     if (value === null || value === undefined) {
       return value;
@@ -55,11 +69,16 @@ function safeSerialize(obj) {
       return value;
     }
 
-    // Handle circular references
-    if (seen.has(value)) {
+    // Pop ancestors that we have finished descending into
+    while (ancestors.length > 0 && ancestors[ancestors.length - 1] !== this) {
+      ancestors.pop();
+    }
+
+    // Handle circular references (value is one of its own ancestors)
+    if (ancestors.includes(value)) {
       return '[Circular]';
     }
-    seen.add(value);
+    ancestors.push(value);
 
     // Convert Buffer to base64 string
     if (Buffer.isBuffer(value)) {
@@ -150,12 +169,17 @@ function sendError(res, error, statusCode = 500, code = 'INTERNAL_ERROR', reques
     requestId = generateRequestId();
   }
 
-  const message = typeof error === 'string' ? error : error.message;
+  // `error` may be a string, an Error, null, or anything else a caller threw.
+  const message =
+    typeof error === 'string'
+      ? error
+      : (error && error.message) || 'Unknown error';
+  const name = (error && typeof error === 'object' && error.name) || 'Error';
 
   // Log full error server-side with requestId and step
   console.error(`[ERROR ${requestId}] Step: ${step}, Code: ${code}`);
   console.error(`[ERROR ${requestId}] Message: ${message}`);
-  if (error.stack) {
+  if (error && error.stack) {
     console.error(`[ERROR ${requestId}] Stack:`, error.stack);
   }
 
@@ -164,13 +188,21 @@ function sendError(res, error, statusCode = 500, code = 'INTERNAL_ERROR', reques
     ok: false,
     requestId,
     error: {
-      name: typeof error === 'object' ? error.name : 'Error',
+      name,
       message,
       code,
       step,
     },
   });
 }
+
+// ============================================
+// MODEL
+// ============================================
+// Single source of truth. Three separate `const MODEL = ...` declarations had
+// drifted apart (the AI helpers used an older id than extraction).
+// Override with ANTHROPIC_MODEL without touching code.
+const MODEL_ID = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929';
 
 // ============================================
 // EXTRACTION SYSTEM PROMPT
@@ -236,11 +268,19 @@ function detectAndCorrectQuantityType(data) {
   if (!data || !data.lineItems) return data;
 
   data.lineItems = data.lineItems.map(item => {
-    const qtyValue = item.quantity_value || item.moq || item.quantity;
+    const rawQty = item.quantity_value ?? item.moq ?? item.quantity;
+    // The model sometimes returns "1,000" or "500 pcs" - the numeric
+    // comparisons below silently did nothing for those.
+    const qtyValue =
+      typeof rawQty === 'number'
+        ? rawQty
+        : rawQty != null && String(rawQty).replace(/[^\d.]/g, '') !== ''
+          ? parseFloat(String(rawQty).replace(/[^\d.]/g, ''))
+          : null;
     const qtyType = item.quantity_type || 'UNKNOWN';
 
     // If no quantity data, skip
-    if (!qtyValue) {
+    if (qtyValue === null || Number.isNaN(qtyValue)) {
       return {
         ...item,
         quantity_value: null,
@@ -285,13 +325,16 @@ function detectAndCorrectQuantityType(data) {
 function sanitizeExtractedData(data) {
   if (!data || !data.lineItems) return data;
 
-  // Forbidden patterns in product_name
+  // Forbidden patterns in product_name.
+  // All unit/keyword patterns are anchored with word boundaries. Without them
+  // `box` matched inside "Boxing Gloves" and `\d+\s*g` matched inside
+  // "5 Gallon Drum", silently mangling legitimate product names.
   const forbiddenPatterns = [
-    /\d+\s*[x×*]\s*\d+/i,  // dimensions: 50x80, 225×175
-    /\d+\s*(cm|mm|inch|in|ft)/i,  // units: 50cm, 175mm
-    /\d+\s*(gsm|g|kg|oz|lb)/i,  // weight: 100gsm, 50g
-    /(moq|pcs\/box|pcs\/ctn|box|pack|carton)/i,  // packing terms
-    /\$\d+|\d+\s*(usd|eur|cny|rmb)/i,  // prices
+    /\b\d+(?:\.\d+)?\s*[x×*]\s*\d+(?:\.\d+)?(?:\s*[x×*]\s*\d+(?:\.\d+)?)?\b/i,  // dimensions: 50x80, 225×175×42
+    /\b\d+(?:\.\d+)?\s*(cm|mm|inch|in|ft)\b/i,  // units: 50cm, 175mm
+    /\b\d+(?:\.\d+)?\s*(gsm|g|kg|oz|lb)\b/i,  // weight: 100gsm, 50g
+    /\b(moq|pcs\s*\/\s*box|pcs\s*\/\s*ctn|pcs\s*per\s*(box|ctn|carton))\b/i,  // packing terms
+    /\$\s*\d+(?:\.\d+)?|\b\d+(?:\.\d+)?\s*(usd|eur|cny|rmb)\b/i,  // prices
   ];
 
   data.lineItems = data.lineItems.map(item => {
@@ -312,31 +355,31 @@ function sanitizeExtractedData(data) {
         const matchedText = match[0];
 
         // Try to categorize and move to appropriate field
-        if (/\d+\s*[x×*]\s*\d+/i.test(matchedText)) {
+        if (/\d+(?:\.\d+)?\s*[x×*]\s*\d+/i.test(matchedText)) {
           // Dimensions
           if (!extracted.dimensions) {
             extracted.dimensions = matchedText.trim();
           }
-        } else if (/\d+\s*(cm|mm|inch)/i.test(matchedText)) {
+        } else if (/\b\d+(?:\.\d+)?\s*(cm|mm|inch)\b/i.test(matchedText)) {
           // Also dimensions
           if (!extracted.dimensions) {
             extracted.dimensions = matchedText.trim();
           }
-        } else if (/\d+\s*(gsm|g|kg)/i.test(matchedText)) {
+        } else if (/\b\d+(?:\.\d+)?\s*(gsm|g|kg)\b/i.test(matchedText)) {
           // Weight
           if (!extracted.weight) {
-            const weightMatch = matchedText.match(/(\d+)\s*(gsm|g|kg)/i);
+            const weightMatch = matchedText.match(/(\d+(?:\.\d+)?)\s*(gsm|g|kg)/i);
             if (weightMatch) {
-              let grams = parseInt(weightMatch[1]);
+              let grams = parseFloat(weightMatch[1]);
               if (weightMatch[2].toLowerCase() === 'kg') grams *= 1000;
-              extracted.weight = grams;
+              extracted.weight = Math.round(grams);
             }
           }
-        } else if (/(pcs\/box|pcs\/ctn|pack)/i.test(matchedText)) {
+        } else if (/pcs\s*(\/|per)\s*(box|ctn|carton)/i.test(matchedText)) {
           // Packing
           if (!extracted.packing) {
             const packMatch = matchedText.match(/(\d+)\s*pcs/i);
-            if (packMatch) extracted.packing = parseInt(packMatch[1]);
+            if (packMatch) extracted.packing = parseInt(packMatch[1], 10);
           }
         }
 
@@ -614,6 +657,14 @@ function withTimeout(promise, timeoutMs, operationName) {
  * @param {string} text - Model output text
  * @returns {Object|null} - Parsed JSON object or null if extraction failed
  */
+/** Redact contact details before a model output preview reaches the logs. */
+function redactPreview(text = '') {
+  return String(text)
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL]')
+    .replace(/(?:\+?\d[\d\s().-]{7,}\d)/g, '[PHONE]')
+    .replace(/\n/g, ' ');
+}
+
 function extractJsonFromText(text) {
   if (!text) return null;
 
@@ -680,9 +731,134 @@ const upload = multer({
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// ============================================
+// CORS - explicit allowlist
+// ============================================
+// Previously `app.use(cors())` allowed every origin on every route, including
+// the service-role storage endpoints below.
+const DEFAULT_DEV_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://127.0.0.1:5173',
+];
+
+const allowedOrigins = new Set(
+  (process.env.ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean)
+);
+
+if (process.env.NODE_ENV !== 'production') {
+  DEFAULT_DEV_ORIGINS.forEach(o => allowedOrigins.add(o));
+}
+
+// Vercel serves the API from the same origin as the app, so same-origin
+// requests (no Origin header) are always fine.
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.has(origin)) return callback(null, true);
+    if (process.env.VERCEL_URL && origin === `https://${process.env.VERCEL_URL}`) {
+      return callback(null, true);
+    }
+    return callback(new Error(`Origin not allowed: ${origin}`));
+  },
+  credentials: true,
+}));
+
 app.use(express.json({ limit: '50mb' })); // Allow large image uploads
+
+// ============================================
+// AUTHENTICATION
+// ============================================
+/**
+ * Verify the Supabase access token sent by the browser and attach the user.
+ *
+ * Every endpoint that touches the service-role client must sit behind this.
+ * Without it, `userId` / `bucket` / `filePath` came straight from the request
+ * body and any anonymous caller could read or overwrite another user's files.
+ */
+async function requireAuth(req, res, next) {
+  const requestId = generateRequestId();
+  req.requestId = requestId;
+
+  if (!supabase) {
+    return sendError(
+      res,
+      'Server is not configured (missing Supabase credentials)',
+      503,
+      'MISSING_ENV',
+      requestId,
+      'auth'
+    );
+  }
+
+  const header = req.headers.authorization || '';
+  const token = header.startsWith('Bearer ') ? header.slice(7).trim() : null;
+
+  if (!token) {
+    return sendError(res, 'Authentication required', 401, 'UNAUTHENTICATED', requestId, 'auth');
+  }
+
+  try {
+    const { data, error } = await supabase.auth.getUser(token);
+    if (error || !data?.user) {
+      return sendError(res, 'Invalid or expired session', 401, 'UNAUTHENTICATED', requestId, 'auth');
+    }
+    req.user = data.user;
+    return next();
+  } catch (error) {
+    console.error(`[ERROR ${requestId}] Auth check failed:`, error.message);
+    return sendError(res, 'Could not verify session', 401, 'UNAUTHENTICATED', requestId, 'auth');
+  }
+}
+
+/**
+ * Resolve the Anthropic API key for a request WITHOUT it ever travelling
+ * through the browser. Order of preference:
+ *   1. A server-wide key (ANTHROPIC_API_KEY) - the operator pays.
+ *   2. The authenticated user's own key, read server-side from user_settings.
+ */
+async function resolveApiKey(userId) {
+  if (process.env.ANTHROPIC_API_KEY) {
+    return process.env.ANTHROPIC_API_KEY;
+  }
+
+  if (!supabase || !userId) return null;
+
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('api_key')
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('[resolveApiKey] Failed to load user settings:', error.message);
+    return null;
+  }
+
+  return data?.api_key || null;
+}
+
+/**
+ * Storage paths are always `${userId}/...`. Reject anything else, including
+ * traversal attempts, before handing the path to the service-role client.
+ */
+const ALLOWED_BUCKETS = new Set(['documents', 'business-cards']);
+
+function assertOwnedStoragePath(path, userId) {
+  if (typeof path !== 'string' || path.length === 0 || path.length > 1024) {
+    return 'Invalid path';
+  }
+  if (path.includes('..') || path.startsWith('/') || path.includes('\\')) {
+    return 'Invalid path';
+  }
+  if (!path.startsWith(`${userId}/`)) {
+    return 'Path must be inside your own folder';
+  }
+  return null;
+}
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -694,13 +870,13 @@ app.get('/api/health', (req, res) => {
 // ============================================
 
 // Health check for extract-quote endpoint
-app.get('/api/health/extract-quote', (req, res) => {
-  const hasAnthropicKey = !!process.env.ANTHROPIC_API_KEY;
+app.get('/api/health/extract-quote', requireAuth, async (req, res) => {
   const region = process.env.VERCEL_REGION || 'local';
+  const apiKey = await resolveApiKey(req.user.id);
 
   sendJson(res, 200, {
     ok: true,
-    hasEnv: hasAnthropicKey,
+    hasEnv: !!apiKey, // whether *this user* can extract, not whether a server key exists
     runtime: 'node',
     region,
     timestamp: new Date().toISOString(),
@@ -709,23 +885,25 @@ app.get('/api/health/extract-quote', (req, res) => {
 });
 
 // Debug route to test extraction pipeline without file upload
-app.post('/api/debug/extract-quote', async (req, res) => {
-  const requestId = generateRequestId();
+app.post('/api/debug/extract-quote', requireAuth, async (req, res) => {
+  const requestId = req.requestId || generateRequestId();
   let step = 'start';
 
   try {
     console.log(`🔍 [DEBUG ${requestId}] Starting debug extraction test`);
 
     step = 'validate-env';
-    // Check for API key
-    const apiKey = req.body?.apiKey || process.env.ANTHROPIC_API_KEY;
+    // Resolved server-side for the authenticated user. This route used to fall
+    // back to the operator's ANTHROPIC_API_KEY for *anonymous* callers, which
+    // made it a free, public proxy onto a billed account.
+    const apiKey = await resolveApiKey(req.user.id);
     if (!apiKey) {
-      return sendError(res, 'ANTHROPIC_API_KEY not found in env or request', 500, 'MISSING_ENV', requestId, step);
+      return sendError(res, 'No Anthropic API key configured. Add one in Settings.', 400, 'MISSING_API_KEY', requestId, step);
     }
 
     step = 'build-test-payload';
     // Create a simple test payload (text-based, no file)
-    const MODEL = 'claude-sonnet-4-5-20250929';
+    const MODEL = MODEL_ID;
     const testPayload = {
       model: MODEL,
       max_tokens: 1000,
@@ -777,7 +955,7 @@ app.post('/api/debug/extract-quote', async (req, res) => {
       ok: true,
       requestId,
       message: 'LLM call successful',
-      modelResponse: data.content?.[0]?.text?.substring(0, 200) || 'No content',
+      modelResponse: redactPreview(data.content?.[0]?.text?.substring(0, 200) || 'No content'),
       usage: data.usage,
     });
 
@@ -793,32 +971,39 @@ app.post('/api/debug/extract-quote', async (req, res) => {
 
 // Generate a presigned upload URL for any storage bucket
 // Client uploads directly to Supabase Storage — no Vercel size limit
-app.post('/api/storage/create-upload-url', express.json(), async (req, res) => {
+app.post('/api/storage/create-upload-url', requireAuth, async (req, res) => {
+  const requestId = req.requestId;
   try {
-    const { bucket, path } = req.body;
+    const { bucket, path } = req.body || {};
 
     if (!bucket || !path) {
-      return res.status(400).json({ error: 'Missing required fields: bucket, path' });
+      return sendError(res, 'Missing required fields: bucket, path', 400, 'MISSING_FIELDS', requestId, 'validate');
     }
 
-    // Create signed upload URL using service role key (bypasses RLS)
+    if (!ALLOWED_BUCKETS.has(bucket)) {
+      return sendError(res, 'Unknown storage bucket', 400, 'INVALID_BUCKET', requestId, 'validate');
+    }
+
+    // The signing below uses the service-role key and therefore bypasses RLS.
+    // Confine the caller to their own folder or they can overwrite anything.
+    const pathError = assertOwnedStoragePath(path, req.user.id);
+    if (pathError) {
+      return sendError(res, pathError, 403, 'FORBIDDEN_PATH', requestId, 'validate');
+    }
+
     const { data, error } = await supabase.storage
       .from(bucket)
       .createSignedUploadUrl(path);
 
     if (error) {
-      console.error('❌ Failed to create signed upload URL:', error);
-      return res.status(500).json({ error: error.message });
+      console.error(`[ERROR ${requestId}] Failed to create signed upload URL:`, error.message);
+      return sendError(res, error.message, 500, 'STORAGE_ERROR', requestId, 'sign');
     }
 
-    // Also generate the public URL for this path
-    const { data: urlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(path);
+    // Public URL only makes sense for public buckets
+    const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
 
-    console.log(`✅ Signed upload URL created for ${bucket}/${path}`);
-
-    res.json({
+    return sendSuccess(res, {
       signedUrl: data.signedUrl,
       token: data.token,
       path: data.path,
@@ -826,8 +1011,7 @@ app.post('/api/storage/create-upload-url', express.json(), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Create upload URL error:', error);
-    res.status(500).json({ error: error.message || 'Failed to create upload URL' });
+    return sendError(res, error, 500, 'STORAGE_ERROR', requestId, 'create-upload-url');
   }
 });
 
@@ -836,29 +1020,46 @@ app.post('/api/storage/create-upload-url', express.json(), async (req, res) => {
 // ============================================
 
 // Upload document to Supabase Storage
-app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
+app.post('/api/documents/upload', requireAuth, upload.single('file'), async (req, res) => {
+  const requestId = req.requestId;
   try {
     if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+      return sendError(res, 'No file uploaded', 400, 'MISSING_FILE', requestId, 'validate');
     }
 
-    const { userId, supplierQuoteId, buyingIntentId } = req.body;
+    const { buyingIntentId } = req.body;
+    // userId comes from the verified token, never from the request body.
+    const userId = req.user.id;
 
-    if (!userId || !buyingIntentId) {
-      return res.status(400).json({
-        error: 'Missing required fields: userId, buyingIntentId'
-      });
+    if (!buyingIntentId) {
+      return sendError(res, 'Missing required field: buyingIntentId', 400, 'MISSING_FIELDS', requestId, 'validate');
     }
 
-    // Generate file path with folder structure
+    // Confirm the caller actually owns the Buying Intent they are filing under
+    const { data: intent, error: intentError } = await supabase
+      .from('products')
+      .select('id')
+      .eq('id', buyingIntentId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (intentError) {
+      return sendError(res, intentError.message, 500, 'DB_ERROR', requestId, 'verify-owner');
+    }
+    if (!intent) {
+      return sendError(res, 'Buying Intent not found', 404, 'NOT_FOUND', requestId, 'verify-owner');
+    }
+
+    // Generate file path with folder structure. Sanitize the extension - it
+    // comes from a user-supplied filename.
     const timestamp = Date.now();
-    const fileExtension = req.file.originalname.split('.').pop();
-    const fileName = `${timestamp}.${fileExtension}`;
+    const rawExtension = (req.file.originalname.split('.').pop() || '').toLowerCase();
+    const fileExtension = /^[a-z0-9]{1,8}$/.test(rawExtension) ? rawExtension : 'bin';
+    const fileName = `${timestamp}-${crypto.randomBytes(4).toString('hex')}.${fileExtension}`;
     const filePath = `${userId}/buying-intents/${buyingIntentId}/${fileName}`;
 
-    console.log(`📤 Uploading file: ${filePath}`);
+    console.log(`📤 [${requestId}] Uploading document (${req.file.size} bytes)`);
 
-    // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
       .upload(filePath, req.file.buffer, {
@@ -867,15 +1068,13 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
       });
 
     if (uploadError) {
-      console.error('❌ Storage upload error:', uploadError);
-      return res.status(500).json({ error: uploadError.message });
+      console.error(`[ERROR ${requestId}] Storage upload error:`, uploadError.message);
+      return sendError(res, uploadError.message, 500, 'STORAGE_ERROR', requestId, 'upload');
     }
 
-    console.log(`✅ File uploaded successfully: ${uploadData.path}`);
+    console.log(`✅ [${requestId}] File uploaded successfully`);
 
-    // Return file metadata
-    res.json({
-      success: true,
+    return sendSuccess(res, {
       file: {
         path: uploadData.path,
         name: req.file.originalname,
@@ -885,51 +1084,76 @@ app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Upload error:', error);
-    res.status(500).json({ error: error.message || 'Failed to upload file' });
+    return sendError(res, error, 500, 'UPLOAD_FAILED', requestId, 'documents-upload');
   }
 });
 
+// Multer rejects oversized files and disallowed mime types by throwing.
+// Without this handler Express returned an HTML error page, which the client's
+// JSON parser then reported as "invalid server response".
+app.use('/api/documents/upload', (err, req, res, next) => {
+  if (!err) return next();
+  const requestId = req.requestId || generateRequestId();
+  const isLimit = err.code === 'LIMIT_FILE_SIZE';
+  return sendError(
+    res,
+    isLimit ? 'File is larger than the 10MB limit' : err.message,
+    isLimit ? 413 : 400,
+    isLimit ? 'PAYLOAD_TOO_LARGE' : 'INVALID_FILE',
+    requestId,
+    'multer'
+  );
+});
+
 // Get signed URL for document preview/download
-app.post('/api/documents/signed-url', async (req, res) => {
+const MAX_SIGNED_URL_TTL_SECONDS = 60 * 60; // 1 hour
+
+app.post('/api/documents/signed-url', requireAuth, async (req, res) => {
+  const requestId = req.requestId;
   try {
-    const { filePath, expiresIn = 3600 } = req.body; // Default 1 hour expiry
+    const { filePath } = req.body || {};
 
     if (!filePath) {
-      return res.status(400).json({ error: 'filePath is required' });
+      return sendError(res, 'filePath is required', 400, 'MISSING_FIELDS', requestId, 'validate');
     }
 
-    console.log(`🔗 Generating signed URL for: ${filePath}`);
+    // This endpoint used to sign ANY path with the service-role key, so any
+    // caller could read any user's private documents.
+    const pathError = assertOwnedStoragePath(filePath, req.user.id);
+    if (pathError) {
+      return sendError(res, pathError, 403, 'FORBIDDEN_PATH', requestId, 'validate');
+    }
 
-    // Generate signed URL
+    // Clamp the TTL - it was previously taken verbatim from the client.
+    const requested = parseInt(req.body?.expiresIn, 10);
+    const expiresIn = Number.isFinite(requested)
+      ? Math.min(Math.max(requested, 60), MAX_SIGNED_URL_TTL_SECONDS)
+      : MAX_SIGNED_URL_TTL_SECONDS;
+
     const { data, error } = await supabase.storage
       .from('documents')
       .createSignedUrl(filePath, expiresIn);
 
     if (error) {
-      console.error('❌ Signed URL error:', error);
-      return res.status(500).json({ error: error.message });
+      console.error(`[ERROR ${requestId}] Signed URL error:`, error.message);
+      return sendError(res, error.message, 500, 'STORAGE_ERROR', requestId, 'sign');
     }
 
-    console.log(`✅ Signed URL generated`);
-
-    res.json({
-      success: true,
+    return sendSuccess(res, {
       signedUrl: data.signedUrl,
       expiresAt: new Date(Date.now() + expiresIn * 1000).toISOString(),
     });
 
   } catch (error) {
-    console.error('❌ Signed URL error:', error);
-    res.status(500).json({ error: error.message || 'Failed to generate signed URL' });
+    return sendError(res, error, 500, 'SIGNED_URL_FAILED', requestId, 'documents-signed-url');
   }
 });
 
 // ============================================
 // EXTRACT QUOTE FROM IMAGE/PDF
 // ============================================
-app.post('/api/extract-quote', async (req, res) => {
-  const requestId = generateRequestId();
+app.post('/api/extract-quote', requireAuth, async (req, res) => {
+  const requestId = req.requestId || generateRequestId();
   let step = 'start';
 
   // TOP-LEVEL TRY-CATCH: Catches ALL errors including sync errors
@@ -970,7 +1194,7 @@ app.post('/api/extract-quote', async (req, res) => {
       return sendError(res, 'Request body is required', 400, 'MISSING_BODY', requestId, step);
     }
 
-    const { image, mediaType, apiKey } = req.body;
+    const { image, mediaType } = req.body;
 
     // Validate required fields
     if (!image) {
@@ -978,9 +1202,23 @@ app.post('/api/extract-quote', async (req, res) => {
       return sendError(res, 'Image data required', 400, 'MISSING_IMAGE', requestId, step);
     }
 
+    if (typeof image !== 'string') {
+      return sendError(res, 'Image data must be a base64 string', 400, 'MISSING_IMAGE', requestId, step);
+    }
+
+    // The key is resolved server-side from the authenticated user's settings.
+    // It used to be posted from the browser in every request body.
+    const apiKey = await resolveApiKey(req.user.id);
     if (!apiKey) {
-      console.error(`❌ [${requestId}] Missing API key`);
-      return sendError(res, 'Anthropic API key required', 400, 'MISSING_API_KEY', requestId, step);
+      console.error(`❌ [${requestId}] No API key available for user`);
+      return sendError(
+        res,
+        'No Anthropic API key configured. Add one in Settings.',
+        400,
+        'MISSING_API_KEY',
+        requestId,
+        step
+      );
     }
 
     // ============================================
@@ -1006,7 +1244,7 @@ app.post('/api/extract-quote', async (req, res) => {
       );
     }
 
-    const MODEL = 'claude-sonnet-4-5-20250929';
+    const MODEL = MODEL_ID;
     const isPdf = mediaType === 'application/pdf';
 
     console.log(`📋 [${requestId}] File type: ${isPdf ? 'PDF' : 'IMAGE'}, size: ${imageSize} bytes (${imageSizeMB} MB)`);
@@ -1068,7 +1306,7 @@ app.post('/api/extract-quote', async (req, res) => {
           console.log(`   - Total text length: ${fullText.length} chars`);
           console.log(`   - Header lines: ${headerEndIndex} (${headerText.length} chars)`);
           console.log(`   - Body length: ${bodyLines.length} lines`);
-          console.log(`   - Header preview: ${headerText.substring(0, 200).replace(/\n/g, ' ')}`);
+          console.log(`   - Header length: ${headerText.length} chars`);
 
           // Validate extracted text
           if (fullText.trim().length < 200) {
@@ -1081,11 +1319,13 @@ app.post('/api/extract-quote', async (req, res) => {
           // ENHANCED regex-based supplier extraction from header
           if (headerText || footerText) {
             regexSupplierInfo = extractSupplierInfoFromText({ headerText, footerText, bodyText: fullText });
+            // Log only whether a field was found, never the value itself -
+            // these are supplier contact details.
             console.log(`📧 [${requestId}] Regex supplier extraction (enhanced):`);
-            console.log(`   - Email: ${regexSupplierInfo.supplierEmail?.value || 'not found'} (${regexSupplierInfo.supplierEmail?.source || 'n/a'})`);
-            console.log(`   - Phone: ${regexSupplierInfo.supplierPhone?.value || 'not found'} (${regexSupplierInfo.supplierPhone?.source || 'n/a'})`);
-            console.log(`   - Name: ${regexSupplierInfo.supplierName?.value || 'not found'} (${regexSupplierInfo.supplierName?.source || 'n/a'})`);
-            console.log(`   - Address: ${regexSupplierInfo.supplierAddress?.value || 'not found'} (${regexSupplierInfo.supplierAddress?.source || 'n/a'})`);
+            console.log(`   - Email: ${regexSupplierInfo.supplierEmail?.value ? 'found' : 'not found'} (${regexSupplierInfo.supplierEmail?.source || 'n/a'})`);
+            console.log(`   - Phone: ${regexSupplierInfo.supplierPhone?.value ? 'found' : 'not found'} (${regexSupplierInfo.supplierPhone?.source || 'n/a'})`);
+            console.log(`   - Name: ${regexSupplierInfo.supplierName?.value ? 'found' : 'not found'} (${regexSupplierInfo.supplierName?.source || 'n/a'})`);
+            console.log(`   - Address: ${regexSupplierInfo.supplierAddress?.value ? 'found' : 'not found'} (${regexSupplierInfo.supplierAddress?.source || 'n/a'})`);
           }
 
         } catch (pdfParseError) {
@@ -1244,7 +1484,7 @@ Return ONLY the JSON object, nothing else.`
       content = result.content;
 
       console.log(`   - Content length: ${content.length} chars`);
-      console.log(`   - Content preview: ${content.substring(0, 100)}...`);
+  
 
     } catch (error) {
       console.error(`❌ [${requestId}] Primary route failed: ${error.message}`);
@@ -1270,7 +1510,7 @@ Return ONLY the JSON object, nothing else.`
 
     if (!rawData) {
       console.error(`❌ [${requestId}] Failed to extract JSON from model output`);
-      console.error(`   - Model output preview: ${content.substring(0, 500)}`);
+      console.error(`   - Model output preview: ${redactPreview(content.substring(0, 500))}`);
       return sendError(
         res,
         'Could not extract valid JSON from model output. The model may have returned malformed data.',
@@ -1332,7 +1572,7 @@ Return ONLY the JSON object, nothing else.`
         modelOutputChars = content.length;
 
         console.log(`   - Vision fallback output length: ${content.length} chars`);
-        console.log(`   - Vision output preview: ${content.substring(0, 200)}`);
+        console.log(`   - Vision output preview: ${redactPreview(content.substring(0, 200))}`);
 
         // Re-parse using robust extraction
         step = 'post-parse-vision';
@@ -1340,7 +1580,7 @@ Return ONLY the JSON object, nothing else.`
 
         if (!visionData) {
           console.error(`❌ [${requestId}] Vision fallback: Failed to extract JSON`);
-          console.error(`   - Model output: ${content.substring(0, 400)}`);
+          console.error(`   - Model output: ${redactPreview(content.substring(0, 400))}`);
         } else {
           let visionSanitized = sanitizeExtractedData(visionData);
           visionSanitized = detectAndCorrectQuantityType(visionSanitized);
@@ -1354,7 +1594,7 @@ Return ONLY the JSON object, nothing else.`
             console.log(`✅ [${requestId}] Vision fallback succeeded with ${visionItemCount} items`);
           } else {
             console.warn(`⚠️  [${requestId}] Vision fallback also returned 0 items`);
-            console.warn(`   - Model output preview: ${content.substring(0, 400)}`);
+            console.warn(`   - Model output preview: ${redactPreview(content.substring(0, 400))}`);
           }
         }
       } catch (visionError) {
@@ -1372,7 +1612,7 @@ Return ONLY the JSON object, nothing else.`
         console.error(`   - Attempted routes: native-pdf, vision-fallback`);
         console.error(`   - Vision fallback approach: ${renderMetadata?.approach || 'unknown'}`);
         console.error(`   - Model output length: ${modelOutputChars} chars`);
-        console.error(`   - Model output preview: ${content.substring(0, 400)}`);
+        console.error(`   - Model output preview: ${redactPreview(content.substring(0, 400))}`);
 
         return sendError(
           res,
@@ -1388,7 +1628,7 @@ Return ONLY the JSON object, nothing else.`
       console.error(`❌ [${requestId}] Extraction returned 0 items`);
       console.error(`   - Route used: ${extractionRoute}`);
       console.error(`   - Model output length: ${modelOutputChars} chars`);
-      console.error(`   - Model output preview: ${content.substring(0, 400)}`);
+      console.error(`   - Model output preview: ${redactPreview(content.substring(0, 400))}`);
       console.error(`   - Raw data preview: ${JSON.stringify(sanitizedData).substring(0, 300)}`);
 
       return sendError(
@@ -1406,15 +1646,15 @@ Return ONLY the JSON object, nothing else.`
       // Override with regex-extracted values if LLM didn't find them
       if (!sanitizedData.supplierEmail && regexSupplierInfo.supplierEmail?.value) {
         sanitizedData.supplierEmail = regexSupplierInfo.supplierEmail;
-        console.log(`   ✓ Using regex-extracted email: ${regexSupplierInfo.supplierEmail.value}`);
+        console.log('   ✓ Using regex-extracted email');
       }
       if (!sanitizedData.supplierPhone && regexSupplierInfo.supplierPhone?.value) {
         sanitizedData.supplierPhone = regexSupplierInfo.supplierPhone;
-        console.log(`   ✓ Using regex-extracted phone: ${regexSupplierInfo.supplierPhone.value}`);
+        console.log('   ✓ Using regex-extracted phone');
       }
       if (!sanitizedData.supplierName && regexSupplierInfo.supplierName?.value) {
         sanitizedData.supplierName = regexSupplierInfo.supplierName;
-        console.log(`   ✓ Using regex-extracted name: ${regexSupplierInfo.supplierName.value}`);
+        console.log('   ✓ Using regex-extracted name');
       }
     }
 
@@ -1423,8 +1663,8 @@ Return ONLY the JSON object, nothing else.`
     // ============================================
     step = 'done';
     console.log(`✅ [${requestId}] Step: ${step}`);
-    console.log(`   - Supplier name: ${sanitizedData.supplierName?.value || 'not found'}`);
-    console.log(`   - Supplier email: ${sanitizedData.supplierEmail?.value || 'not found'}`);
+    console.log(`   - Supplier name: ${sanitizedData.supplierName ? 'found' : 'not found'}`);
+    console.log(`   - Supplier email: ${sanitizedData.supplierEmail ? 'found' : 'not found'}`);
     console.log(`   - Line items: ${sanitizedData.lineItems?.length || 0}`);
 
     // Add debug metadata (non-production only)
@@ -1461,13 +1701,9 @@ Return ONLY the JSON object, nothing else.`
           // Previews (redact emails in header)
           previews: {
             headerTextPreview: pdfTextData?.headerText
-              ?.substring(0, 150)
-              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL]')
-              .replace(/\n/g, ' ') || 'N/A',
-            modelOutputPreview: content
-              .substring(0, 400)
-              .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[EMAIL]')
-              .replace(/\n/g, ' '),
+              ? redactPreview(pdfTextData.headerText.substring(0, 150))
+              : 'N/A',
+            modelOutputPreview: redactPreview(content.substring(0, 400)),
           },
 
           // Regex extraction results
@@ -1507,22 +1743,28 @@ Return ONLY the JSON object, nothing else.`
 });
 
 // Extract quote from text message
-app.post('/api/extract-quote-from-text', async (req, res) => {
-  console.log('📝 [TEXT EXTRACTION] Starting text quote extraction');
+app.post('/api/extract-quote-from-text', requireAuth, async (req, res) => {
+  const requestId = req.requestId || generateRequestId();
+  console.log(`📝 [${requestId}] Starting text quote extraction`);
 
   try {
-    const { text, apiKey } = req.body;
+    const { text } = req.body || {};
 
-    if (!text) {
-      return res.status(400).json({ error: 'Text content required' });
+    if (!text || typeof text !== 'string' || text.trim().length === 0) {
+      return sendError(res, 'Text content required', 400, 'MISSING_TEXT', requestId, 'validate');
     }
 
+    if (text.length > 200000) {
+      return sendError(res, 'Text is too long to extract in one request', 413, 'PAYLOAD_TOO_LARGE', requestId, 'validate');
+    }
+
+    const apiKey = await resolveApiKey(req.user.id);
     if (!apiKey) {
-      return res.status(400).json({ error: 'Anthropic API key required' });
+      return sendError(res, 'No Anthropic API key configured. Add one in Settings.', 400, 'MISSING_API_KEY', requestId, 'validate');
     }
 
-    const MODEL = 'claude-sonnet-4-5-20250929';
-    console.log(`[API] Using model: ${MODEL} for text extraction`);
+    const MODEL = MODEL_ID;
+    console.log(`[${requestId}] Using model: ${MODEL} for text extraction`);
 
     // Call Anthropic API with text-only prompt
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1598,42 +1840,121 @@ RULES:
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      console.error('[API Error] Status:', response.status);
-      console.error('[API Error] Error:', JSON.stringify(error, null, 2));
-      return res.status(response.status).json({
-        error: `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`
-      });
+      const error = await response.json().catch(() => ({}));
+      console.error(`[ERROR ${requestId}] Anthropic status ${response.status}`);
+      return sendError(
+        res,
+        `Model '${MODEL}' failed: ${error.error?.message || 'Unknown error'}`,
+        response.status,
+        'ANTHROPIC_API_ERROR',
+        requestId,
+        'llm-call'
+      );
     }
 
     const data = await response.json();
     const content = data.content?.[0]?.text;
 
     if (!content) {
-      return res.status(500).json({ error: 'No response from Claude' });
+      return sendError(res, 'No response from Claude', 502, 'EMPTY_RESPONSE', requestId, 'llm-call');
     }
 
-    // Parse JSON from response
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return res.status(500).json({ error: 'Could not parse extraction result' });
+    // Use the same tolerant extractor as the file route rather than a bare
+    // regex + JSON.parse, which threw on fenced or trailing-comma output.
+    const rawData = extractJsonFromText(content);
+    if (!rawData) {
+      return sendError(res, 'Could not parse extraction result', 502, 'PARSE_MODEL_OUTPUT', requestId, 'post-parse');
     }
 
-    const rawData = JSON.parse(jsonMatch[0]);
+    // Apply sanitizer + quantity post-processing, same as the file route
+    let sanitizedData = sanitizeExtractedData(rawData);
+    sanitizedData = detectAndCorrectQuantityType(sanitizedData);
 
-    // Apply sanitizer to enforce clean product names
-    const sanitizedData = sanitizeExtractedData(rawData);
+    console.log(`✅ [${requestId}] Successfully extracted quote from text`);
 
-    console.log('✅ [TEXT EXTRACTION] Successfully extracted quote from text');
-
-    // Return the extracted data
-    res.json({ success: true, data: sanitizedData });
+    // Same { ok, data } envelope as every other endpoint
+    return sendSuccess(res, sanitizedData);
 
   } catch (error) {
-    console.error('[Text Extraction Error]', error);
-    res.status(500).json({
-      error: error.message || 'Failed to extract quote from text'
-    });
+    return sendError(res, error, 500, 'EXTRACTION_FAILED', requestId, 'extract-from-text');
+  }
+});
+
+// ============================================
+// GENERIC AI COMPLETION PROXY
+// ============================================
+// The AI Helpers page used to call api.anthropic.com straight from the
+// browser. Those requests are rejected by CORS, so every AI helper silently
+// failed - and it would have exposed the API key if they had succeeded.
+const AI_MAX_TOKENS_LIMIT = 4000;
+
+app.post('/api/ai/complete', requireAuth, async (req, res) => {
+  const requestId = req.requestId || generateRequestId();
+
+  try {
+    const { prompt, system, maxTokens } = req.body || {};
+
+    if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+      return sendError(res, 'Prompt is required', 400, 'MISSING_PROMPT', requestId, 'validate');
+    }
+
+    if (prompt.length > 200000) {
+      return sendError(res, 'Prompt is too long', 413, 'PAYLOAD_TOO_LARGE', requestId, 'validate');
+    }
+
+    const apiKey = await resolveApiKey(req.user.id);
+    if (!apiKey) {
+      return sendError(res, 'No Anthropic API key configured. Add one in Settings.', 400, 'MISSING_API_KEY', requestId, 'validate');
+    }
+
+    const requestedTokens = parseInt(maxTokens, 10);
+    const max_tokens = Number.isFinite(requestedTokens)
+      ? Math.min(Math.max(requestedTokens, 256), AI_MAX_TOKENS_LIMIT)
+      : 2000;
+
+    const response = await withTimeout(
+      fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: MODEL_ID,
+          max_tokens,
+          ...(system ? { system: String(system) } : {}),
+          messages: [{ role: 'user', content: prompt }],
+        }),
+      }),
+      60000,
+      'Anthropic API call'
+    );
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      return sendError(
+        res,
+        error.error?.message || `Anthropic returned ${response.status}`,
+        response.status,
+        'ANTHROPIC_API_ERROR',
+        requestId,
+        'llm-call'
+      );
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text;
+
+    if (!text) {
+      return sendError(res, 'No response from Claude', 502, 'EMPTY_RESPONSE', requestId, 'llm-call');
+    }
+
+    return sendSuccess(res, { text, usage: data.usage });
+
+  } catch (error) {
+    const code = error.message?.includes('timed out') ? 'TIMEOUT' : 'AI_REQUEST_FAILED';
+    return sendError(res, error, 500, code, requestId, 'ai-complete');
   }
 });
 

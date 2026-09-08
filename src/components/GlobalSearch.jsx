@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, File, Package, FileText, Building2, X, FolderOpen } from 'lucide-react';
 import { useGlobalSearch } from '../hooks/useGlobalSearch';
@@ -13,14 +13,16 @@ export default function GlobalSearch({ isOpen, onClose }) {
 
   const results = useGlobalSearch(query);
 
-  // Flatten results for keyboard navigation
-  const flatResults = [
+  // Flatten results for keyboard navigation.
+  // Memoised: rebuilding this array on every render re-subscribed the global
+  // keydown listener on every render too.
+  const flatResults = useMemo(() => [
     ...results.suppliers.map(r => ({ ...r, group: 'Suppliers' })),
     ...results.products.map(r => ({ ...r, group: 'Buying Intents' })),
     ...results.buyingIntentCategories.map(r => ({ ...r, group: 'Buying Intent Categories' })),
     ...results.quotes.map(r => ({ ...r, group: 'Quotes' })),
     ...results.documents.map(r => ({ ...r, group: 'Documents' }))
-  ];
+  ], [results]);
 
   // Reset selection when results change
   useEffect(() => {

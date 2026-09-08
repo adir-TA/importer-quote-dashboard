@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Languages, MessageCircle, FileSearch, DollarSign, Sparkles, Copy, Check, Send, Plus, X } from 'lucide-react';
+import { FileText, Languages, MessageCircle, FileSearch, DollarSign, Sparkles, Copy, Check, Send, Plus, X, AlertCircle } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { AIResponse } from '../components';
 import { generateRFQ, translateText, generateNegotiationMessage, analyzeContract, convertCurrency } from '../utils/aiService';
@@ -23,6 +23,7 @@ function AIHelpers() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState('');
   const [copied, setCopied] = useState(false);
+  const [error, setError] = useState('');
 
   // RFQ state
   const [rfqProducts, setRfqProducts] = useState([{ name: '', quantity: '', specs: '' }]);
@@ -52,61 +53,66 @@ function AIHelpers() {
   };
 
   const handleGenerateRFQ = async () => {
-    if (!settings.apiKey) { alert('Please set your API key in Settings'); return; }
+    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     const validProducts = rfqProducts.filter(p => p.name.trim());
     if (validProducts.length === 0) { alert('Please add at least one product'); return; }
     setIsLoading(true);
     setResult('');
+    setError('');
     try {
-      const response = await generateRFQ(validProducts, companyInfo, settings.apiKey);
+      const response = await generateRFQ(validProducts, companyInfo);
       setResult(response);
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (err) { setError(err.message); }
     setIsLoading(false);
   };
 
   const handleTranslate = async () => {
-    if (!settings.apiKey) { alert('Please set your API key in Settings'); return; }
+    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     if (!translateInput.trim()) { alert('Please enter text to translate'); return; }
     setIsLoading(true);
     setResult('');
+    setError('');
     try {
-      const response = await translateText(translateInput, targetLang, settings.apiKey);
+      const response = await translateText(translateInput, targetLang);
       setResult(response);
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (err) { setError(err.message); }
     setIsLoading(false);
   };
 
   const handleNegotiate = async () => {
-    if (!settings.apiKey) { alert('Please set your API key in Settings'); return; }
+    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     if (!currentPrice.trim() || !targetPrice.trim()) { alert('Please enter both prices'); return; }
     setIsLoading(true);
     setResult('');
+    setError('');
     try {
-      const response = await generateNegotiationMessage(currentPrice, targetPrice, negotiateContext, settings.apiKey);
+      const response = await generateNegotiationMessage(currentPrice, targetPrice, negotiateContext);
       setResult(response);
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (err) { setError(err.message); }
     setIsLoading(false);
   };
 
   const handleAnalyzeContract = async () => {
-    if (!settings.apiKey) { alert('Please set your API key in Settings'); return; }
+    if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     if (!contractText.trim()) { alert('Please enter contract text'); return; }
     setIsLoading(true);
     setResult('');
+    setError('');
     try {
-      const response = await analyzeContract(contractText, settings.apiKey);
+      const response = await analyzeContract(contractText);
       setResult(response);
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (err) { setError(err.message); }
     setIsLoading(false);
   };
 
   const handleConvertCurrency = async () => {
     const amount = parseFloat(currencyAmount);
-    if (isNaN(amount) || amount <= 0) { alert('Please enter a valid amount'); return; }
+    if (isNaN(amount) || amount <= 0) { setError('Please enter a valid amount'); return; }
+    setError('');
     try {
-      const result = await convertCurrency(amount, fromCurrency, toCurrency);
+      const result = await convertCurrency(amount, fromCurrency, toCurrency, settings.fxRates);
       setConvertedAmount(result);
-    } catch (error) { alert('Error: ' + error.message); }
+    } catch (err) { setError(err.message); }
   };
 
   const addRfqProduct = () => setRfqProducts([...rfqProducts, { name: '', quantity: '', specs: '' }]);
@@ -271,10 +277,16 @@ function AIHelpers() {
               )}
             </div>
             <div className="card-body">
+              {error && (
+                <div className="auth-error" role="alert" style={{ marginBottom: '12px' }}>
+                  <AlertCircle size={18} />
+                  <span style={{ whiteSpace: 'pre-wrap' }}>{error}</span>
+                </div>
+              )}
               {activeTab !== 'currency' && (
                 <AIResponse text={result} isLoading={isLoading} title="" showCopy={false} />
               )}
-              {!result && !isLoading && activeTab !== 'currency' && (
+              {!result && !isLoading && !error && activeTab !== 'currency' && (
                 <div className="empty-state" style={{ padding: '40px' }}>
                   <Sparkles size={32} style={{ opacity: 0.5, marginBottom: '12px' }} />
                   <p>AI response will appear here</p>

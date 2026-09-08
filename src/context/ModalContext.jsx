@@ -3,11 +3,16 @@ import Modal from '../components/Modal';
 
 const ModalContext = createContext(null);
 
+// Monotonic counter. Date.now() collided whenever two modals opened inside the
+// same millisecond, producing duplicate React keys and closing both at once.
+let modalIdCounter = 0;
+
 export function ModalProvider({ children }) {
   const [modals, setModals] = useState([]);
 
   const openModal = useCallback((config) => {
-    const id = Date.now().toString();
+    modalIdCounter += 1;
+    const id = `modal-${modalIdCounter}`;
     const modal = { id, ...config };
     setModals(prev => [...prev, modal]);
     return id;

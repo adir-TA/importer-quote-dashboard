@@ -19,7 +19,9 @@ import { findBestMatch } from '../utils/buyingIntentMatcher';
 // - Save ALL items in one transaction
 // ============================================
 
-export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
+// `hasApiKey` is a boolean, not the key itself - the key never reaches the
+// browser any more; the backend resolves it server-side.
+export function useMultiItemQuoteExtraction(hasApiKey, buyingIntents = []) {
   // ============================================
   // STATE
   // ============================================
@@ -122,7 +124,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
       setUploadedFile(file);
 
       setProgress('Extracting quote data...');
-      const result = await extractQuoteFromFile(file, apiKey);
+      const result = await extractQuoteFromFile(file, hasApiKey);
 
       if (!result.success) {
         setError(result.error);
@@ -192,7 +194,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
       setError(err.message || 'Failed to process file');
       setStep('error');
     }
-  }, [apiKey]);
+  }, [hasApiKey]);
 
   /**
    * Update supplier field
@@ -231,7 +233,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
 
     try {
       setProgress('Analyzing text...');
-      const result = await extractQuoteFromText(text, apiKey);
+      const result = await extractQuoteFromText(text, hasApiKey);
 
       if (!result.success) {
         setError(result.error);
@@ -300,7 +302,7 @@ export function useMultiItemQuoteExtraction(apiKey, buyingIntents = []) {
       setError(err.message || 'Failed to extract quote from text');
       setStep('error');
     }
-  }, [apiKey, buyingIntents]);
+  }, [hasApiKey, buyingIntents]);
 
   /**
    * Update line item field

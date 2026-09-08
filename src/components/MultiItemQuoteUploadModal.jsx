@@ -6,10 +6,10 @@ import {
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
-import { useAuth } from '../context/AuthContext';
 import { calculateMatchConfidence, findBestMatch } from '../utils/buyingIntentMatcher';
 import { generateAutoName, generateAutoDescription } from '../utils/autoNaming';
 import API_BASE_URL from '../config/api';
+import { fetchJson, formatApiError } from '../utils/apiHelpers';
 
 // ============================================
 // MULTI-ITEM QUOTE UPLOAD MODAL
@@ -540,10 +540,11 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const { settings, products: rawProducts } = state;
   // Ensure products is always an array to prevent useMemo errors
   const products = rawProducts || [];
-  const { user } = useAuth();
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [attachWarning, setAttachWarning] = useState('');
   const [expandedMatchDetails, setExpandedMatchDetails] = useState({});
   const [filePreviewUrl, setFilePreviewUrl] = useState(null);
   const [showCreateIntent, setShowCreateIntent] = useState(null); // index of line item creating intent for
@@ -565,7 +566,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const [buyingIntentSearch, setBuyingIntentSearch] = useState('');
   const [openSpecsPopover, setOpenSpecsPopover] = useState(null); // index of line item with open specs popover
 
-  const hookResult = useMultiItemQuoteExtraction(settings?.apiKey, products);
+  const hookResult = useMultiItemQuoteExtraction(settings?.hasApiKey, products);
 
   const {
     step = 'idle',
@@ -709,33 +710,40 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   const handleSave = async () => {
     const data = getQuoteData();
     if (!data) {
-      alert('Please fill in all required fields');
+      setSaveError('Please fill in all required fields before saving.');
       return;
     }
 
+    setSaveError('');
+    setAttachWarning('');
     setSaving(true);
     try {
       console.log('[Modal] Saving quote data:', data);
       console.log('[Modal] Uploaded file:', uploadedFile);
 
-      // Auto-create draft Buying Intents for unlinked items (with duplicate prevention)
+      // Auto-create draft Buying Intents for unlinked items (with duplicate prevention).
+      //
+      // `candidateIntents` accumulates intents created during this loop. Matching
+      // against the render-time `products` array alone meant two similar line
+      // items in the same quote each created their own duplicate draft, because
+      // the first one was not yet visible to the second iteration.
+      const candidateIntents = [...products];
+      const createdIntentIds = [];
       const updatedLineItems = [];
+
       for (const item of data.lineItems) {
         let linkedBuyingIntentId = item.linkedBuyingIntentId;
 
         // If no linked intent, check for existing matches first
         if (!linkedBuyingIntentId) {
-          // Check if a similar Buying Intent already exists
-          const bestMatch = findBestMatch(item, products);
+          const bestMatch = findBestMatch(item, candidateIntents);
 
           if (bestMatch && bestMatch.matchResult.confidence >= 85) {
             // Found a strong match - use existing intent instead of creating duplicate
             linkedBuyingIntentId = bestMatch.intent.id;
-            console.log('[Modal] Found existing match for:', item.raw_item_name, '→', bestMatch.intent.name, `(${bestMatch.matchResult.confidence}% confidence)`);
+            console.log('[Modal] Reusing existing Buying Intent', `(${bestMatch.matchResult.confidence}% confidence)`);
           } else {
             // No good match found - create new draft Buying Intent
-            console.log('[Modal] No existing match found. Auto-creating draft Buying Intent for:', item.raw_item_name);
-
             const autoName = generateAutoName(data.supplierQuote, item);
             const autoDescription = generateAutoDescription(data.supplierQuote, item);
             const draftIntent = await actions.addProduct({
@@ -746,7 +754,9 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
             });
 
             linkedBuyingIntentId = draftIntent.id;
-            console.log('[Modal] Created draft Buying Intent:', draftIntent.id, autoName);
+            createdIntentIds.push(draftIntent.id);
+            candidateIntents.push(draftIntent); // visible to later items in this quote
+            console.log('[Modal] Created draft Buying Intent:', draftIntent.id);
           }
         }
 
@@ -762,8 +772,22 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
         lineItems: updatedLineItems
       };
 
-      const result = await actions.addSupplierQuote(finalData.supplierQuote, finalData.lineItems);
-      console.log('✅ [Modal] Saved supplier quote:', result);
+      let result;
+      try {
+        result = await actions.addSupplierQuote(finalData.supplierQuote, finalData.lineItems);
+      } catch (saveError) {
+        // Clean up the drafts we just created, otherwise a failed save leaves
+        // orphaned Buying Intents behind on every retry.
+        for (const intentId of createdIntentIds) {
+          try {
+            await actions.deleteProduct(intentId);
+          } catch (cleanupError) {
+            console.error('[Modal] Failed to clean up draft intent', intentId, cleanupError);
+          }
+        }
+        throw saveError;
+      }
+      console.log('✅ [Modal] Saved supplier quote:', result?.id);
 
       // Auto-upload the quote file as a document
       console.log('[Modal] Checking auto-upload conditions:', {
@@ -786,73 +810,73 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
         console.log('[Modal] Unique buying intent IDs:', uniqueBuyingIntentIds);
 
         // Upload document for each unique buying intent
+        const attachFailures = [];
+
         for (const buyingIntentId of uniqueBuyingIntentIds) {
           try {
-            console.log(`[Modal] Starting upload for buying intent: ${buyingIntentId}`);
-
-            // Step 1: Upload file to backend
+            // Step 1: Upload file to backend.
+            // `userId` is no longer sent - the backend takes it from the
+            // verified access token that authFetch attaches.
             const formData = new FormData();
             formData.append('file', uploadedFile);
-            formData.append('userId', user.id);
             formData.append('buyingIntentId', buyingIntentId);
             formData.append('supplierQuoteId', result.id);
 
-            console.log('[Modal] FormData prepared:', {
-              fileName: uploadedFile.name,
-              fileType: uploadedFile.type,
-              fileSize: uploadedFile.size,
-              userId: user.id,
-              buyingIntentId,
-              supplierQuoteId: result.id
-            });
-
-            const uploadResponse = await fetch(`${API_BASE_URL}/api/documents/upload`, {
+            const uploadResult = await fetchJson(`${API_BASE_URL}/api/documents/upload`, {
               method: 'POST',
               body: formData,
             });
 
-            console.log('[Modal] Upload response status:', uploadResponse.status);
-
-            if (!uploadResponse.ok) {
-              const errorText = await uploadResponse.text();
-              console.error('[Modal] Upload failed with response:', errorText);
-              throw new Error('Failed to upload file to server: ' + errorText);
+            if (!uploadResult.ok) {
+              throw new Error(formatApiError(uploadResult.error, uploadResult.error?.httpStatus));
             }
 
-            const uploadResult = await uploadResponse.json();
-            console.log('[Modal] Upload result:', uploadResult);
-            const { file: uploadedFileData } = uploadResult;
+            const uploadedFileData = uploadResult.data?.file;
+            if (!uploadedFileData?.path) {
+              throw new Error('Upload succeeded but no file path was returned');
+            }
 
-            // Step 2: Save document metadata to database
-            const docData = {
-              type: 'quote',
+            // Step 2: Save document metadata to database.
+            // `type` MUST be uppercase: the documents table has
+            // CHECK (upper(type) IN ('PI','QUOTE','SPEC','OTHER')) and the
+            // lowercase 'quote' used here before failed that check on every
+            // single upload.
+            await actions.addDocument({
+              type: 'QUOTE',
               buyingIntentId,
               supplierQuoteId: result.id,
               filePath: uploadedFileData.path,
               fileName: uploadedFile.name,
               fileType: uploadedFile.type,
               fileSize: uploadedFile.size,
-            };
-            console.log('[Modal] Saving document metadata:', docData);
+            });
 
-            await actions.addDocument(docData);
-
-            console.log(`✅ [Modal] Document uploaded for buying intent: ${buyingIntentId}`);
+            console.log(`✅ [Modal] Document attached to buying intent: ${buyingIntentId}`);
           } catch (docError) {
-            console.error(`❌ [Modal] Failed to upload document for buying intent ${buyingIntentId}:`, docError);
-            console.error('[Modal] Error stack:', docError.stack);
-            // Don't block the main flow if document upload fails
+            // The quote itself is saved, so this is not fatal - but it must be
+            // visible. It used to be logged and silently dropped, so users had
+            // no idea their quote file was never attached.
+            console.error(`❌ [Modal] Failed to attach document for ${buyingIntentId}:`, docError);
+            attachFailures.push(docError.message || 'Unknown error');
           }
         }
+
+        if (attachFailures.length > 0) {
+          setAttachWarning(
+            `Your quote was saved, but the source file could not be attached to ` +
+            `${attachFailures.length} of ${uniqueBuyingIntentIds.length} Buying Intent(s). ` +
+            `You can upload it manually from the Documents tab. (${attachFailures[0]})`
+          );
+        }
       } else {
-        console.log('[Modal] Skipping auto-upload - conditions not met');
+        console.log('[Modal] Skipping auto-upload - no file or no saved quote id');
       }
 
       if (onSuccess) onSuccess(result);
       handleClose();
     } catch (err) {
       console.error('❌ [Modal] Save failed:', err);
-      alert(`Failed to save quote:\n\n${err.message}\n\nCheck console for details.`);
+      setSaveError(err.message || 'Failed to save quote');
     } finally {
       setSaving(false);
     }
@@ -2361,6 +2385,22 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                   }}>
                     Click "Why?" to see how each suggestion was calculated. Apply suggestions manually or select from the dropdown.
                   </div>
+                </div>
+              )}
+
+              {/* Save failure - previously an alert() that lost the detail */}
+              {saveError && (
+                <div style={styles.validationError} role="alert">
+                  <AlertCircle size={20} />
+                  <div><p style={{ whiteSpace: 'pre-wrap' }}>{saveError}</p></div>
+                </div>
+              )}
+
+              {/* Quote saved but the source file could not be attached */}
+              {attachWarning && (
+                <div style={styles.validationError} role="alert">
+                  <AlertCircle size={20} />
+                  <div><p>{attachWarning}</p></div>
                 </div>
               )}
 

@@ -18,28 +18,44 @@
 function parseDimensions(dimStr) {
   if (!dimStr) return null;
 
-  // Remove units and normalize separators
-  const cleaned = dimStr
-    .toLowerCase()
-    .replace(/mm|cm|inch|"/g, '')
+  const lower = String(dimStr).toLowerCase();
+
+  // Detect the unit BEFORE stripping it. The previous version deleted
+  // "mm|cm|inch" without converting, so "22.5x17.5x4.2cm" was compared as
+  // 22.5mm against a 225mm spec and never matched.
+  let scaleToMm = 1;
+  if (/\bcm\b|\d\s*cm/.test(lower)) scaleToMm = 10;
+  else if (/\b(inch|in|")\b|\d\s*(inch|")/.test(lower)) scaleToMm = 25.4;
+  else if (/\bm\b(?!m)/.test(lower)) scaleToMm = 1000;
+
+  const cleaned = lower
+    .replace(/millimet(er|re)s?|centimet(er|re)s?|inches|inch|mm|cm|in\b|"/g, '')
     .replace(/\s+/g, '')
     .trim();
 
-  // Try common separators: ×, x, *, -
-  const patterns = [
-    /(\d+\.?\d*)[×x*\-](\d+\.?\d*)[×x*\-](\d+\.?\d*)/,
-    /(\d+\.?\d*)\s*[×x*\-]\s*(\d+\.?\d*)\s*[×x*\-]\s*(\d+\.?\d*)/,
-  ];
+  const SEP = '[×x*\\-]';
+  const NUM = '(\\d+\\.?\\d*)';
 
-  for (const pattern of patterns) {
-    const match = cleaned.match(pattern);
-    if (match) {
-      return {
-        length: parseFloat(match[1]),
-        width: parseFloat(match[2]),
-        height: parseFloat(match[3]),
-      };
-    }
+  // Three dimensions first, then fall back to two (2-D sizes like "50x80cm"
+  // are extremely common on quotes and previously matched nothing at all).
+  const three = cleaned.match(new RegExp(`${NUM}${SEP}${NUM}${SEP}${NUM}`));
+  if (three) {
+    return {
+      length: parseFloat(three[1]) * scaleToMm,
+      width: parseFloat(three[2]) * scaleToMm,
+      height: parseFloat(three[3]) * scaleToMm,
+      dimensionCount: 3,
+    };
+  }
+
+  const two = cleaned.match(new RegExp(`${NUM}${SEP}${NUM}`));
+  if (two) {
+    return {
+      length: parseFloat(two[1]) * scaleToMm,
+      width: parseFloat(two[2]) * scaleToMm,
+      height: null, // unknown, not zero
+      dimensionCount: 2,
+    };
   }
 
   return null;
@@ -54,9 +70,29 @@ function compareDimensions(dims1, dims2, toleranceMm = 2) {
     return { match: false, delta: Infinity, explanation: 'Missing dimensions' };
   }
 
-  // Sort dimensions to handle orientation differences (e.g., 225×175 vs 175×225)
-  const sorted1 = [dims1.length, dims1.width, dims1.height].sort((a, b) => a - b);
-  const sorted2 = [dims2.length, dims2.width, dims2.height].sort((a, b) => a - b);
+  // Compare only the axes both sides actually specify, so a 2-D size can be
+  // matched against a 3-D one on its two known axes.
+  const axes = Math.min(
+    dims1.dimensionCount ?? 3,
+    dims2.dimensionCount ?? 3
+  );
+
+  // Sort descending to handle orientation differences (225×175 vs 175×225).
+  // Descending matters when comparing a 2-D size against a 3-D one: the axis
+  // a 2-D quote omits is the thickness, i.e. the smallest, so the two largest
+  // are the ones that correspond.
+  const take = (dims) =>
+    [dims.length, dims.width, dims.height]
+      .filter(v => typeof v === 'number' && !Number.isNaN(v))
+      .sort((a, b) => b - a)
+      .slice(0, axes);
+
+  const sorted1 = take(dims1);
+  const sorted2 = take(dims2);
+
+  if (sorted1.length === 0 || sorted1.length !== sorted2.length) {
+    return { match: false, delta: Infinity, explanation: 'Missing dimensions' };
+  }
 
   // Calculate deltas
   const deltas = sorted1.map((d, i) => Math.abs(d - sorted2[i]));

@@ -1,12 +1,17 @@
 import { useMemo } from 'react';
 import { useApp } from '../context/AppContext';
+import { useDebounce } from './useDebounce';
+import { formatCurrency } from '../utils/currency';
 
 /**
  * Global search hook - searches across all entities
  * Returns grouped results sorted by relevance (starts-with > contains > recency)
  */
-export function useGlobalSearch(query) {
-  const { products, quotes, suppliers, documents } = useApp();
+export function useGlobalSearch(rawQuery) {
+  const { products, quotes, suppliers, documents, allLineItems } = useApp();
+
+  // Re-scoring the whole dataset on every keystroke was needless work
+  const query = useDebounce(rawQuery, 150);
 
   const results = useMemo(() => {
     if (!query || query.trim().length === 0) {
@@ -39,17 +44,21 @@ export function useGlobalSearch(query) {
     // Search suppliers
     const supplierResults = suppliers
       .map(supplier => {
+        // The schema columns are `contact` and `email` - this used to read
+        // `contact_person` and `country`, which do not exist, so contact
+        // matching never worked and the subtitle was always "No contact".
         const companyScore = getRelevanceScore(supplier.company, 'primary');
         const notesScore = getRelevanceScore(supplier.notes, 'secondary');
-        const contactScore = getRelevanceScore(supplier.contact_person, 'secondary');
-        const score = Math.max(companyScore, notesScore, contactScore);
+        const contactScore = getRelevanceScore(supplier.contact, 'secondary');
+        const emailScore = getRelevanceScore(supplier.email, 'secondary');
+        const score = Math.max(companyScore, notesScore, contactScore, emailScore);
 
         return {
           type: 'supplier',
           id: supplier.id,
           title: supplier.company,
-          subtitle: supplier.contact_person || 'No contact',
-          metadata: supplier.country || '',
+          subtitle: supplier.contact || supplier.email || 'No contact',
+          metadata: supplier.status || '',
           score,
           data: supplier
         };
@@ -81,40 +90,73 @@ export function useGlobalSearch(query) {
       .slice(0, 10);
 
     // Search quotes
-    const quoteResults = quotes
+    // Legacy single-item quotes. `product_name` and `reference_number` are not
+    // columns on this table - resolve the intent name from products instead.
+    const legacyQuoteResults = quotes
       .map(quote => {
-        const supplierScore = getRelevanceScore(quote.supplierName || quote.supplier_name, 'primary');
-        const productScore = getRelevanceScore(quote.product_name, 'primary');
-        const refScore = getRelevanceScore(quote.reference_number, 'secondary');
-        const score = Math.max(supplierScore, productScore, refScore);
+        const supplierName = quote.supplierName || quote.supplier_name;
+        const intent = products.find(p => p.id === quote.product_id);
+
+        const supplierScore = getRelevanceScore(supplierName, 'primary');
+        const productScore = getRelevanceScore(intent?.name, 'primary');
+        const score = Math.max(supplierScore, productScore);
 
         return {
           type: 'quote',
           id: quote.id,
-          title: `${quote.supplierName || quote.supplier_name || 'Unknown'} - ${quote.product_name || 'Unknown product'}`,
-          subtitle: quote.reference_number ? `Ref: ${quote.reference_number}` : '',
-          metadata: quote.unitPrice ? `${quote.currency || 'USD'} ${quote.unitPrice}` : '',
+          title: `${supplierName || 'Unknown supplier'} — ${intent?.name || 'Unlinked'}`,
+          subtitle: intent?.name || '',
+          metadata: quote.unitPrice ? formatCurrency(quote.unitPrice, quote.currency) : '',
           score,
           data: quote
         };
       })
-      .filter(r => r.score > 0)
+      .filter(r => r.score > 0);
+
+    // Current multi-item quote line items. These were not searched at all,
+    // even though they hold essentially every quote in the app now.
+    const lineItemResults = allLineItems
+      .map(item => {
+        const intent = products.find(p => p.id === item.linked_buying_intent_id);
+
+        const nameScore = getRelevanceScore(item.product_name, 'primary');
+        const supplierScore = getRelevanceScore(item.supplierName, 'primary');
+        const skuScore = getRelevanceScore(item.sku, 'secondary');
+        const score = Math.max(nameScore, supplierScore, skuScore);
+
+        return {
+          type: 'quote',
+          id: item.id,
+          title: `${item.supplierName || 'Unknown supplier'} — ${item.product_name || 'Unnamed item'}`,
+          subtitle: intent?.name || 'Not linked to a Buying Intent',
+          metadata: item.unit_price ? formatCurrency(item.unit_price, item.currency) : '',
+          score,
+          data: { ...item, product_id: item.linked_buying_intent_id },
+        };
+      })
+      .filter(r => r.score > 0);
+
+    const quoteResults = [...lineItemResults, ...legacyQuoteResults]
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
 
     // Search documents
     const documentResults = documents
       .map(doc => {
-        const filenameScore = getRelevanceScore(doc.filename, 'primary');
-        const supplierScore = getRelevanceScore(doc.supplier_name, 'secondary');
+        // The schema column is `file_name`, not `filename`, and there is no
+        // `supplier_name` on documents. Reading the wrong names meant every
+        // document scored 0 and no document was ever findable.
+        const fileNameScore = getRelevanceScore(doc.file_name, 'primary');
         const typeScore = getRelevanceScore(doc.type, 'secondary');
-        const score = Math.max(filenameScore, supplierScore, typeScore);
+        const score = Math.max(fileNameScore, typeScore);
+
+        const intent = products.find(p => p.id === doc.buying_intent_id);
 
         return {
           type: 'document',
           id: doc.id,
-          title: doc.filename,
-          subtitle: doc.supplier_name || 'No supplier',
+          title: doc.file_name,
+          subtitle: intent?.name || 'Unlinked document',
           metadata: doc.type || 'File',
           score,
           data: doc
@@ -175,7 +217,7 @@ export function useGlobalSearch(query) {
       buyingIntentCategories: buyingIntentCategoryResults,
       total
     };
-  }, [query, products, quotes, suppliers, documents]);
+  }, [query, products, quotes, suppliers, documents, allLineItems]);
 
   return results;
 }

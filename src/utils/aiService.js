@@ -1,45 +1,49 @@
-// AI Service for Claude API calls
+// ============================================
+// AI SERVICE
+// ============================================
+// All Claude calls go through our own backend (/api/ai/complete).
+//
+// These functions used to POST directly to https://api.anthropic.com from the
+// browser. Those requests are blocked by CORS, so every AI helper failed - and
+// had they succeeded, the user's API key would have been exposed in the page.
+// The backend resolves the key server-side from the authenticated user.
 
-const API_URL = 'https://api.anthropic.com/v1/messages';
-const MODEL = 'claude-sonnet-4-20250514';
+import API_BASE_URL from '../config/api.js';
+import { fetchJson, formatApiError } from './apiHelpers.js';
+import { convertAmount, getRate, normalizeCurrency, DEFAULT_FX_RATES } from './currency.js';
 
-// Generic AI call function
-export async function callClaude(prompt, apiKey, options = {}) {
-  if (!apiKey) {
-    throw new Error('API key is required');
-  }
-
+/**
+ * Generic AI call.
+ * @param {string} prompt
+ * @param {{ maxTokens?: number, system?: string }} [options]
+ * @returns {Promise<string>} the model's text response
+ */
+export async function callClaude(prompt, options = {}) {
   const { maxTokens = 2000, system } = options;
 
-  const response = await fetch(API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: maxTokens,
-      system: system,
-      messages: [{
-        role: 'user',
-        content: prompt
-      }]
-    })
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.error?.message || `API error: ${response.status}`);
+  if (!prompt || !prompt.trim()) {
+    throw new Error('Nothing to send to the AI');
   }
 
-  const data = await response.json();
-  return data.content[0].text;
+  const result = await fetchJson(`${API_BASE_URL}/api/ai/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prompt, system, maxTokens }),
+  });
+
+  if (!result.ok) {
+    throw new Error(formatApiError(result.error, result.error?.httpStatus));
+  }
+
+  if (!result.data?.text) {
+    throw new Error('No response from the AI service');
+  }
+
+  return result.data.text;
 }
 
 // Generate AI Summary for quote comparison
-export async function generateQuoteSummary(quotes, apiKey) {
+export async function generateQuoteSummary(quotes) {
   const quoteSummary = quotes.map(q => {
     const fields = Object.entries(q.fields || {})
       .map(([k, v]) => `${k}: ${v}`)
@@ -66,11 +70,11 @@ Provide your analysis in this EXACT format:
 
 **RECOMMENDATION:** [final advice in 1-2 sentences]`;
 
-  return callClaude(prompt, apiKey, { maxTokens: 1500 });
+  return callClaude(prompt, { maxTokens: 1500 });
 }
 
 // Generate RFQ
-export async function generateRFQ(products, companyInfo, apiKey) {
+export async function generateRFQ(products, companyInfo) {
   const productList = products.map(p => 
     `- ${p.name}: Quantity ${p.quantity}, Specs: ${p.specs || 'Standard'}`
   ).join('\n');
@@ -90,11 +94,11 @@ Write a professional, concise RFQ email that:
 4. Mentions we're comparing multiple suppliers
 5. Requests response within 3 business days`;
 
-  return callClaude(prompt, apiKey, { maxTokens: 1000 });
+  return callClaude(prompt, { maxTokens: 1000 });
 }
 
 // Translate text
-export async function translateText(text, targetLang, apiKey) {
+export async function translateText(text, targetLang) {
   const langNames = {
     en: 'English',
     zh: 'Chinese (Simplified)',
@@ -107,11 +111,11 @@ Only provide the translation, no explanations.
 Text to translate:
 ${text}`;
 
-  return callClaude(prompt, apiKey, { maxTokens: 2000 });
+  return callClaude(prompt, { maxTokens: 2000 });
 }
 
 // Generate negotiation message
-export async function generateNegotiationMessage(currentPrice, targetPrice, context, apiKey) {
+export async function generateNegotiationMessage(currentPrice, targetPrice, context) {
   const prompt = `Write a short WeChat/WhatsApp message to negotiate a better price.
 
 Current price: ${currentPrice}
@@ -128,11 +132,11 @@ Rules:
 
 Write ONLY the message, nothing else.`;
 
-  return callClaude(prompt, apiKey, { maxTokens: 500 });
+  return callClaude(prompt, { maxTokens: 500 });
 }
 
 // Analyze contract
-export async function analyzeContract(contractText, apiKey) {
+export async function analyzeContract(contractText) {
   const prompt = `Analyze this supplier contract/agreement and provide a detailed assessment:
 
 ${contractText}
@@ -170,29 +174,30 @@ Provide your analysis in this EXACT format:
 ✅ **FINAL VERDICT**
 [Safe to sign / Needs changes / Do not sign] - [explanation]`;
 
-  return callClaude(prompt, apiKey, { maxTokens: 2500 });
+  return callClaude(prompt, { maxTokens: 2500 });
 }
 
-// Currency conversion rates (simplified - in production use real API)
-export async function convertCurrency(amount, from, to) {
-  // Approximate rates - in production, use a real currency API
-  const rates = {
-    USD: 1,
-    EUR: 0.92,
-    GBP: 0.79,
-    CNY: 7.24,
-    ILS: 3.67,
-    JPY: 149.50
-  };
+// ============================================
+// CURRENCY
+// ============================================
+// Delegates to the shared currency module so there is one rate table in the
+// app (this file previously carried its own hardcoded copy that returned NaN
+// for any currency outside its list of six).
+export async function convertCurrency(amount, from, to, rates = DEFAULT_FX_RATES) {
+  const converted = convertAmount(amount, from, to, rates);
 
-  const usdAmount = amount / rates[from];
-  const converted = usdAmount * rates[to];
-  
+  if (converted === null) {
+    throw new Error(`No exchange rate available for ${from} to ${to}`);
+  }
+
+  const fromRate = getRate(from, rates);
+  const toRate = getRate(to, rates);
+
   return {
     amount: converted,
-    rate: rates[to] / rates[from],
-    from,
-    to
+    rate: toRate / fromRate,
+    from: normalizeCurrency(from),
+    to: normalizeCurrency(to),
   };
 }
 

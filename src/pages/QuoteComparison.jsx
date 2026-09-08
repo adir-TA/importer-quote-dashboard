@@ -10,64 +10,11 @@ import { useLanguage } from '../context/LanguageContext';
 import { BuyingIntentCommandSelect } from '../components';
 import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
-
-// ============================================
-// FORMATTING HELPERS (Display only - never in calculations)
-// ============================================
-const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-};
-
-const formatNumber = (num) => {
-  return new Intl.NumberFormat('en-US').format(num);
-};
-
-// ============================================
-// MOCKED AI RESPONSES
-// ============================================
-const MOCK_AI_RESPONSES = {
-  explain: (best, others, product) => `
-**Why ${best.supplierName} is the best option for ${product}:**
-
-1. **Lowest Price**: At ${formatCurrency(best.unit_price)}/unit, this is the most cost-effective choice.
-
-2. **FOB Price**: ${formatCurrency(best.unit_price)}/unit is competitive for this product category.
-
-${others.length > 0 ? `3. **Savings**: You save ${formatCurrency(others[0].unit_price - best.unit_price)}/unit compared to the next option (${others[0].supplierName}).` : ''}
-
-**Recommendation**: Verify quality with samples before placing a large order.
-  `.trim(),
-
-  negotiate: (quote, product) => {
-    const targetPrice = quote.unit_price * 0.9;
-    return `
-**Negotiation Message for ${quote.supplierName}:**
-
----
-
-Dear ${quote.supplierName} Team,
-
-Thank you for your quotation for ${product} at ${formatCurrency(quote.unit_price)}/unit (${quote.incoterm || 'FOB'}).
-
-After reviewing our options, we're interested in establishing a long-term partnership. To proceed:
-
-• **Target Price**: ${formatCurrency(targetPrice)}/unit for orders of ${formatNumber(quote.moq * 2)}+ units
-• **Payment Terms**: 30% deposit, 70% before shipment
-
-Please let us know what adjustments are possible.
-
-Best regards,
-[Your Name]
-
----
-    `.trim();
-  },
-};
+// formatCurrency used to hardcode 'USD', so a CNY quote rendered as "$5.00".
+// It now respects each quote's own currency; see src/utils/currency.js.
+import { formatCurrency, formatNumber, convertAmount, normalizeCurrency } from '../utils/currency';
+import { callClaude } from '../utils/aiService';
+import { downloadBlob, sanitizeCell } from '../utils/helpers';
 
 // ProductSelector removed - now using BuyingIntentCommandSelect
 
@@ -80,7 +27,11 @@ function QuoteComparison() {
   const location = useLocation();
   const { state, computed, actions } = useAppContext();
   const { t } = useLanguage();
-  const { products } = state;
+  const { products, settings } = state;
+  // Base currency for cross-quote comparison. The Settings value was saved but
+  // never actually used anywhere before.
+  const baseCurrency = normalizeCurrency(settings?.currency);
+  const fxRates = settings?.fxRates;
   const [lineItems, setLineItems] = React.useState([]);
   const [quoteCounts, setQuoteCounts] = React.useState({});
 
@@ -89,6 +40,7 @@ function QuoteComparison() {
   const [isSelectionLocked, setIsSelectionLocked] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState('');
   const [aiAction, setAiAction] = useState('');
   const [loadingCounts, setLoadingCounts] = React.useState(true); // track loading state
   const [showThemeSelector, setShowThemeSelector] = useState(false);
@@ -171,20 +123,49 @@ function QuoteComparison() {
 
     // Transform line items to quote format and validate
     const validQuotes = lineItems
-      .map(item => ({
-        id: item.id,
-        supplierName: item.supplierName || item.supplier?.supplier_name,
-        unit_price: item.unit_price,
-        currency: item.currency || 'USD',
-        moq: item.moq || 1,
-        incoterm: item.incoterm || 'FOB',
-        created_at: item.created_at,
-      }))
+      .map(item => {
+        const currency = normalizeCurrency(item.currency);
+        // Ranking MUST happen in a single currency. Sorting raw unit_price
+        // across mixed currencies compared e.g. CNY 5.00 against USD 1.00 as
+        // if they were the same number.
+        const comparablePrice = convertAmount(item.unit_price, currency, baseCurrency, fxRates);
+
+        return {
+          id: item.id,
+          supplierName: item.supplierName || item.supplier?.supplier_name,
+          unit_price: item.unit_price,
+          currency,
+          // Price expressed in the user's base currency, or null when we have
+          // no rate for that currency.
+          comparablePrice,
+          isConverted: currency !== baseCurrency && comparablePrice !== null,
+          moq: item.moq || 1,
+          incoterm: item.incoterm || 'FOB',
+          created_at: item.created_at,
+        };
+      })
       .filter(q => q.unit_price > 0); // Only validate unit_price, MOQ has no influence
 
-    // Sort by unit_price (lowest first = best) - MOQ does NOT affect ranking
-    return validQuotes.sort((a, b) => a.unit_price - b.unit_price);
-  }, [lineItems, selectedProductId]);
+    // Quotes we cannot convert are listed last rather than mis-ranked
+    return validQuotes.sort((a, b) => {
+      if (a.comparablePrice === null && b.comparablePrice === null) return 0;
+      if (a.comparablePrice === null) return 1;
+      if (b.comparablePrice === null) return -1;
+      return a.comparablePrice - b.comparablePrice;
+    });
+  }, [lineItems, selectedProductId, baseCurrency, fxRates]);
+
+  // Quotes in a currency we have no exchange rate for - surfaced as a warning
+  // so the ranking is never silently incomplete.
+  const unconvertibleQuotes = useMemo(
+    () => quotesWithLanded.filter(q => q.comparablePrice === null),
+    [quotesWithLanded]
+  );
+
+  const hasMixedCurrencies = useMemo(
+    () => new Set(quotesWithLanded.map(q => q.currency)).size > 1,
+    [quotesWithLanded]
+  );
 
   // Invalid quotes (for warning) - Only check unit_price, NOT moq
   const invalidQuotes = useMemo(() => {
@@ -390,7 +371,7 @@ function QuoteComparison() {
 
     // Row 9: Header
     const headerRow = worksheet.getRow(9);
-    headerRow.values = ['Rank', 'Supplier', 'Unit Price', 'MOQ', 'Total (at MOQ)', 'Incoterm', 'Savings', 'Status'];
+    headerRow.values = ['Rank', 'Supplier', 'Unit Price', 'MOQ', 'Total (at MOQ)', 'Incoterm', `Savings (${baseCurrency})`, 'Status'];
     headerRow.height = 28;
     headerRow.eachCell((cell) => {
       cell.font = { name: 'Calibri', size: 11, bold: true, color: { argb: theme.colors.header.text } };
@@ -407,16 +388,24 @@ function QuoteComparison() {
     // Data rows
     quotesWithLanded.forEach((quote, index) => {
       const nextQuote = quotesWithLanded[index + 1];
-      const savings = nextQuote ? `${quote.currency || 'USD'} ${(nextQuote.unit_price - quote.unit_price).toFixed(2)}` : '-';
+      // Savings compare converted prices; the raw subtraction across
+      // currencies was meaningless.
+      const savings =
+        nextQuote && nextQuote.comparablePrice !== null && quote.comparablePrice !== null
+          ? formatCurrency(nextQuote.comparablePrice - quote.comparablePrice, baseCurrency)
+          : '-';
       const isBestPrice = index === 0;
 
       const row = worksheet.addRow([
         index + 1,
-        quote.supplierName,
-        `${quote.currency || 'USD'} ${quote.unit_price.toFixed(2)}`,
+        // Supplier names come from supplier documents, so they are untrusted
+        // text: a value starting with = + - or @ is executed as a formula
+        // when the sheet is opened.
+        sanitizeCell(quote.supplierName),
+        formatCurrency(quote.unit_price, quote.currency),
         quote.moq.toLocaleString(),
-        `${quote.currency || 'USD'} ${(quote.unit_price * quote.moq).toFixed(2)}`,
-        quote.incoterm || 'FOB',
+        formatCurrency(quote.unit_price * quote.moq, quote.currency),
+        sanitizeCell(quote.incoterm || 'FOB'),
         savings,
         isBestPrice ? '⭐ BEST PRICE' : ''
       ]);
@@ -482,38 +471,97 @@ function QuoteComparison() {
     const filename = `Quote_Comparison_${selectedProduct.name.replace(/[^a-z0-9]/gi, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
     const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    link.click();
-    window.URL.revokeObjectURL(url);
+    // downloadBlob attaches the anchor and defers revokeObjectURL; revoking
+    // synchronously after .click() cancelled the download in Firefox/Safari.
+    downloadBlob(
+      new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      filename
+    );
+  };
+
+  // These two used to return hardcoded template text after a fake 800ms delay,
+  // presented to the user as AI analysis. They now call the model through the
+  // backend proxy, and say so honestly when no API key is configured.
+  const describeQuote = (quote) =>
+    `${quote.supplierName || 'Unknown supplier'}: ` +
+    `${formatCurrency(quote.unit_price, quote.currency)}/unit, ` +
+    `MOQ ${formatNumber(quote.moq)}, ${quote.incoterm || 'FOB'}` +
+    (quote.isConverted
+      ? ` (≈ ${formatCurrency(quote.comparablePrice, baseCurrency)}/unit)`
+      : '');
+
+  const runAI = async (action, buildPrompt) => {
+    if (!settings?.hasApiKey) {
+      setAiError('Add your Anthropic API key in Settings to use the AI analysis.');
+      return;
+    }
+
+    setAiError('');
+    setAiResponse('');
+    setAiAction(action);
+    setAiLoading(true);
+
+    try {
+      setAiResponse(await callClaude(buildPrompt(), { maxTokens: 1500 }));
+    } catch (err) {
+      setAiError(err.message || 'AI request failed');
+      setAiAction('');
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   const handleAIExplain = () => {
     if (!bestQuote || !selectedProduct) return;
-    setAiLoading(true);
-    setAiAction('explain');
-    setTimeout(() => {
-      setAiResponse(MOCK_AI_RESPONSES.explain(bestQuote, otherQuotes, selectedProduct.name));
-      setAiLoading(false);
-    }, 800);
+
+    return runAI('explain', () => `You are helping an importer choose a supplier.
+
+Buying Intent: ${selectedProduct.name}
+All prices are shown in each supplier's own currency; comparable values in ${baseCurrency} are in brackets.
+
+Quotes, cheapest first:
+${quotesWithLanded.map((q, i) => `${i + 1}. ${describeQuote(q)}`).join('\n')}
+
+Explain which option is best and why, in this EXACT format:
+
+**BEST OPTION:** [supplier] - [one sentence why]
+
+**PRICE ANALYSIS:**
+- [comparison of prices]
+- [note on value, MOQ and incoterm differences]
+
+**RISKS TO WATCH:**
+- [risk 1]
+- [risk 2]
+
+**RECOMMENDATION:** [final advice in 1-2 sentences]
+
+Base every statement on the numbers above. Do not invent data.`);
   };
 
   const handleAINegotiate = (quote) => {
     if (!selectedProduct) return;
-    setAiLoading(true);
-    setAiAction('negotiate');
-    setTimeout(() => {
-      setAiResponse(MOCK_AI_RESPONSES.negotiate(quote, selectedProduct.name));
-      setAiLoading(false);
-    }, 800);
+
+    return runAI('negotiate', () => `Write a short WhatsApp/WeChat message to negotiate a better price.
+
+Product: ${selectedProduct.name}
+Supplier and current quote: ${describeQuote(quote)}
+Target: about 10% below the quoted unit price, in the same currency.
+
+Rules:
+- Very simple English, 5-10 words per sentence
+- Under 80 words total
+- Friendly and professional
+- Reference a larger future order or fast payment as leverage
+- At most two emojis
+
+Write ONLY the message.`);
   };
 
   const clearAI = () => {
     setAiResponse('');
     setAiAction('');
+    setAiError('');
   };
 
   return (
@@ -572,7 +620,7 @@ function QuoteComparison() {
               <div className="stat-content">
                 <div className="stat-label">{t('comparison.bestPrice')}</div>
                 <div className="stat-value" style={{ fontSize: '1.5rem' }}>
-                  {formatCurrency(bestQuote.unit_price)}
+                  {formatCurrency(bestQuote.unit_price, bestQuote.currency)}
                 </div>
               </div>
             </div>
@@ -584,7 +632,7 @@ function QuoteComparison() {
                 <div className="stat-content">
                   <div className="stat-label">{t('comparison.potentialSavings')}</div>
                   <div className="stat-value" style={{ fontSize: '1.5rem' }}>
-                    {formatCurrency(otherQuotes[0].unit_price - bestQuote.unit_price)}
+                    {formatCurrency((otherQuotes[0].comparablePrice ?? 0) - (bestQuote.comparablePrice ?? 0), baseCurrency)}
                   </div>
                 </div>
               </div>
@@ -716,7 +764,30 @@ function QuoteComparison() {
               <div className="validation-warning" style={{ marginBottom: '16px' }}>
                 <AlertTriangle size={16} />
                 <span>
-                  {invalidQuotes.length} quote(s) excluded due to invalid data (price ≤ $0 or quantity ≤ 0)
+                  {invalidQuotes.length} quote(s) excluded due to invalid data (price ≤ 0 or quantity ≤ 0)
+                </span>
+              </div>
+            )}
+
+            {/* Mixed-currency ranking is only trustworthy if the user knows
+                conversion happened, and at what rates. */}
+            {hasMixedCurrencies && unconvertibleQuotes.length === 0 && (
+              <div className="validation-warning" style={{ marginBottom: '16px' }}>
+                <AlertTriangle size={16} />
+                <span>
+                  Quotes are in different currencies. Ranking uses your{' '}
+                  {baseCurrency} exchange rates from Settings — check they are current.
+                </span>
+              </div>
+            )}
+
+            {unconvertibleQuotes.length > 0 && (
+              <div className="validation-warning" style={{ marginBottom: '16px' }}>
+                <AlertTriangle size={16} />
+                <span>
+                  {unconvertibleQuotes.length} quote(s) could not be ranked: no {baseCurrency}{' '}
+                  exchange rate for {[...new Set(unconvertibleQuotes.map(q => q.currency))].join(', ')}.
+                  Add a rate in Settings.
                 </span>
               </div>
             )}
@@ -756,7 +827,7 @@ function QuoteComparison() {
                           </div>
                           <div className="selected-content">
                             <h3>{t('comparison.supplierSelected')}</h3>
-                            <p>{bestQuote.supplierName} — {formatCurrency(bestQuote.unit_price)}/unit</p>
+                            <p>{bestQuote.supplierName} — {formatCurrency(bestQuote.unit_price, bestQuote.currency)}/unit</p>
                           </div>
                         </div>
 
@@ -787,7 +858,7 @@ function QuoteComparison() {
                           </div>
                           <div className="best-quote-price">
                             <span className="price-label">{t('comparison.unitPrice')}</span>
-                            <span className="price-value">{formatCurrency(bestQuote.unit_price)}/unit</span>
+                            <span className="price-value">{formatCurrency(bestQuote.unit_price, bestQuote.currency)}/unit</span>
                           </div>
                         </div>
                         
@@ -937,9 +1008,13 @@ function QuoteComparison() {
                         {quotesWithLanded.map((quote, index) => {
                           const isBest = index === 0;
                           const isSelected = selectedSupplierId === quote.id;
-                          const savingsVsNext = index < quotesWithLanded.length - 1
-                            ? quotesWithLanded[index + 1].unit_price - quote.unit_price
-                            : 0;
+                          // Savings are only meaningful between two quotes we
+                          // can express in the same currency.
+                          const next = quotesWithLanded[index + 1];
+                          const savingsVsNext =
+                            next && next.comparablePrice !== null && quote.comparablePrice !== null
+                              ? next.comparablePrice - quote.comparablePrice
+                              : 0;
                           const totalAtMoq = quote.unit_price * quote.moq;
 
                           return (
@@ -968,21 +1043,39 @@ function QuoteComparison() {
                                   fontWeight: 700,
                                   color: isBest ? 'var(--success)' : 'var(--text-primary)',
                                 }}>
-                                  {formatCurrency(quote.unit_price)}/unit
+                                  {formatCurrency(quote.unit_price, quote.currency)}/unit
                                 </span>
+                                {quote.isConverted && (
+                                  <span style={{
+                                    display: 'block',
+                                    fontSize: '0.7rem',
+                                    color: 'var(--text-muted)',
+                                  }}>
+                                    ≈ {formatCurrency(quote.comparablePrice, baseCurrency)}/unit
+                                  </span>
+                                )}
+                                {quote.comparablePrice === null && (
+                                  <span style={{
+                                    display: 'block',
+                                    fontSize: '0.7rem',
+                                    color: 'var(--warning, #b45309)',
+                                  }}>
+                                    No {baseCurrency} rate — not ranked
+                                  </span>
+                                )}
                                 {isBest && savingsVsNext > 0 && (
                                   <span style={{
                                     display: 'block',
                                     fontSize: '0.7rem',
                                     color: 'var(--success)',
                                   }}>
-                                    Saves {formatCurrency(savingsVsNext)}/unit
+                                    Saves {formatCurrency(savingsVsNext, baseCurrency)}/unit
                                   </span>
                                 )}
                               </td>
                               <td>{formatNumber(quote.moq)} units</td>
                               <td style={{ color: 'var(--text-secondary)' }}>
-                                {formatCurrency(totalAtMoq)}
+                                {formatCurrency(totalAtMoq, quote.currency)}
                               </td>
                               <td>
                                 <button
@@ -1002,18 +1095,24 @@ function QuoteComparison() {
                 </div>
 
                 {/* AI Response Panel */}
-                {(aiResponse || aiLoading) && (
+                {(aiResponse || aiLoading || aiError) && (
                   <div className="card" style={{ marginTop: '24px' }}>
                     <div className="card-header">
                       <span className="card-title">
                         <Sparkles size={18} color="var(--accent)" />
-                        {aiAction === 'explain' ? 'AI Analysis' : 'Generated Message'}
+                        {aiAction === 'negotiate' ? 'Generated Message' : 'AI Analysis'}
                       </span>
                       <button className="icon-btn" onClick={clearAI}>
                         <X size={18} />
                       </button>
                     </div>
                     <div className="card-body">
+                      {aiError && (
+                        <div className="auth-error" role="alert" style={{ marginBottom: '12px' }}>
+                          <AlertCircle size={18} />
+                          <span style={{ whiteSpace: 'pre-wrap' }}>{aiError}</span>
+                        </div>
+                      )}
                       {aiLoading ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '20px' }}>
                           <div className="spinner" />

@@ -3,7 +3,8 @@ import {
   Upload, FileText, Image, Eye, Download, Trash2, Plus, AlertCircle, File
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import API_BASE_URL from '../config/api';
+import { getDocumentSignedUrl } from '../utils/storageUpload';
+import { useModal } from '../context/ModalContext';
 
 // Document type badges
 const TYPE_BADGES = {
@@ -15,7 +16,9 @@ const TYPE_BADGES = {
 
 function DocumentsTab({ buyingIntentId, onUploadClick }) {
   const { computed, actions } = useAppContext();
+  const { confirm } = useModal();
   const [documents, setDocuments] = useState([]);
+  const [actionError, setActionError] = useState('');
   const [loading, setLoading] = useState(true);
   const [previewDoc, setPreviewDoc] = useState(null);
 
@@ -36,48 +39,55 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
   };
 
   const handleDelete = async (docId) => {
-    if (!confirm('Delete this document? This cannot be undone.')) return;
+    const confirmed = await confirm({
+      title: 'Delete document',
+      message: 'Delete this document? This cannot be undone.',
+      type: 'danger',
+      confirmText: 'Delete',
+    });
+    if (!confirmed) return;
 
+    setActionError('');
     try {
       await actions.deleteDocument(docId);
       setDocuments(prev => prev.filter(d => d.id !== docId));
     } catch (err) {
-      alert('Failed to delete document: ' + err.message);
+      setActionError(`Failed to delete document: ${err.message}`);
     }
   };
 
   const handlePreview = async (doc) => {
+    setActionError('');
     try {
       const signedUrl = await getSignedUrl(doc.file_path);
       setPreviewDoc({ ...doc, signedUrl });
     } catch (err) {
-      alert('Failed to preview document: ' + err.message);
+      setActionError(`Failed to preview document: ${err.message}`);
     }
   };
 
   const handleDownload = async (doc) => {
+    // window.open() after an await is outside the user-gesture window, so
+    // popup blockers silently swallowed it and "Download" appeared to do
+    // nothing. Open the tab synchronously, then point it at the signed URL.
+    const tab = window.open('', '_blank', 'noopener,noreferrer');
+
     try {
-      const signedUrl = await getSignedUrl(doc.file_path);
-      window.open(signedUrl, '_blank');
+      const signedUrl = await getDocumentSignedUrl(doc.file_path);
+      if (tab) {
+        tab.location.href = signedUrl;
+      } else {
+        // Popup blocked entirely - fall back to navigating in place
+        window.location.href = signedUrl;
+      }
     } catch (err) {
-      alert('Failed to download document: ' + err.message);
+      tab?.close();
+      setActionError(`Failed to download document: ${err.message}`);
     }
   };
 
   const getSignedUrl = async (filePath) => {
-    const response = await fetch(`${API_BASE_URL}/api/documents/signed-url`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filePath }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to get signed URL');
-    }
-
-    const { signedUrl } = await response.json();
-    return signedUrl;
+    return getDocumentSignedUrl(filePath);
   };
 
   // Group documents - general docs first, then by supplier
@@ -123,6 +133,13 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
           Upload Document
         </button>
       </div>
+
+      {actionError && (
+        <div style={styles.actionError} role="alert">
+          <AlertCircle size={16} />
+          <span>{actionError}</span>
+        </div>
+      )}
 
       {/* Document List */}
       {documents.length === 0 ? (
@@ -208,7 +225,7 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
       {/* Preview Modal */}
       {previewDoc && (
         <DocumentPreviewModal
-          document={previewDoc}
+          doc={previewDoc}
           onClose={() => setPreviewDoc(null)}
         />
       )}
@@ -217,36 +234,37 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
 }
 
 // Preview Modal Component
-function DocumentPreviewModal({ document, onClose }) {
-  const isImage = document.file_type?.startsWith('image/');
-  const isPDF = document.file_type === 'application/pdf';
+// The prop was named `document`, shadowing the global inside this component.
+function DocumentPreviewModal({ doc, onClose }) {
+  const isImage = doc.file_type?.startsWith('image/');
+  const isPDF = doc.file_type === 'application/pdf';
 
   return (
     <div style={styles.modal}>
       <div style={styles.modalContent}>
         <div style={styles.modalHeader}>
-          <h3 style={styles.modalTitle}>{document.file_name}</h3>
+          <h3 style={styles.modalTitle}>{doc.file_name}</h3>
           <button style={styles.modalClose} onClick={onClose}>×</button>
         </div>
         <div style={styles.modalBody}>
           {isImage ? (
             <img
-              src={document.signedUrl}
-              alt={document.file_name}
+              src={doc.signedUrl}
+              alt={doc.file_name}
               style={styles.previewImage}
             />
           ) : isPDF ? (
             <iframe
-              src={document.signedUrl}
+              src={doc.signedUrl}
               style={styles.previewPDF}
-              title={document.file_name}
+              title={doc.file_name}
             />
           ) : (
             <div style={styles.noPreview}>
               <File size={48} color="#94a3b8" />
               <p>Preview not available for this file type</p>
               <a
-                href={document.signedUrl}
+                href={doc.signedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 style={styles.downloadLink}
@@ -262,6 +280,17 @@ function DocumentPreviewModal({ document, onClose }) {
 }
 
 const styles = {
+  actionError: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '10px 12px',
+    marginBottom: '16px',
+    borderRadius: '8px',
+    background: '#fef2f2',
+    color: '#b91c1c',
+    fontSize: '0.875rem',
+  },
   container: {
     padding: '24px',
   },

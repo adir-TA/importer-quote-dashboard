@@ -1,5 +1,11 @@
 const translations = {
   en: {
+  notFound: {
+    title: 'Page not found',
+    message: "We couldn't find anything at this address.",
+    goDashboard: 'Go to dashboard',
+    goBack: 'Go back',
+  },
     // Sidebar
     sidebar: {
       search: 'Search...',
@@ -215,6 +221,12 @@ const translations = {
   },
 
   he: {
+  notFound: {
+    title: 'הדף לא נמצא',
+    message: 'לא מצאנו דבר בכתובת הזו.',
+    goDashboard: 'למעבר ללוח הבקרה',
+    goBack: 'חזרה',
+  },
     // Sidebar
     sidebar: {
       search: 'חיפוש...',

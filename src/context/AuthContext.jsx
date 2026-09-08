@@ -1,53 +1,51 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/supabase';
 
 const AuthContext = createContext(null);
 
-// ============================================
-// DEMO MODE TOGGLE - FORCE ENABLED FOR TESTING
-// ============================================
-// Set to 'false' to enable real authentication
-// Set to 'true' to bypass login (for testing/demos)
-const DEMO_MODE = false; // FORCED ON - NO LOGIN REQUIRED
-console.log('🔥 AuthContext loaded - DEMO_MODE:', DEMO_MODE);
-// ============================================
-
-const DEMO_USER = {
-  id: 'demo-user-id',
-  email: 'demo@example.com',
-  user_metadata: {
-    name: 'Demo User'
-  }
-};
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   useEffect(() => {
-    console.log('🎭 AuthProvider useEffect - DEMO_MODE:', DEMO_MODE);
+    let cancelled = false;
 
-    // If demo mode is enabled, skip auth and use demo user
-    if (DEMO_MODE) {
-      console.log('✅ DEMO MODE ACTIVE - Auto-logging in as demo user');
-      setUser(DEMO_USER);
-      setLoading(false);
-      return;
-    }
+    const loadSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (cancelled) return;
 
-    // Normal authentication flow
-    // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+        if (error) throw error;
+        setUser(data?.session?.user ?? null);
+        setAuthError(null);
+      } catch (error) {
+        // Previously this promise had no rejection handler, so a network blip
+        // left `loading` true forever and the app stuck on the spinner.
+        if (cancelled) return;
+        console.error('[AuthContext] Failed to restore session:', error);
+        setUser(null);
+        setAuthError(error.message || 'Could not reach the authentication service');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (cancelled) return;
+      // Compare by id: Supabase hands back a fresh user object on every token
+      // refresh, which otherwise re-triggered a full data reload every hour.
+      setUser(prev => (prev?.id === session?.user?.id ? prev : session?.user ?? null));
+      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email, password) => {
@@ -69,12 +67,6 @@ export function AuthProvider({ children }) {
   };
 
   const signOut = async () => {
-    // In demo mode, do nothing (can't sign out of demo)
-    if (DEMO_MODE) {
-      console.log('🎭 Demo mode - sign out disabled');
-      return;
-    }
-
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
   };
@@ -85,14 +77,10 @@ export function AuthProvider({ children }) {
     return data;
   };
 
-  const value = {
-    user,
-    loading,
-    signUp,
-    signIn,
-    signOut,
-    resetPassword,
-  };
+  const value = useMemo(
+    () => ({ user, loading, authError, signUp, signIn, signOut, resetPassword }),
+    [user, loading, authError]
+  );
 
   return (
     <AuthContext.Provider value={value}>

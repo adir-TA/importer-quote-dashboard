@@ -22,6 +22,49 @@ import {
   countExtractionStats,
 } from './quoteDataModels';
 
+/**
+ * True when the model actually returned a usable value for a field.
+ *
+ * The previous guard was `raw.field !== null`. When the model omitted a field
+ * entirely the value was `undefined`, which passes that test - so missing
+ * fields were recorded as "extracted" with a value of `undefined`, defeating
+ * the whole not_found / confidence system.
+ */
+function hasValue(value) {
+  if (value === null || value === undefined || value === '') return false;
+  // The backend merges regex-derived supplier info as {value, confidence,
+  // source} objects while the model returns plain strings for the same fields.
+  if (typeof value === 'object' && 'value' in value) {
+    return value.value !== null && value.value !== undefined && value.value !== '';
+  }
+  return true;
+}
+
+/**
+ * Unwrap the {value, confidence, source} shape the backend uses for
+ * regex-extracted supplier fields. Rendering one of those objects directly
+ * crashes React with "Objects are not valid as a React child".
+ */
+function rawValue(value) {
+  if (value && typeof value === 'object' && 'value' in value) return value.value;
+  return value;
+}
+
+/**
+ * Build an ExtractedField for a document-level supplier field, accepting
+ * either shape the backend can return.
+ */
+function supplierField(raw, defaultSource) {
+  if (!hasValue(raw)) return notFound();
+
+  const wrapped = raw && typeof raw === 'object' && 'value' in raw;
+  return extracted(
+    rawValue(raw),
+    wrapped && raw.source ? `${defaultSource} (${raw.source})` : defaultSource,
+    wrapped ? raw.confidence || 'medium' : 'high'
+  );
+}
+
 // ============================================
 // REAL CLAUDE API EXTRACTION
 // ============================================
@@ -30,14 +73,7 @@ import {
  * Extract data from image using backend API (which calls Claude)
  * NEVER returns fake data - only what's actually in the document
  */
-async function extractFromImage(file, apiKey) {
-  // UNIQUE LOG - Verify client code updated
-  console.log('✅ [CLIENT v2025-12-15-SONNET] SAFETY NET DISABLED - Sonnet 4.5 extracts correctly!');
-
-  if (!apiKey) {
-    throw new Error('Anthropic API key required. Add it in Settings.');
-  }
-
+async function extractFromImage(file) {
   // Convert image to base64
   const base64 = await new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -65,7 +101,6 @@ async function extractFromImage(file, apiKey) {
     body: JSON.stringify({
       image: base64,
       mediaType: mediaType,
-      apiKey: apiKey,
     }),
   });
 
@@ -100,51 +135,41 @@ async function extractFromImage(file, apiKey) {
  */
 function convertToExtractionResult(rawData) {
   const result = {
-    supplierName: rawData.supplierName !== null
-      ? extracted(rawData.supplierName, 'Document header')
-      : notFound(),
+    supplierName: supplierField(rawData.supplierName, 'Document header'),
 
-    supplierContact: rawData.supplierContact !== null
-      ? extracted(rawData.supplierContact, 'Contact section')
-      : notFound(),
+    supplierContact: supplierField(rawData.supplierContact, 'Contact section'),
 
-    supplierEmail: rawData.supplierEmail !== null
-      ? extracted(rawData.supplierEmail, 'Contact section')
-      : notFound(),
+    supplierEmail: supplierField(rawData.supplierEmail, 'Contact section'),
 
-    supplierPhone: rawData.supplierPhone !== null
-      ? extracted(rawData.supplierPhone, 'Contact section')
-      : notFound(),
+    supplierPhone: supplierField(rawData.supplierPhone, 'Contact section'),
 
-    supplierAddress: rawData.supplierAddress !== null
-      ? extracted(rawData.supplierAddress, 'Header/footer')
-      : notFound(),
+    supplierAddress: supplierField(rawData.supplierAddress, 'Header/footer'),
 
-    currency: rawData.currency !== null
+    currency: hasValue(rawData.currency)
       ? extracted(rawData.currency, 'Price section')
       : notFound(),
 
-    incoterm: rawData.incoterm !== null
+    incoterm: hasValue(rawData.incoterm)
       ? extracted(rawData.incoterm, 'Terms section')
       : notFound(),
 
-    quoteDate: rawData.quoteDate !== null
+    quoteDate: hasValue(rawData.quoteDate)
       ? extracted(rawData.quoteDate, 'Header')
       : notFound(),
 
-    validUntil: rawData.validUntil !== null
+    validUntil: hasValue(rawData.validUntil)
       ? extracted(rawData.validUntil, 'Header')
       : notFound(),
 
-    paymentTerms: rawData.paymentTerms !== null
+    paymentTerms: hasValue(rawData.paymentTerms)
       ? extracted(rawData.paymentTerms, 'Terms section')
       : notFound(),
 
-    leadTime: rawData.leadTime !== null
+    leadTime: hasValue(rawData.leadTime)
       ? extracted(rawData.leadTime, 'Terms section')
       : notFound(),
 
-    notes: rawData.notes !== null
+    notes: hasValue(rawData.notes)
       ? extracted(rawData.notes, 'Remarks/Notes')
       : notFound(),
 
@@ -230,14 +255,14 @@ function convertToExtractionResult(rawData) {
 
         productName: extracted(productName, productNameSource),
 
-        sku: validatedItem.sku !== null
+        sku: hasValue(validatedItem.sku)
           ? extracted(validatedItem.sku, `Row ${index + 1}`)
           : notFound(),
 
         // ============================================
         // UNIT PRICE - WITH CONFIDENCE & ESTIMATED FLAG (VALIDATED)
         // ============================================
-        unitPrice: validatedItem.unitPrice !== null
+        unitPrice: hasValue(validatedItem.unitPrice)
           ? extracted(
               validatedItem.unitPrice,
               `Row ${index + 1}`,
@@ -251,7 +276,7 @@ function convertToExtractionResult(rawData) {
         // ============================================
         // MOQ - WITH CONFIDENCE
         // ============================================
-        moq: validatedItem.moq !== null
+        moq: hasValue(validatedItem.moq)
           ? extracted(
               validatedItem.moq,
               `Row ${index + 1}`,
@@ -259,46 +284,46 @@ function convertToExtractionResult(rawData) {
             )
           : notFound(),
 
-        quantity: validatedItem.quantity !== null
+        quantity: hasValue(validatedItem.quantity)
           ? extracted(validatedItem.quantity, `Row ${index + 1}`)
           : notFound(),
 
-        dimensions: validatedItem.dimensions !== null
+        dimensions: hasValue(validatedItem.dimensions)
           ? extracted(validatedItem.dimensions, `Row ${index + 1}`)
           : notFound(),
 
         // ============================================
         // LOGISTICS FIELDS (CRITICAL FOR LANDED COST)
         // ============================================
-        weight_g: validatedItem.weight_g !== null
+        weight_g: hasValue(validatedItem.weight_g)
           ? extracted(validatedItem.weight_g, `Row ${index + 1}`)
           : notFound(),
 
-        packing_pcs_per_ctn: validatedItem.packing_pcs_per_ctn !== null
+        packing_pcs_per_ctn: hasValue(validatedItem.packing_pcs_per_ctn)
           ? extracted(validatedItem.packing_pcs_per_ctn, `Row ${index + 1}`)
           : notFound(),
 
-        carton_length_cm: validatedItem.carton_length_cm !== null
+        carton_length_cm: hasValue(validatedItem.carton_length_cm)
           ? extracted(validatedItem.carton_length_cm, `Row ${index + 1}`)
           : notFound(),
 
-        carton_width_cm: validatedItem.carton_width_cm !== null
+        carton_width_cm: hasValue(validatedItem.carton_width_cm)
           ? extracted(validatedItem.carton_width_cm, `Row ${index + 1}`)
           : notFound(),
 
-        carton_height_cm: validatedItem.carton_height_cm !== null
+        carton_height_cm: hasValue(validatedItem.carton_height_cm)
           ? extracted(validatedItem.carton_height_cm, `Row ${index + 1}`)
           : notFound(),
 
-        cbm_per_carton: validatedItem.cbm_per_carton !== null
+        cbm_per_carton: hasValue(validatedItem.cbm_per_carton)
           ? extracted(validatedItem.cbm_per_carton, `Row ${index + 1}`)
           : notFound(),
 
         // Legacy fields (deprecated, kept for backwards compatibility)
-        packing: validatedItem.packing !== null
+        packing: hasValue(validatedItem.packing)
           ? extracted(validatedItem.packing, `Row ${index + 1}`)
           : notFound(),
-        cbm: validatedItem.cbm_per_carton !== null || validatedItem.cbm !== null
+        cbm: hasValue(validatedItem.cbm_per_carton) || hasValue(validatedItem.cbm)
           ? extracted(validatedItem.cbm_per_carton || validatedItem.cbm, `Row ${index + 1}`)
           : notFound(),
         weight: notFound(),
@@ -315,12 +340,8 @@ function convertToExtractionResult(rawData) {
 /**
  * Process PDF file - Claude API supports PDFs directly
  */
-async function processPdf(file, apiKey) {
+async function processPdf(file) {
   console.log('📄 [PDF] Processing PDF file:', file.name);
-
-  if (!apiKey) {
-    throw new Error('Anthropic API key required. Add it in Settings.');
-  }
 
   // Convert PDF to base64
   const base64 = await new Promise((resolve, reject) => {
@@ -346,7 +367,6 @@ async function processPdf(file, apiKey) {
     body: JSON.stringify({
       image: base64,
       mediaType: 'application/pdf',
-      apiKey: apiKey,
     }),
   });
 
@@ -376,43 +396,37 @@ async function processPdf(file, apiKey) {
   const extractionResult = createEmptyExtraction();
 
   // Supplier fields
-  extractionResult.supplier = rawData.supplierName !== null
-    ? extracted(rawData.supplierName, 'Extracted')
-    : notFound();
+  extractionResult.supplier = supplierField(rawData.supplierName, 'Extracted');
 
-  extractionResult.contact = rawData.supplierContact !== null
-    ? extracted(rawData.supplierContact, 'Extracted')
-    : notFound();
+  extractionResult.contact = supplierField(rawData.supplierContact, 'Extracted');
 
-  extractionResult.email = rawData.supplierEmail !== null
-    ? extracted(rawData.supplierEmail, 'Extracted')
-    : notFound();
+  extractionResult.email = supplierField(rawData.supplierEmail, 'Extracted');
 
-  extractionResult.currency = rawData.currency !== null
+  extractionResult.currency = hasValue(rawData.currency)
     ? extracted(rawData.currency, 'Extracted')
     : extracted('USD', 'Default');
 
-  extractionResult.incoterm = rawData.incoterm !== null
+  extractionResult.incoterm = hasValue(rawData.incoterm)
     ? extracted(rawData.incoterm, 'Extracted')
     : notFound();
 
-  extractionResult.quoteDate = rawData.quoteDate !== null
+  extractionResult.quoteDate = hasValue(rawData.quoteDate)
     ? extracted(rawData.quoteDate, 'Extracted')
     : notFound();
 
-  extractionResult.validUntil = rawData.validUntil !== null
+  extractionResult.validUntil = hasValue(rawData.validUntil)
     ? extracted(rawData.validUntil, 'Extracted')
     : notFound();
 
-  extractionResult.paymentTerms = rawData.paymentTerms !== null
+  extractionResult.paymentTerms = hasValue(rawData.paymentTerms)
     ? extracted(rawData.paymentTerms, 'Extracted')
     : notFound();
 
-  extractionResult.leadTime = rawData.leadTime !== null
+  extractionResult.leadTime = hasValue(rawData.leadTime)
     ? extracted(rawData.leadTime, 'Extracted')
     : notFound();
 
-  extractionResult.notes = rawData.notes !== null
+  extractionResult.notes = hasValue(rawData.notes)
     ? extracted(rawData.notes, 'Extracted')
     : notFound();
 
@@ -423,24 +437,24 @@ async function processPdf(file, apiKey) {
 
       return {
         productName: extracted(productName, `Row ${index + 1}`),
-        sku: item.sku !== null ? extracted(item.sku, `Row ${index + 1}`) : notFound(),
-        unitPrice: item.unitPrice !== null ? extracted(item.unitPrice, `Row ${index + 1}`) : notFound(),
+        sku: hasValue(item.sku) ? extracted(item.sku, `Row ${index + 1}`) : notFound(),
+        unitPrice: hasValue(item.unitPrice) ? extracted(item.unitPrice, `Row ${index + 1}`) : notFound(),
         priceConfidence: item.priceConfidence || 'medium',
         priceEstimated: item.priceConfidence === 'low',
-        moq: item.moq !== null ? extracted(item.moq, `Row ${index + 1}`) : notFound(),
+        moq: hasValue(item.moq) ? extracted(item.moq, `Row ${index + 1}`) : notFound(),
         moqConfidence: item.moqConfidence || 'medium',
-        quantity: item.quantity !== null ? extracted(item.quantity, `Row ${index + 1}`) : notFound(),
-        dimensions: item.dimensions !== null ? extracted(item.dimensions, `Row ${index + 1}`) : notFound(),
-        weight_g: item.weight_g !== null ? extracted(item.weight_g, `Row ${index + 1}`) : notFound(),
-        packing_pcs_per_ctn: item.packing_pcs_per_ctn !== null ? extracted(item.packing_pcs_per_ctn, `Row ${index + 1}`) : notFound(),
-        carton_length_cm: item.carton_length_cm !== null ? extracted(item.carton_length_cm, `Row ${index + 1}`) : notFound(),
-        carton_width_cm: item.carton_width_cm !== null ? extracted(item.carton_width_cm, `Row ${index + 1}`) : notFound(),
-        carton_height_cm: item.carton_height_cm !== null ? extracted(item.carton_height_cm, `Row ${index + 1}`) : notFound(),
-        cbm_per_carton: item.cbm_per_carton !== null ? extracted(item.cbm_per_carton, `Row ${index + 1}`) : notFound(),
+        quantity: hasValue(item.quantity) ? extracted(item.quantity, `Row ${index + 1}`) : notFound(),
+        dimensions: hasValue(item.dimensions) ? extracted(item.dimensions, `Row ${index + 1}`) : notFound(),
+        weight_g: hasValue(item.weight_g) ? extracted(item.weight_g, `Row ${index + 1}`) : notFound(),
+        packing_pcs_per_ctn: hasValue(item.packing_pcs_per_ctn) ? extracted(item.packing_pcs_per_ctn, `Row ${index + 1}`) : notFound(),
+        carton_length_cm: hasValue(item.carton_length_cm) ? extracted(item.carton_length_cm, `Row ${index + 1}`) : notFound(),
+        carton_width_cm: hasValue(item.carton_width_cm) ? extracted(item.carton_width_cm, `Row ${index + 1}`) : notFound(),
+        carton_height_cm: hasValue(item.carton_height_cm) ? extracted(item.carton_height_cm, `Row ${index + 1}`) : notFound(),
+        cbm_per_carton: hasValue(item.cbm_per_carton) ? extracted(item.cbm_per_carton, `Row ${index + 1}`) : notFound(),
 
         // Legacy fields
-        packing: item.packing_pcs_per_ctn !== null ? extracted(item.packing_pcs_per_ctn, `Row ${index + 1}`) : notFound(),
-        cbm: item.cbm_per_carton !== null ? extracted(item.cbm_per_carton, `Row ${index + 1}`) : notFound(),
+        packing: hasValue(item.packing_pcs_per_ctn) ? extracted(item.packing_pcs_per_ctn, `Row ${index + 1}`) : notFound(),
+        cbm: hasValue(item.cbm_per_carton) ? extracted(item.cbm_per_carton, `Row ${index + 1}`) : notFound(),
         weight: notFound(),
         cartonSize: notFound(),
       };
@@ -456,12 +470,8 @@ async function processPdf(file, apiKey) {
 /**
  * Process Excel file - Parse with xlsx and extract structured data
  */
-async function processExcel(file, apiKey) {
+async function processExcel(file) {
   console.log('📊 [EXCEL] Processing Excel file:', file.name);
-
-  if (!apiKey) {
-    throw new Error('Anthropic API key required. Add it in Settings.');
-  }
 
   // Use xlsx library to parse Excel
   const XLSX = await import('xlsx');
@@ -469,26 +479,42 @@ async function processExcel(file, apiKey) {
   const arrayBuffer = await file.arrayBuffer();
   const workbook = XLSX.read(arrayBuffer, { type: 'array' });
 
-  // Get first sheet
-  const firstSheetName = workbook.SheetNames[0];
-  const worksheet = workbook.Sheets[firstSheetName];
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error('That spreadsheet has no sheets to read');
+  }
 
-  // Convert to JSON
-  const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+  // Read EVERY sheet. Only the first was parsed before, so quotes split across
+  // tabs silently lost everything after sheet one.
+  let totalRows = 0;
+  const sheetTexts = workbook.SheetNames.map(sheetName => {
+    const worksheet = workbook.Sheets[sheetName];
+    if (!worksheet) return null;
 
-  // Convert to readable text format
-  const textRepresentation = jsonData
-    .map(row => row.join('\t'))
-    .join('\n');
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+    if (jsonData.length === 0) return null;
 
-  console.log('📊 [EXCEL:STEP-1] Parsed spreadsheet successfully, rows:', jsonData.length);
+    totalRows += jsonData.length;
+
+    const rows = jsonData
+      // sheet_to_json can yield sparse rows; `row.join` on a hole-y array is
+      // fine but a missing row is not, so guard before joining.
+      .map(row => (Array.isArray(row) ? row.map(cell => (cell == null ? '' : cell)).join('\t') : ''))
+      .join('\n');
+
+    return workbook.SheetNames.length > 1 ? `--- Sheet: ${sheetName} ---\n${rows}` : rows;
+  }).filter(Boolean);
+
+  if (sheetTexts.length === 0) {
+    throw new Error('That spreadsheet appears to be empty');
+  }
+
+  const textRepresentation = sheetTexts.join('\n\n');
+
+  console.log(`📊 [EXCEL:STEP-1] Parsed ${sheetTexts.length} sheet(s), ${totalRows} rows`);
   console.log('📊 [EXCEL:STEP-2] Converting to text and sending to Claude...');
 
   // Send structured data to text extraction API
-  const result = await extractFromText(
-    `Excel spreadsheet data:\n\n${textRepresentation}`,
-    apiKey
-  );
+  const result = await extractFromText(`Excel spreadsheet data:\n\n${textRepresentation}`);
 
   console.log('✅ [EXCEL:STEP-3] Successfully extracted from Excel');
   return result;
@@ -497,16 +523,10 @@ async function processExcel(file, apiKey) {
 /**
  * Extract data from text message using backend API (which calls Claude)
  * @param {string} text - The pasted text message
- * @param {string} apiKey - Anthropic API key
  * @returns {Promise<ExtractionResult>}
  */
-async function extractFromText(text, apiKey) {
+async function extractFromText(text) {
   console.log('📝 [TEXT:STEP-1] Starting extraction from text, length:', text.length);
-
-  if (!apiKey) {
-    console.error('[TEXT:ERROR] Missing API key');
-    throw new Error('Anthropic API key required. Add it in Settings.');
-  }
 
   if (!text || text.trim().length === 0) {
     console.error('[TEXT:ERROR] Empty text');
@@ -525,7 +545,6 @@ async function extractFromText(text, apiKey) {
     },
     body: JSON.stringify({
       text: text.trim(),
-      apiKey: apiKey,
     }),
   });
 
@@ -557,43 +576,37 @@ async function extractFromText(text, apiKey) {
   const extractionResult = createEmptyExtraction();
 
   // Supplier fields
-  extractionResult.supplier = rawData.supplierName !== null
-    ? extracted(rawData.supplierName, 'Extracted')
-    : notFound();
+  extractionResult.supplier = supplierField(rawData.supplierName, 'Extracted');
 
-  extractionResult.contact = rawData.supplierContact !== null
-    ? extracted(rawData.supplierContact, 'Extracted')
-    : notFound();
+  extractionResult.contact = supplierField(rawData.supplierContact, 'Extracted');
 
-  extractionResult.email = rawData.supplierEmail !== null
-    ? extracted(rawData.supplierEmail, 'Extracted')
-    : notFound();
+  extractionResult.email = supplierField(rawData.supplierEmail, 'Extracted');
 
-  extractionResult.currency = rawData.currency !== null
+  extractionResult.currency = hasValue(rawData.currency)
     ? extracted(rawData.currency, 'Extracted')
     : extracted('USD', 'Default');
 
-  extractionResult.incoterm = rawData.incoterm !== null
+  extractionResult.incoterm = hasValue(rawData.incoterm)
     ? extracted(rawData.incoterm, 'Extracted')
     : notFound();
 
-  extractionResult.quoteDate = rawData.quoteDate !== null
+  extractionResult.quoteDate = hasValue(rawData.quoteDate)
     ? extracted(rawData.quoteDate, 'Extracted')
     : notFound();
 
-  extractionResult.validUntil = rawData.validUntil !== null
+  extractionResult.validUntil = hasValue(rawData.validUntil)
     ? extracted(rawData.validUntil, 'Extracted')
     : notFound();
 
-  extractionResult.paymentTerms = rawData.paymentTerms !== null
+  extractionResult.paymentTerms = hasValue(rawData.paymentTerms)
     ? extracted(rawData.paymentTerms, 'Extracted')
     : notFound();
 
-  extractionResult.leadTime = rawData.leadTime !== null
+  extractionResult.leadTime = hasValue(rawData.leadTime)
     ? extracted(rawData.leadTime, 'Extracted')
     : notFound();
 
-  extractionResult.notes = rawData.notes !== null
+  extractionResult.notes = hasValue(rawData.notes)
     ? extracted(rawData.notes, 'Extracted')
     : notFound();
 
@@ -604,24 +617,24 @@ async function extractFromText(text, apiKey) {
 
       return {
         productName: extracted(productName, `Item ${index + 1}`),
-        sku: item.sku !== null ? extracted(item.sku, `Item ${index + 1}`) : notFound(),
-        unitPrice: item.unitPrice !== null ? extracted(item.unitPrice, `Item ${index + 1}`) : notFound(),
+        sku: hasValue(item.sku) ? extracted(item.sku, `Item ${index + 1}`) : notFound(),
+        unitPrice: hasValue(item.unitPrice) ? extracted(item.unitPrice, `Item ${index + 1}`) : notFound(),
         priceConfidence: item.priceConfidence || 'medium',
         priceEstimated: item.priceConfidence === 'low',
-        moq: item.moq !== null ? extracted(item.moq, `Item ${index + 1}`) : notFound(),
+        moq: hasValue(item.moq) ? extracted(item.moq, `Item ${index + 1}`) : notFound(),
         moqConfidence: item.moqConfidence || 'medium',
-        quantity: item.quantity !== null ? extracted(item.quantity, `Item ${index + 1}`) : notFound(),
-        dimensions: item.dimensions !== null ? extracted(item.dimensions, `Item ${index + 1}`) : notFound(),
-        weight_g: item.weight_g !== null ? extracted(item.weight_g, `Item ${index + 1}`) : notFound(),
-        packing_pcs_per_ctn: item.packing_pcs_per_ctn !== null ? extracted(item.packing_pcs_per_ctn, `Item ${index + 1}`) : notFound(),
-        carton_length_cm: item.carton_length_cm !== null ? extracted(item.carton_length_cm, `Item ${index + 1}`) : notFound(),
-        carton_width_cm: item.carton_width_cm !== null ? extracted(item.carton_width_cm, `Item ${index + 1}`) : notFound(),
-        carton_height_cm: item.carton_height_cm !== null ? extracted(item.carton_height_cm, `Item ${index + 1}`) : notFound(),
-        cbm_per_carton: item.cbm_per_carton !== null ? extracted(item.cbm_per_carton, `Item ${index + 1}`) : notFound(),
+        quantity: hasValue(item.quantity) ? extracted(item.quantity, `Item ${index + 1}`) : notFound(),
+        dimensions: hasValue(item.dimensions) ? extracted(item.dimensions, `Item ${index + 1}`) : notFound(),
+        weight_g: hasValue(item.weight_g) ? extracted(item.weight_g, `Item ${index + 1}`) : notFound(),
+        packing_pcs_per_ctn: hasValue(item.packing_pcs_per_ctn) ? extracted(item.packing_pcs_per_ctn, `Item ${index + 1}`) : notFound(),
+        carton_length_cm: hasValue(item.carton_length_cm) ? extracted(item.carton_length_cm, `Item ${index + 1}`) : notFound(),
+        carton_width_cm: hasValue(item.carton_width_cm) ? extracted(item.carton_width_cm, `Item ${index + 1}`) : notFound(),
+        carton_height_cm: hasValue(item.carton_height_cm) ? extracted(item.carton_height_cm, `Item ${index + 1}`) : notFound(),
+        cbm_per_carton: hasValue(item.cbm_per_carton) ? extracted(item.cbm_per_carton, `Item ${index + 1}`) : notFound(),
 
         // Legacy fields
-        packing: item.packing_pcs_per_ctn !== null ? extracted(item.packing_pcs_per_ctn, `Item ${index + 1}`) : notFound(),
-        cbm: item.cbm_per_carton !== null ? extracted(item.cbm_per_carton, `Item ${index + 1}`) : notFound(),
+        packing: hasValue(item.packing_pcs_per_ctn) ? extracted(item.packing_pcs_per_ctn, `Item ${index + 1}`) : notFound(),
+        cbm: hasValue(item.cbm_per_carton) ? extracted(item.cbm_per_carton, `Item ${index + 1}`) : notFound(),
         weight: notFound(),
         cartonSize: notFound(),
       };
@@ -638,15 +651,16 @@ async function extractFromText(text, apiKey) {
 /**
  * Main extraction function
  * @param {File} file - The uploaded file
- * @param {string} apiKey - Anthropic API key from settings
+ * @param {boolean} hasApiKey - Whether a key is configured (checked server-side too)
  * @returns {Promise<ExtractionResult>}
  */
-export async function extractQuoteFromFile(file, apiKey) {
+export async function extractQuoteFromFile(file, hasApiKey = true) {
   if (!file) {
     return { success: false, error: 'No file provided' };
   }
 
-  if (!apiKey) {
+  // Advisory only - the backend is the real gate and resolves the key itself.
+  if (!hasApiKey) {
     return {
       success: false,
       error: 'Anthropic API key required. Please add it in Settings to use quote extraction.'
@@ -660,13 +674,13 @@ export async function extractQuoteFromFile(file, apiKey) {
     let extractionResult;
 
     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
-      extractionResult = await processPdf(file, apiKey);
+      extractionResult = await processPdf(file);
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ||
                fileType.includes('spreadsheet') || fileType.includes('excel')) {
-      extractionResult = await processExcel(file, apiKey);
+      extractionResult = await processExcel(file);
     } else if (fileType.startsWith('image/') ||
                fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {
-      extractionResult = await extractFromImage(file, apiKey);
+      extractionResult = await extractFromImage(file);
     } else {
       return {
         success: false,
@@ -714,15 +728,15 @@ export {
 /**
  * Extract quote data from pasted text message
  * @param {string} text - The pasted text
- * @param {string} apiKey - Anthropic API key
+ * @param {boolean} hasApiKey - Whether a key is configured (checked server-side too)
  * @returns {Promise<ExtractionResult>}
  */
-export async function extractQuoteFromText(text, apiKey) {
+export async function extractQuoteFromText(text, hasApiKey = true) {
   if (!text || text.trim().length === 0) {
     return { success: false, error: 'No text provided' };
   }
 
-  if (!apiKey) {
+  if (!hasApiKey) {
     return {
       success: false,
       error: 'Anthropic API key required. Please add it in Settings to use quote extraction.'
@@ -730,7 +744,7 @@ export async function extractQuoteFromText(text, apiKey) {
   }
 
   try {
-    const extractionResult = await extractFromText(text, apiKey);
+    const extractionResult = await extractFromText(text);
 
     // Build final result
     const result = {
