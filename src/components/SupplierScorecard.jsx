@@ -95,7 +95,7 @@ function SupplierScorecard({ supplier, quotes, orders }) {
 
       <div className="scorecard-metrics">
         <div className="metric-card">
-          <div className="metric-icon" style={{ background: 'rgba(34, 197, 94, 0.1)' }}>
+          <div className="metric-icon" style={{ background: 'var(--success-tint)' }}>
             <Clock size={18} color="var(--success)" />
           </div>
           <div className="metric-content">
@@ -107,7 +107,7 @@ function SupplierScorecard({ supplier, quotes, orders }) {
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon" style={{ background: 'rgba(59, 130, 246, 0.1)' }}>
+          <div className="metric-icon" style={{ background: 'var(--accent-tint)' }}>
             <ThumbsUp size={18} color="var(--info)" />
           </div>
           <div className="metric-content">
@@ -119,7 +119,7 @@ function SupplierScorecard({ supplier, quotes, orders }) {
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon" style={{ background: 'rgba(124, 92, 252, 0.1)' }}>
+          <div className="metric-icon" style={{ background: 'var(--accent-tint)' }}>
             <TrendingDown size={18} color="var(--accent)" />
           </div>
           <div className="metric-content">
@@ -131,7 +131,7 @@ function SupplierScorecard({ supplier, quotes, orders }) {
         </div>
 
         <div className="metric-card">
-          <div className="metric-icon" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+          <div className="metric-icon" style={{ background: 'var(--warning-tint)' }}>
             <TrendingUp size={18} color="var(--warning)" />
           </div>
           <div className="metric-content">

@@ -86,8 +86,8 @@ function QuoteComparisonTable({ quotes }) {
       {/* Quick Analysis Box */}
       {bestSupplier && (
         <div style={{
-          background: 'rgba(16, 185, 129, 0.1)',
-          border: '1px solid rgba(16, 185, 129, 0.3)',
+          background: 'var(--success-tint)',
+          border: '1px solid var(--success-border)',
           borderRadius: 'var(--radius-lg)',
           padding: '16px 20px',
           marginBottom: '20px',

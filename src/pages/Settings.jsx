@@ -171,7 +171,7 @@ function Settings() {
           marginBottom: '28px',
         }}>
           {stats.map(stat => (
-            <div key={stat.label} className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div key={stat.label} className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
               <div className="stat-content">
                 <div className="stat-label">{stat.label}</div>
                 <div className="stat-value">{stat.count}</div>
@@ -316,8 +316,8 @@ function Settings() {
         </div>
 
         {/* Danger Zone */}
-        <div className="card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
-          <div className="card-header" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
+        <div className="card" style={{ borderColor: 'var(--error-tint-strong)' }}>
+          <div className="card-header" style={{ background: 'var(--error-tint)' }}>
             <span className="card-title" style={{ color: 'var(--error)' }}><Trash2 size={18} style={{ marginInlineEnd: '8px' }} /> {t('settings.dangerZone')}</span>
           </div>
           <div className="card-body">

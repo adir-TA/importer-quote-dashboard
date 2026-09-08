@@ -66,7 +66,7 @@ function Orders() {
   return (
     <div className="page">
       <div className="header">
-        <h2>Orders</h2>
+        <h2>{t('orders.title')}</h2>
         <button className="btn btn-primary" onClick={() => handleOpenModal()}><Plus size={16} /> New Order</button>
       </div>
 
@@ -78,8 +78,8 @@ function Orders() {
           gap: '16px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
-            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
               <Truck size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">

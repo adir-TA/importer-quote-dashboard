@@ -454,14 +454,14 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    background: 'rgba(0, 0, 0, 0.5)',
+    background: 'var(--overlay)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
   modal: {
-    background: 'white',
+    background: 'var(--bg-primary)',
     borderRadius: 'var(--radius-lg)',
     boxShadow: 'var(--shadow-xl)',
     width: '90%',
@@ -478,7 +478,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: '20px',
+    fontSize: 'var(--text-xl)',
     fontWeight: 600,
   },
   closeButton: {
@@ -499,7 +499,7 @@ const styles = {
     flexDirection: 'column',
   },
   label: {
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     marginBottom: '8px',
     color: 'var(--text-secondary)',
@@ -511,7 +511,7 @@ const styles = {
     padding: '10px 12px',
     border: '1px solid var(--border-strong)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
   },
   noSuppliers: {
     display: 'flex',
@@ -521,7 +521,7 @@ const styles = {
     background: 'var(--warning-light)',
     border: '1px solid var(--warning-border)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     color: 'var(--warning)',
   },
   dropzone: {
@@ -539,7 +539,7 @@ const styles = {
     color: 'var(--text-secondary)',
   },
   hint: {
-    fontSize: '12px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-subtle)',
     margin: 0,
   },
@@ -549,12 +549,12 @@ const styles = {
     gap: '12px',
   },
   fileName: {
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     color: 'var(--text-secondary)',
   },
   fileSize: {
-    fontSize: '12px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-secondary)',
   },
   error: {
@@ -565,7 +565,7 @@ const styles = {
     border: '1px solid var(--error-border)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--error)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
   },
   info: {
     display: 'flex',
@@ -575,7 +575,7 @@ const styles = {
     border: '1px solid var(--accent-border)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--accent-text)',
-    fontSize: '13px',
+    fontSize: 'var(--text-sm)',
   },
   footer: {
     padding: '16px 24px',
@@ -586,10 +586,10 @@ const styles = {
   },
   cancelButton: {
     padding: '10px 20px',
-    background: 'white',
+    background: 'var(--bg-primary)',
     border: '1px solid var(--border-strong)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     cursor: 'pointer',
     color: 'var(--text-secondary)',
@@ -603,7 +603,7 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     cursor: 'pointer',
   },
@@ -616,7 +616,7 @@ const styles = {
     height: '14px',
     border: '2px solid white',
     borderTopColor: 'transparent',
-    borderRadius: '50%',
+    borderRadius: 'var(--radius-full)',
     animation: 'spin 0.6s linear infinite',
   },
   modalLarge: {
@@ -635,7 +635,7 @@ const styles = {
     padding: '10px 12px',
     border: '1px solid var(--border-strong)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     width: '100%',
   },
   previewSection: {
@@ -657,7 +657,7 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '13px',
+    fontSize: 'var(--text-sm)',
     fontWeight: 500,
     cursor: 'pointer',
     transition: 'background 0.2s',
@@ -697,7 +697,7 @@ const styles = {
     padding: '16px',
     background: 'var(--grey-50)',
     borderRadius: 'var(--radius-md)',
-    fontSize: '13px',
+    fontSize: 'var(--text-sm)',
     color: 'var(--text-secondary)',
   },
 };

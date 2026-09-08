@@ -371,10 +371,10 @@ function BuyingIntentCommandSelect({
     <div
       ref={dropdownRef}
       style={{
-        background: 'white',
+        background: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-md)',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
+        boxShadow: '0 10px 25px var(--hairline)',
         maxHeight: `${responsiveMaxHeight}px`,
         overflow: 'hidden',
         display: 'flex',
@@ -405,7 +405,7 @@ function BuyingIntentCommandSelect({
           alignItems: 'center',
           gap: '8px',
           padding: '8px 12px',
-          background: 'white',
+          background: 'var(--bg-primary)',
           border: '1px solid var(--border-strong)',
           borderRadius: 'var(--radius-sm)',
         }}>
@@ -515,7 +515,7 @@ function BuyingIntentCommandSelect({
         style={{
           width: '100%',
           padding: '12px 16px',
-          background: 'white',
+          background: 'var(--bg-primary)',
           border: '2px solid var(--border)',
           borderRadius: 'var(--radius-md)',
           cursor: disabled ? 'not-allowed' : 'pointer',

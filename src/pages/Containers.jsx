@@ -150,7 +150,16 @@ function Containers() {
       <div className="content">
         {loadError && (
           <div className="validation-error" role="alert" style={{ marginBottom: 16 }}>
-            <AlertCircle size={16} /><span>{loadError}</span>
+            <AlertCircle size={16} />
+            <span>
+              {t('containers.loadFailed')}
+              {' '}
+              <span style={{ opacity: 0.75 }}>({loadError})</span>
+            </span>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={refresh}
+              style={{ marginInlineStart: 'auto' }}>
+              {t('containers.retry')}
+            </button>
           </div>
         )}
 
@@ -166,7 +175,7 @@ function Containers() {
 
         {loading ? (
           <LoadingState />
-        ) : filtered.length === 0 ? (
+        ) : loadError ? null : filtered.length === 0 ? (
           <div className="empty-state">
             <ContainerIcon size={32} />
             <h3>{containers.length ? t('containers.noMatches') : t('containers.emptyTitle')}</h3>

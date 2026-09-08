@@ -554,7 +554,7 @@ function ProductDetail() {
       background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : 'var(--accent)'};
       color: white;
       border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      box-shadow: var(--shadow-lg);
       z-index: 10000;
       font-size: 0.875rem;
       max-width: 320px;
@@ -952,8 +952,8 @@ function ProductDetail() {
           gap: '20px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
-            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
               <FileText size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
@@ -970,8 +970,8 @@ function ProductDetail() {
             // If nothing is convertible, we cannot name a best price
             if (!best) return null;
             return (
-              <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
-                <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+              <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'var(--success-tint)' }}>
+                <div className="stat-icon-wrapper" style={{ background: 'var(--success-tint)' }}>
                   <DollarSign size={22} color="var(--success)" />
                 </div>
                 <div className="stat-content">
@@ -994,7 +994,7 @@ function ProductDetail() {
         <div className="product-detail-layout">
           {/* Left Sidebar: Product Info */}
           <div className="product-detail-sidebar" style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',
@@ -1024,7 +1024,7 @@ function ProductDetail() {
                     border: '1px solid var(--border)',
                     borderRadius: 'var(--radius-md)',
                     objectFit: 'contain',
-                    background: 'white',
+                    background: 'var(--bg-primary)',
                     display: 'block',
                     marginBottom: '8px'
                   }}
@@ -1138,8 +1138,8 @@ function ProductDetail() {
                   padding: '12px 16px',
                   background: 'none',
                   border: 'none',
-                  borderBottom: activeTab === 'quotes' ? '2px solid var(--primary)' : '2px solid transparent',
-                  color: activeTab === 'quotes' ? 'var(--primary)' : 'var(--text-secondary)',
+                  borderBottom: activeTab === 'quotes' ? '2px solid var(--accent)' : '2px solid transparent',
+                  color: activeTab === 'quotes' ? 'var(--accent)' : 'var(--text-secondary)',
                   fontWeight: activeTab === 'quotes' ? 600 : 400,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1157,8 +1157,8 @@ function ProductDetail() {
                   padding: '12px 16px',
                   background: 'none',
                   border: 'none',
-                  borderBottom: activeTab === 'documents' ? '2px solid var(--primary)' : '2px solid transparent',
-                  color: activeTab === 'documents' ? 'var(--primary)' : 'var(--text-secondary)',
+                  borderBottom: activeTab === 'documents' ? '2px solid var(--accent)' : '2px solid transparent',
+                  color: activeTab === 'documents' ? 'var(--accent)' : 'var(--text-secondary)',
                   fontWeight: activeTab === 'documents' ? 600 : 400,
                   cursor: 'pointer',
                   display: 'flex',
@@ -1474,7 +1474,7 @@ function ProductDetail() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'var(--overlay)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1482,7 +1482,7 @@ function ProductDetail() {
           backdropFilter: 'blur(4px)',
         }}>
           <div style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             borderRadius: 'var(--radius-xl)',
             boxShadow: 'var(--shadow-xl)',
             maxWidth: '900px',
@@ -1582,7 +1582,7 @@ function ProductDetail() {
                       <div style={{
                         width: '20px',
                         height: '20px',
-                        borderRadius: '50%',
+                        borderRadius: 'var(--radius-full)',
                         border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`,
                         display: 'flex',
                         alignItems: 'center',
@@ -1593,7 +1593,7 @@ function ProductDetail() {
                           <div style={{
                             width: '10px',
                             height: '10px',
-                            borderRadius: '50%',
+                            borderRadius: 'var(--radius-full)',
                             background: 'var(--accent)',
                           }} />
                         )}
@@ -1625,7 +1625,7 @@ function ProductDetail() {
                                 height: '24px',
                                 borderRadius: 'var(--radius-xs)',
                                 background: color,
-                                border: '1px solid rgba(0,0,0,0.1)',
+                                border: '1px solid var(--hairline)',
                               }}
                             />
                           ))}
@@ -1653,7 +1653,7 @@ function ProductDetail() {
                   const theme = EXPORT_THEMES[selectedRFQTheme];
                   return (
                     <div style={{
-                      background: 'white',
+                      background: 'var(--bg-primary)',
                       border: '2px solid #000',
                       borderRadius: 'var(--radius-xs)',
                       overflow: 'hidden',
@@ -1742,7 +1742,7 @@ function ProductDetail() {
                 style={{
                   padding: '10px 20px',
                   border: '1px solid var(--border-strong)',
-                  background: 'white',
+                  background: 'var(--bg-primary)',
                   borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                   fontWeight: 500,
@@ -1770,7 +1770,7 @@ function ProductDetail() {
                 style={{
                   padding: '10px 24px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)',
+                  background: 'var(--accent)',
                   borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                   fontWeight: 600,
@@ -1784,11 +1784,11 @@ function ProductDetail() {
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(59, 130, 246, 0.4)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                 }}
               >
                 <FileDown size={18} />

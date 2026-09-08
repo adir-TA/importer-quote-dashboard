@@ -40,6 +40,9 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
     ]},
     { section: t('sidebar.logistics'), items: [
       { path: '/containers', icon: Container, label: t('sidebar.containers') },
+      // The landed-cost calculator was routed but linked from nowhere, so the
+      // only way in was to type the URL.
+      { path: '/landed-cost', icon: Calculator, label: t('sidebar.landedCost') },
     ]},
     { section: t('sidebar.system'), items: [
       { path: '/settings', icon: Settings, label: t('sidebar.settings') },
@@ -53,7 +56,7 @@ function Sidebar({ onSearchOpen, isMobileOpen = false, onMobileClose }) {
           <img src={logo} alt="HA Products" className="sidebar-logo-img" />
           <div className="sidebar-brand">
             <span className="sidebar-brand-name">HA Products</span>
-            <span className="sidebar-brand-tagline">bro</span>
+            <span className="sidebar-brand-tagline">{t('sidebar.tagline')}</span>
           </div>
         </div>
       </div>

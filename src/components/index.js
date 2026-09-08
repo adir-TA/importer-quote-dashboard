@@ -21,3 +21,4 @@ export { default as BuyingIntentCommandSelect } from './BuyingIntentCommandSelec
 export { default as EditBuyingIntentModal } from './EditBuyingIntentModal';
 export { default as ErrorBoundary } from './ErrorBoundary';
 export { default as LoadingState } from './LoadingState';
+export { default as ThemeSelectorModal } from './ThemeSelectorModal';

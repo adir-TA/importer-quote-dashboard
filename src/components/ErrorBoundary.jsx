@@ -82,7 +82,7 @@ const styles = {
     borderRadius: 'var(--radius-lg)',
     padding: '32px',
     textAlign: 'center',
-    boxShadow: '0 4px 24px rgba(15, 23, 42, 0.08)',
+    boxShadow: 'var(--shadow-lg)',
   },
   title: { margin: '16px 0 8px', fontSize: 'var(--text-xl)', color: 'var(--text-primary)' },
   message: { margin: '0 0 20px', color: 'var(--text-secondary)', lineHeight: 1.6 },

@@ -101,8 +101,8 @@ function Dashboard() {
   }, [selectedProductId, quoteCounts]);
 
   const stats = [
-    { label: t('dashboard.buyingIntents'), value: products.length, icon: Package, color: 'var(--accent)', bgColor: 'rgba(124, 92, 252, 0.1)' },
-    { label: t('dashboard.quotes'), value: quotes.length, icon: FileText, color: 'var(--accent)', bgColor: 'rgba(59, 130, 246, 0.1)' },
+    { label: t('dashboard.buyingIntents'), value: products.length, icon: Package, color: 'var(--accent)', bgColor: 'var(--accent-tint)' },
+    { label: t('dashboard.quotes'), value: quotes.length, icon: FileText, color: 'var(--accent)', bgColor: 'var(--accent-tint)' },
   ];
 
   return (
@@ -110,7 +110,7 @@ function Dashboard() {
       <div className="header">
         <div>
           <h2>{t('dashboard.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: '2px' }}>
+          <p className="header-subtitle">
             {t('dashboard.subtitle')}
           </p>
         </div>
@@ -148,7 +148,7 @@ function Dashboard() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
           {/* Workflow Steps */}
           <div style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
             overflow: 'hidden'
@@ -177,7 +177,7 @@ function Dashboard() {
                 <div style={{
                   width: '28px',
                   height: '28px',
-                  borderRadius: '50%',
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text-secondary)',
                   color: 'white',
                   display: 'flex',
@@ -200,7 +200,7 @@ function Dashboard() {
                 <div style={{
                   width: '28px',
                   height: '28px',
-                  borderRadius: '50%',
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--text-secondary)',
                   color: 'white',
                   display: 'flex',
@@ -223,7 +223,7 @@ function Dashboard() {
                 <div style={{
                   width: '28px',
                   height: '28px',
-                  borderRadius: '50%',
+                  borderRadius: 'var(--radius-full)',
                   background: 'var(--accent)',
                   color: 'white',
                   display: 'flex',
@@ -245,7 +245,7 @@ function Dashboard() {
 
           {/* Best Price Finder */}
           <div style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
             overflow: 'hidden'

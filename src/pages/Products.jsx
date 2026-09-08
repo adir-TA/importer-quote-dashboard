@@ -5,7 +5,7 @@ import { useAppContext } from '../context/AppContext';
 import { LoadingState } from '../components';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
-import { ProductCard, SearchInput, EditBuyingIntentModal } from '../components';
+import { ProductCard, SearchInput, EditBuyingIntentModal, ThemeSelectorModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import { filterBySearch, sanitizeCell, downloadBlob } from '../utils/helpers';
 import { useAuth } from '../context/AuthContext';
@@ -897,8 +897,8 @@ function Products() {
             marginBottom: '28px',
             flexShrink: 0,
           }}>
-            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
                 <Package size={22} color="var(--accent)" />
               </div>
               <div className="stat-content">
@@ -906,8 +906,8 @@ function Products() {
                 <div className="stat-value">{stats.totalProducts}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'var(--success-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'var(--success-tint)' }}>
                 <TrendingUp size={22} color="var(--success)" />
               </div>
               <div className="stat-content">
@@ -915,8 +915,8 @@ function Products() {
                 <div className="stat-value">{stats.totalWithQuotes}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': 'var(--warning)', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--warning)', '--stat-bg': 'var(--warning-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'var(--warning-tint)' }}>
                 <TrendingDown size={22} color="var(--warning)" />
               </div>
               <div className="stat-content">
@@ -924,8 +924,8 @@ function Products() {
                 <div className="stat-value">{stats.totalWithoutQuotes}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
                 <Grid size={22} color="var(--accent)" />
               </div>
               <div className="stat-content">
@@ -938,23 +938,9 @@ function Products() {
 
         {/* Mobile Filters Button */}
         <button
-          className="mobile-filters-btn"
+          type="button"
+          className="btn btn-secondary mobile-filters-btn"
           onClick={() => setIsMobileFiltersOpen(true)}
-          style={{
-            display: 'none',
-            marginBottom: '16px',
-            padding: '12px 16px',
-            background: 'var(--accent)',
-            color: 'white',
-            border: 'none',
-            borderRadius: 'var(--radius-md)',
-            cursor: 'pointer',
-            fontSize: 'var(--text-base)',
-            fontWeight: 600,
-            alignItems: 'center',
-            gap: '8px',
-            width: '100%',
-          }}
         >
           <Filter size={16} /> {t('products.filtersOptions')}
         </button>
@@ -962,14 +948,7 @@ function Products() {
         {/* Two-column layout: Filters sidebar + Main content */}
         <div className="products-layout" style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', flex: 1, overflow: 'hidden', minHeight: 0 }}>
           {/* Left Sidebar: Filters & Options */}
-          <div className="filters-sidebar" style={{
-            background: 'white',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '24px',
-            boxShadow: 'var(--shadow-sm)',
-            overflowY: 'auto',
-          }}>
+          <div className="filters-sidebar filter-panel">
             {/* Search */}
             <div style={{ marginBottom: '20px' }}>
               <SearchInput value={search} onChange={setSearch} placeholder={t('products.searchPlaceholder')} />
@@ -1012,144 +991,60 @@ function Products() {
               </div>
             )}
 
-            <h3 style={{
-              fontSize: 'var(--text-base)',
-              fontWeight: 700,
-              color: 'var(--text-muted)',
-              marginBottom: '20px'
-            }}>
-              {t('products.filtersView')}
-            </h3>
+            <h3 className="filter-heading">{t('products.filtersView')}</h3>
 
             {/* View Mode */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
-                {t('products.viewMode')}
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                <button
-                  onClick={() => {
-                    setViewMode('grid');
-                    localStorage.setItem('buyingIntentsViewMode', 'grid');
-                    setViewModeManuallySet(true);
-                  }}
-                  style={{
-                    padding: '12px 8px',
-                    background: viewMode === 'grid' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: viewMode === 'grid' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
-                  }}
-                >
-                  <Grid size={16} />
-                  {t('products.cards')}
-                </button>
-                <button
-                  onClick={() => {
-                    setViewMode('compact');
-                    localStorage.setItem('buyingIntentsViewMode', 'compact');
-                    setViewModeManuallySet(true);
-                  }}
-                  style={{
-                    padding: '12px 8px',
-                    background: viewMode === 'compact' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: viewMode === 'compact' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: 'var(--text-xs)',
-                    fontWeight: 600,
-                  }}
-                >
-                  <Table2 size={16} />
-                  {t('products.table')}
-                </button>
+            <div className="filter-group">
+              <label className="filter-label">{t('products.viewMode')}</label>
+              <div className="filter-grid-2">
+                {[
+                  { mode: 'grid', icon: Grid, label: t('products.cards') },
+                  { mode: 'compact', icon: Table2, label: t('products.table') },
+                ].map(({ mode, icon: Icon, label }) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={viewMode === mode}
+                    className={`filter-tile ${viewMode === mode ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setViewMode(mode);
+                      localStorage.setItem('buyingIntentsViewMode', mode);
+                      setViewModeManuallySet(true);
+                    }}
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Sort By */}
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
-                {t('products.sortBy')}
-              </label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <button
-                  onClick={() => setSortBy('name')}
-                  style={{
-                    padding: '10px 12px',
-                    background: sortBy === 'name' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: sortBy === 'name' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <Type size={16} />
-                  {t('products.nameAZ')}
-                </button>
-                <button
-                  onClick={() => setSortBy('quotes')}
-                  style={{
-                    padding: '10px 12px',
-                    background: sortBy === 'quotes' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: sortBy === 'quotes' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <TrendingDown size={16} />
-                  {t('products.quotesHighLow')}
-                </button>
-                <button
-                  onClick={() => setSortBy('recent')}
-                  style={{
-                    padding: '10px 12px',
-                    background: sortBy === 'recent' ? 'var(--accent)' : 'var(--bg-secondary)',
-                    color: sortBy === 'recent' ? 'white' : 'var(--text-secondary)',
-                    border: 'none',
-                    borderRadius: 'var(--radius-md)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: 'var(--text-sm)',
-                    fontWeight: 600,
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  <Clock size={16} />
-                  {t('products.recentlyAdded')}
-                </button>
+            <div className="filter-group">
+              <label className="filter-label">{t('products.sortBy')}</label>
+              <div className="filter-stack">
+                {[
+                  { key: 'name', icon: Type, label: t('products.nameAZ') },
+                  { key: 'quotes', icon: TrendingDown, label: t('products.quotesHighLow') },
+                  { key: 'recent', icon: Clock, label: t('products.recentlyAdded') },
+                ].map(({ key, icon: Icon, label }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={sortBy === key}
+                    className={`filter-option ${sortBy === key ? 'is-active' : ''}`}
+                    onClick={() => setSortBy(key)}
+                  >
+                    <Icon size={16} />
+                    {label}
+                  </button>
+                ))}
               </div>
             </div>
 
             {/* Category Filters */}
             {categories.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
+              <div className="filter-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {t('products.categories')}
@@ -1175,19 +1070,7 @@ function Products() {
                   {categories.map(category => (
                     <label
                       key={category}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '10px 12px',
-                        background: selectedCategoryFilters.includes(category) ? 'var(--accent-light)' : 'var(--bg-secondary)',
-                        border: selectedCategoryFilters.includes(category) ? '1px solid var(--accent)' : '1px solid transparent',
-                        borderRadius: 'var(--radius-md)',
-                        cursor: 'pointer',
-                        fontSize: 'var(--text-base)',
-                        fontWeight: 500,
-                        transition: 'all 0.2s',
-                      }}
+                      className={`filter-check ${selectedCategoryFilters.includes(category) ? 'is-active' : ''}`}
                     >
                       <input
                         type="checkbox"
@@ -1205,7 +1088,7 @@ function Products() {
                       <span style={{
                         fontSize: 'var(--text-xs)',
                         padding: '2px 8px',
-                        background: 'white',
+                        background: 'var(--bg-primary)',
                         borderRadius: 'var(--radius-sm)',
                         color: 'var(--text-muted)',
                         fontWeight: 600,
@@ -1222,7 +1105,7 @@ function Products() {
             {selectedProducts.size > 0 && (
               <div style={{
                 padding: '16px',
-                background: 'rgba(239, 68, 68, 0.1)',
+                background: 'var(--error-tint)',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--error)',
               }}>
@@ -1234,7 +1117,7 @@ function Products() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)',
+                    background: 'var(--accent)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
@@ -1256,7 +1139,7 @@ function Products() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: 'linear-gradient(135deg, var(--success) 0%, var(--success) 100%)',
+                    background: 'var(--success)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
@@ -1361,7 +1244,7 @@ function Products() {
                   </h3>
                   <span style={{
                     padding: '4px 12px',
-                    background: 'rgba(255, 255, 255, 0.9)',
+                    background: 'var(--bg-primary)',
                     borderRadius: 'var(--radius-lg)',
                     fontSize: 'var(--text-base)',
                     fontWeight: 600,
@@ -1390,7 +1273,7 @@ function Products() {
                       ))}
                     </div>
                   ) : (
-                    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                    <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
                       {/* Table Header */}
                       <div style={{
                         display: 'grid',
@@ -1644,7 +1527,7 @@ function Products() {
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.5)',
+              background: 'var(--overlay)',
               backdropFilter: 'blur(2px)',
               zIndex: 999,
             }}
@@ -1656,7 +1539,7 @@ function Products() {
             bottom: 0,
             width: '85%',
             maxWidth: '320px',
-            background: 'white',
+            background: 'var(--bg-primary)',
             zIndex: 1000,
             overflowY: 'auto',
             padding: '24px',
@@ -1809,7 +1692,7 @@ function Products() {
 
             {/* Category Filters */}
             {categories.length > 0 && (
-              <div style={{ marginBottom: '24px' }}>
+              <div className="filter-group">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {t('products.categories')}
@@ -1835,19 +1718,7 @@ function Products() {
                   {categories.map(category => (
                     <label
                       key={category}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '10px',
-                        padding: '10px 12px',
-                        background: selectedCategoryFilters.includes(category) ? 'var(--accent-light)' : 'var(--bg-secondary)',
-                        border: selectedCategoryFilters.includes(category) ? '1px solid var(--accent)' : '1px solid transparent',
-                        borderRadius: 'var(--radius-md)',
-                        cursor: 'pointer',
-                        fontSize: 'var(--text-base)',
-                        fontWeight: 500,
-                        transition: 'all 0.2s',
-                      }}
+                      className={`filter-check ${selectedCategoryFilters.includes(category) ? 'is-active' : ''}`}
                     >
                       <input
                         type="checkbox"
@@ -1865,7 +1736,7 @@ function Products() {
                       <span style={{
                         fontSize: 'var(--text-xs)',
                         padding: '2px 8px',
-                        background: 'white',
+                        background: 'var(--bg-primary)',
                         borderRadius: 'var(--radius-sm)',
                         color: 'var(--text-muted)',
                         fontWeight: 600,
@@ -1882,7 +1753,7 @@ function Products() {
             {selectedProducts.size > 0 && (
               <div style={{
                 padding: '16px',
-                background: 'rgba(239, 68, 68, 0.1)',
+                background: 'var(--error-tint)',
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--error)',
               }}>
@@ -1897,7 +1768,7 @@ function Products() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)',
+                    background: 'var(--accent)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
@@ -2010,158 +1881,43 @@ function Products() {
           setFormData({ ...formData, specs: newSpecs });
         }}
       />
-      {/* RFQ Theme Selection Modal */}
-      {showRFQThemeSelector && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-xl)',
-            maxWidth: '900px',
-            width: '90%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}>
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: '4px' }}>
-                  Choose RFQ Export Theme
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', margin: 0 }}>
-                  Generating RFQ for {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''}
-                </p>
-              </div>
-              <button onClick={() => setShowRFQThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: 'var(--radius-md)' }}>
-                <X size={24} color="var(--text-secondary)" />
-              </button>
-            </div>
-            <div style={{ display: 'flex', overflow: 'hidden', flex: 1 }}>
-              <div style={{ width: '280px', borderInlineEnd: '1px solid var(--border)', padding: '24px 16px', background: 'var(--grey-25)', overflow: 'auto' }}>
-                {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
-                  <button key={key} onClick={() => setSelectedRFQTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedRFQTheme === key ? 'var(--accent-light)' : 'white', border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {selectedRFQTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '4px' }}>{theme.name}</div>
-                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '10px' }}>{theme.description}</div>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-xs)', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: 'var(--grey-25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  <FileDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>Multi-Item RFQ Export</div>
-                  <div style={{ fontSize: 'var(--text-base)', marginTop: '8px' }}>Excel file will include {selectedProducts.size} buying intent{selectedProducts.size > 1 ? 's' : ''}</div>
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: '20px 32px', borderTop: '1px solid var(--border)', background: 'var(--grey-25)', display: 'flex', justifyContent: 'space-between' }}>
-              <button onClick={() => setShowRFQThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid var(--border-strong)', background: 'white', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 500, fontSize: 'var(--text-md)', color: 'var(--text-secondary)' }}>Cancel</button>
-              <button onClick={async () => { const selectedProductList = Array.from(selectedProducts).map(id => products.find(p => p.id === id)).filter(Boolean); await generateRFQExcel(selectedProductList, selectedRFQTheme); setShowRFQThemeSelector(false); }} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 600, fontSize: 'var(--text-md)', color: 'white', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileDown size={18} />Export with {EXPORT_THEMES[selectedRFQTheme].name}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ThemeSelectorModal
+        open={showRFQThemeSelector}
+        title="Choose RFQ export theme"
+        subtitle={`Generating an RFQ for ${selectedProducts.size} item${selectedProducts.size > 1 ? 's' : ''}.`}
+        themes={EXPORT_THEMES}
+        value={selectedRFQTheme}
+        onChange={setSelectedRFQTheme}
+        onClose={() => setShowRFQThemeSelector(false)}
+        onConfirm={async () => {
+          const selectedProductList = Array.from(selectedProducts)
+            .map(id => products.find(p => p.id === id))
+            .filter(Boolean);
+          await generateRFQExcel(selectedProductList, selectedRFQTheme);
+          setShowRFQThemeSelector(false);
+        }}
+        summaryTitle="Multi-item RFQ export"
+        summaryLines={[
+          `Excel file will include ${selectedProducts.size} buying intent${selectedProducts.size > 1 ? 's' : ''}`,
+        ]}
+      />
 
-      {/* Buying Intents Excel Export Theme Selection Modal */}
-      {showExcelThemeSelector && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          backdropFilter: 'blur(4px)',
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: 'var(--radius-xl)',
-            boxShadow: 'var(--shadow-xl)',
-            maxWidth: '900px',
-            width: '90%',
-            maxHeight: '90vh',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}>
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: '4px' }}>
-                  Choose Excel Export Theme
-                </h2>
-                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', margin: 0 }}>
-                  Exporting {selectedProducts.size} Buying Intent{selectedProducts.size > 1 ? 's' : ''}
-                </p>
-              </div>
-              <button onClick={() => setShowExcelThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: 'var(--radius-md)' }}>
-                <X size={24} color="var(--text-secondary)" />
-              </button>
-            </div>
-            <div style={{ display: 'flex', overflow: 'hidden', flex: 1 }}>
-              <div style={{ width: '280px', borderInlineEnd: '1px solid var(--border)', padding: '24px 16px', background: 'var(--grey-25)', overflow: 'auto' }}>
-                {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
-                  <button key={key} onClick={() => setSelectedExcelTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedExcelTheme === key ? 'var(--accent-light)' : 'white', border: `2px solid ${selectedExcelTheme === key ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedExcelTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {selectedExcelTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />}
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '4px' }}>{theme.name}</div>
-                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '10px' }}>{theme.description}</div>
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-xs)', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: 'var(--grey-25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
-                  <FileDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>Buying Intents Export</div>
-                  <div style={{ fontSize: 'var(--text-base)', marginTop: '8px' }}>
-                    Excel file with images, specifications, and categories
-                  </div>
-                  <div style={{ fontSize: 'var(--text-base)', marginTop: '4px', opacity: 0.7 }}>
-                    {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''} selected
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: '20px 32px', borderTop: '1px solid var(--border)', background: 'var(--grey-25)', display: 'flex', justifyContent: 'space-between' }}>
-              <button onClick={() => setShowExcelThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid var(--border-strong)', background: 'white', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 500, fontSize: 'var(--text-md)', color: 'var(--text-secondary)' }}>Cancel</button>
-              <button onClick={handleConfirmExcelExport} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, var(--success) 0%, var(--success) 100%)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 600, fontSize: 'var(--text-md)', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileDown size={18} />Export with {EXPORT_THEMES[selectedExcelTheme].name}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ThemeSelectorModal
+        open={showExcelThemeSelector}
+        title="Choose Excel export theme"
+        subtitle={`Exporting ${selectedProducts.size} buying intent${selectedProducts.size > 1 ? 's' : ''}.`}
+        themes={EXPORT_THEMES}
+        value={selectedExcelTheme}
+        onChange={setSelectedExcelTheme}
+        onClose={() => setShowExcelThemeSelector(false)}
+        onConfirm={handleConfirmExcelExport}
+        summaryTitle="Buying intents export"
+        summaryLines={[
+          'Excel file with images, specifications and categories',
+          `${selectedProducts.size} item${selectedProducts.size > 1 ? 's' : ''} selected`,
+        ]}
+      />
+
 
       {/* Upload Quote Modal - only render when open */}
       {isUploadQuoteModalOpen && (

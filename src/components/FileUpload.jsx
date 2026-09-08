@@ -80,8 +80,8 @@ function FileUpload({
           <div style={{
             width: '48px',
             height: '48px',
-            borderRadius: '50%',
-            background: 'rgba(16, 185, 129, 0.15)',
+            borderRadius: 'var(--radius-full)',
+            background: 'var(--success-tint)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',

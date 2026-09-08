@@ -8,7 +8,7 @@ import {
 import { useAppContext, canUseAi } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
-import { BuyingIntentCommandSelect } from '../components';
+import { BuyingIntentCommandSelect, LoadingState } from '../components';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 // formatCurrency used to hardcode 'USD', so a CNY quote rendered as "$5.00".
 // It now respects each quote's own currency; see src/utils/currency.js.
@@ -671,7 +671,7 @@ Write ONLY the message.`);
           </button>
           <div>
             <h2>{t('comparison.title')}</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: '2px' }}>
+            <p className="header-subtitle">
               {t('comparison.subtitle')}
             </p>
           </div>
@@ -692,8 +692,8 @@ Write ONLY the message.`);
             gap: '20px',
             marginBottom: '28px',
           }}>
-            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
                 <FileText size={22} color="var(--accent)" />
               </div>
               <div className="stat-content">
@@ -701,8 +701,8 @@ Write ONLY the message.`);
                 <div className="stat-value">{quotesWithLanded.length}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
-              <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'var(--success-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: 'var(--success-tint)' }}>
                 <TrendingDown size={22} color="var(--success)" />
               </div>
               <div className="stat-content">
@@ -713,8 +713,8 @@ Write ONLY the message.`);
               </div>
             </div>
             {otherQuotes.length > 0 && (
-              <div className="stat-card" style={{ '--stat-color': 'var(--warning)', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
-                <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
+              <div className="stat-card" style={{ '--stat-color': 'var(--warning)', '--stat-bg': 'var(--warning-tint)' }}>
+                <div className="stat-icon-wrapper" style={{ background: 'var(--warning-tint)' }}>
                   <Calculator size={22} color="var(--warning)" />
                 </div>
                 <div className="stat-content">
@@ -757,7 +757,7 @@ Write ONLY the message.`);
         <div className="products-layout" style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Left Sidebar: Product Selector */}
           <div className="filters-sidebar" style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',
@@ -985,7 +985,7 @@ Write ONLY the message.`);
                   <div style={{
                     marginBottom: '20px',
                     padding: '16px 20px',
-                    background: 'linear-gradient(135deg, var(--warning-light) 0%, var(--warning-light) 100%)',
+                    background: 'var(--warning-light)',
                     border: '2px solid var(--warning)',
                     borderRadius: 'var(--radius-lg)',
                     display: 'flex',
@@ -1023,18 +1023,18 @@ Write ONLY the message.`);
                         fontWeight: 600,
                         fontSize: 'var(--text-base)',
                         whiteSpace: 'nowrap',
-                        boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
+                        boxShadow: 'var(--shadow-sm)',
                         transition: 'all 0.2s',
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'var(--warning)';
                         e.currentTarget.style.transform = 'translateY(-1px)';
-                        e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                       }}
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'var(--warning)';
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 158, 11, 0.3)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
                       }}
                     >
                       Name & Finalize
@@ -1263,10 +1263,10 @@ Write ONLY the message.`);
             <div style={{
               display: 'inline-flex',
               padding: '20px',
-              background: 'white',
-              borderRadius: '50%',
+              background: 'var(--bg-primary)',
+              borderRadius: 'var(--radius-full)',
               marginBottom: '20px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              boxShadow: 'var(--shadow-md)',
             }}>
               <TrendingDown size={48} style={{ color: 'var(--text-subtle)' }} />
             </div>
@@ -1290,7 +1290,7 @@ Write ONLY the message.`);
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
+          background: 'var(--overlay)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -1298,7 +1298,7 @@ Write ONLY the message.`);
         }}
         >
           <div style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             borderRadius: 'var(--radius-xl)',
             maxWidth: '1200px',
             width: '95%',
@@ -1411,7 +1411,7 @@ Write ONLY the message.`);
                         <div style={{
                           width: '20px',
                           height: '20px',
-                          borderRadius: '50%',
+                          borderRadius: 'var(--radius-full)',
                           border: `2px solid ${selectedTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`,
                           display: 'flex',
                           alignItems: 'center',
@@ -1422,7 +1422,7 @@ Write ONLY the message.`);
                             <div style={{
                               width: '10px',
                               height: '10px',
-                              borderRadius: '50%',
+                              borderRadius: 'var(--radius-full)',
                               background: 'var(--accent)',
                             }} />
                           )}
@@ -1456,7 +1456,7 @@ Write ONLY the message.`);
                               height: '20px',
                               borderRadius: 'var(--radius-xs)',
                               background: color,
-                              border: '1px solid rgba(0,0,0,0.1)',
+                              border: '1px solid var(--hairline)',
                             }}
                           />
                         ))}
@@ -1475,7 +1475,7 @@ Write ONLY the message.`);
               }}>
                 <div style={{
                   padding: '20px 32px',
-                  background: 'white',
+                  background: 'var(--bg-primary)',
                   borderBottom: '1px solid var(--border)',
                 }}>
                   <h3 style={{
@@ -1501,9 +1501,9 @@ Write ONLY the message.`);
                     const theme = EXPORT_THEMES[selectedTheme];
                     return (
                       <div style={{
-                        background: 'white',
+                        background: 'var(--bg-primary)',
                         border: '2px solid #000',
-                        boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                        boxShadow: 'var(--shadow-xl)',
                         maxWidth: '600px',
                         width: '100%',
                       }}>
@@ -1700,7 +1700,7 @@ Write ONLY the message.`);
                 {/* Export Button */}
                 <div style={{
                   padding: '20px 32px',
-                  background: 'white',
+                  background: 'var(--bg-primary)',
                   borderTop: '1px solid var(--border)',
                   display: 'flex',
                   justifyContent: 'flex-end',
@@ -1749,7 +1749,7 @@ Write ONLY the message.`);
             style={{
               position: 'fixed',
               inset: 0,
-              background: 'rgba(0, 0, 0, 0.5)',
+              background: 'var(--overlay)',
               backdropFilter: 'blur(2px)',
               zIndex: 999,
             }}
@@ -1761,7 +1761,7 @@ Write ONLY the message.`);
             bottom: 0,
             width: '85%',
             maxWidth: '320px',
-            background: 'white',
+            background: 'var(--bg-primary)',
             zIndex: 1000,
             overflowY: 'auto',
             padding: '24px',

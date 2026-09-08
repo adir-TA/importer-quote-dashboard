@@ -138,8 +138,8 @@ function AIHelpers() {
           marginBottom: '28px',
         }}>
           {TABS.map((tab, idx) => (
-            <div key={tab.id} className="stat-card" style={{ '--stat-color': activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)', '--stat-bg': activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
-              <div className="stat-icon-wrapper" style={{ background: activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
+            <div key={tab.id} className="stat-card" style={{ '--stat-color': activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)', '--stat-bg': activeTab === tab.id ? 'var(--accent-tint)' : 'var(--neutral-tint)' }}>
+              <div className="stat-icon-wrapper" style={{ background: activeTab === tab.id ? 'var(--accent-tint)' : 'var(--neutral-tint)' }}>
                 <tab.icon size={20} color={activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)'} />
               </div>
               <div className="stat-content">

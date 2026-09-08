@@ -79,7 +79,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
         style={{
           width: '100%',
           padding: '14px 18px',
-          background: 'white',
+          background: 'var(--bg-primary)',
           border: '2px solid var(--border)',
           borderRadius: 'var(--radius-md)',
           cursor: 'pointer',
@@ -134,10 +134,10 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
           left: 0,
           right: 0,
           marginTop: '8px',
-          background: 'white',
+          background: 'var(--bg-primary)',
           border: '2px solid var(--border)',
           borderRadius: 'var(--radius-lg)',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
+          boxShadow: 'var(--shadow-xl)',
           maxHeight: '500px',
           overflowY: 'auto',
           zIndex: 1000,
@@ -146,7 +146,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
           <div style={{
             position: 'sticky',
             top: 0,
-            background: 'white',
+            background: 'var(--bg-primary)',
             borderBottom: '2px solid var(--border)',
             padding: '16px',
             zIndex: 10,
@@ -693,9 +693,7 @@ function LandedCost() {
       <div className="header">
         <div>
           <h2>{t('landedCost.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)', marginTop: '4px' }}>
-            Calculate true landed cost including all import fees for accurate decision-making
-          </p>
+          <p className="header-subtitle">{t('landedCost.subtitle')}</p>
         </div>
       </div>
 
@@ -718,7 +716,7 @@ function LandedCost() {
                   onClick={() => handleProductChange(product.id)}
                   style={{
                     padding: '12px 18px',
-                    background: 'white',
+                    background: 'var(--bg-primary)',
                     border: '2px solid var(--border)',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
@@ -733,7 +731,7 @@ function LandedCost() {
                     e.currentTarget.style.background = 'var(--grey-50)';
                     e.currentTarget.style.borderColor = 'var(--accent)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
+                    e.currentTarget.style.boxShadow = 'var(--shadow-md)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'white';

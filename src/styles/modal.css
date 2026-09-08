@@ -188,7 +188,7 @@
   }
 
   .modal-title {
-    font-size: 1rem;
+    font-size: var(--text-md);
   }
 
   .modal-body {
@@ -225,7 +225,7 @@
   }
 
   .modal-title {
-    font-size: 0.95rem;
+    font-size: var(--text-md);
   }
 
   .modal-body {

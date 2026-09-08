@@ -106,7 +106,7 @@ function Documents() {
         }
       `}</style>
       <div className="header">
-        <h2>Documents</h2>
+        <h2>{t('documents.title')}</h2>
         <button className="btn btn-primary" onClick={() => handleOpenModal()}><Plus size={16} /> Upload Document</button>
       </div>
 
@@ -118,8 +118,8 @@ function Documents() {
           gap: '20px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
-            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
               <FileText size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
@@ -127,8 +127,8 @@ function Documents() {
               <div className="stat-value">{documents.length}</div>
             </div>
           </div>
-          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
-            <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
               <FolderPlus size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
@@ -142,7 +142,7 @@ function Documents() {
         <div className="documents-layout">
           {/* Left Sidebar: Filters */}
           <div className="documents-filters-sidebar" style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',

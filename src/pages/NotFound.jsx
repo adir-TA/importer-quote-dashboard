@@ -49,7 +49,7 @@ const styles = {
     margin: '4px 0 16px',
     padding: '4px 10px',
     borderRadius: 'var(--radius-sm)',
-    background: 'var(--surface-alt, var(--grey-100))',
+    background: 'var(--bg-tertiary)',
     fontSize: 'var(--text-sm)',
     color: 'var(--text-secondary, var(--text-secondary))',
     maxWidth: '100%',

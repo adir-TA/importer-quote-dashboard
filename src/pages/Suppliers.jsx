@@ -64,7 +64,7 @@ function Suppliers() {
   return (
     <div className="page">
       <div className="header">
-        <h2>Suppliers</h2>
+        <h2>{t('suppliers.title')}</h2>
         <button className="btn btn-primary" onClick={() => handleOpenModal()}><Plus size={16} /> Add Supplier</button>
       </div>
 
@@ -76,8 +76,8 @@ function Suppliers() {
           gap: '20px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
-            <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'var(--accent-tint)' }}>
+            <div className="stat-icon-wrapper" style={{ background: 'var(--accent-tint)' }}>
               <Users size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
@@ -102,7 +102,7 @@ function Suppliers() {
         <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '24px', alignItems: 'start' }}>
           {/* Left Sidebar: Filters */}
           <div style={{
-            background: 'white',
+            background: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-lg)',
             padding: '24px',

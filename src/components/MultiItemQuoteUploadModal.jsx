@@ -83,10 +83,10 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
         top: '100%',
         left: 0,
         marginTop: '4px',
-        background: 'white',
+        background: 'var(--bg-primary)',
         border: '2px solid var(--accent)',
         borderRadius: 'var(--radius-md)',
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        boxShadow: 'var(--shadow-xl)',
         zIndex: 1000,
         minWidth: '280px',
         maxWidth: '350px',
@@ -392,7 +392,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
 
                   return (
                     <div key={key} style={{
-                      background: 'white',
+                      background: 'var(--bg-primary)',
                       padding: '10px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border)',
@@ -469,7 +469,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
 
                   return (
                     <div key={key} style={{
-                      background: 'white',
+                      background: 'var(--bg-primary)',
                       padding: '10px',
                       borderRadius: 'var(--radius-sm)',
                       border: '1px solid var(--border)',
@@ -1190,7 +1190,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                     style={{
                       marginTop: '16px',
                       padding: '12px 24px',
-                      background: textInput.trim() ? 'var(--accent)' : 'var(--bg-light)',
+                      background: textInput.trim() ? 'var(--accent)' : 'var(--bg-tertiary)',
                       color: textInput.trim() ? 'white' : 'var(--text-muted)',
                       border: 'none',
                       borderRadius: 'var(--radius-md)',
@@ -1232,12 +1232,12 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
               {/* Quick Save Banner - Show when all items have high confidence matches */}
               {matchStats.allHighConfidence && (
                 <div style={{
-                  background: 'linear-gradient(135deg, var(--success-light) 0%, var(--success-light) 100%)',
+                  background: 'var(--success-light)',
                   border: '2px solid var(--success)',
                   borderRadius: 'var(--radius-lg)',
                   padding: '20px',
                   marginBottom: '20px',
-                  boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)',
+                  boxShadow: 'var(--shadow-md)',
                 }}>
                   <div style={{
                     display: 'flex',
@@ -1286,20 +1286,20 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                         gap: '8px',
                         fontSize: 'var(--text-md)',
                         transition: 'all 0.2s',
-                        boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
+                        boxShadow: 'var(--shadow-sm)',
                         opacity: saving ? 0.6 : 1,
                       }}
                       onMouseEnter={(e) => {
                         if (!saving) {
                           e.target.style.background = 'var(--success)';
                           e.target.style.transform = 'translateY(-1px)';
-                          e.target.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
+                          e.target.style.boxShadow = 'var(--shadow-md)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         e.target.style.background = 'var(--success)';
                         e.target.style.transform = 'translateY(0)';
-                        e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
+                        e.target.style.boxShadow = 'var(--shadow-sm)';
                       }}
                     >
                       {saving ? (
@@ -1532,7 +1532,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                     {/* Accept All Suggestions Banner */}
                     {matchStats.allHighConfidence && (
                       <div style={{
-                        background: 'linear-gradient(135deg, var(--accent-light) 0%, var(--accent-light) 100%)',
+                        background: 'var(--accent-light)',
                         border: '2px solid var(--accent)',
                         borderRadius: 'var(--radius-md)',
                         padding: '16px',
@@ -1571,17 +1571,17 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                             alignItems: 'center',
                             gap: '8px',
                             transition: 'all 0.2s',
-                            boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
+                            boxShadow: 'var(--shadow-sm)',
                           }}
                           onMouseEnter={(e) => {
                             e.target.style.background = 'var(--accent)';
                             e.target.style.transform = 'translateY(-1px)';
-                            e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.4)';
+                            e.target.style.boxShadow = 'var(--shadow-md)';
                           }}
                           onMouseLeave={(e) => {
                             e.target.style.background = 'var(--accent)';
                             e.target.style.transform = 'translateY(0)';
-                            e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.3)';
+                            e.target.style.boxShadow = 'var(--shadow-sm)';
                           }}
                         >
                           <Check size={18} />
@@ -1834,7 +1834,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 width: '100%',
                                                 textAlign: 'start',
                                                 cursor: 'pointer',
-                                                background: 'white',
+                                                background: 'var(--bg-primary)',
                                                 display: 'flex',
                                                 justifyContent: 'space-between',
                                                 alignItems: 'center',
@@ -1854,7 +1854,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               top: '100%',
                                               left: 0,
                                               right: 0,
-                                              background: 'white',
+                                              background: 'var(--bg-primary)',
                                               border: '1px solid var(--border)',
                                               borderRadius: 'var(--radius-xs)',
                                               boxShadow: 'var(--shadow-md)',
@@ -1980,7 +1980,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               flex: 1,
                                               padding: '8px 12px',
                                               fontSize: 'var(--text-xs)',
-                                              background: 'white',
+                                              background: 'var(--bg-primary)',
                                               color: 'var(--text-secondary)',
                                               border: '1px solid var(--border)',
                                               borderRadius: 'var(--radius-xs)',
@@ -2059,7 +2059,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               width: '100%',
                                               textAlign: 'start',
                                               cursor: 'pointer',
-                                              background: 'white',
+                                              background: 'var(--bg-primary)',
                                               display: 'flex',
                                               justifyContent: 'space-between',
                                               alignItems: 'center',
@@ -2087,10 +2087,10 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               top: '100%',
                                               left: 0,
                                               right: 0,
-                                              background: 'white',
+                                              background: 'var(--bg-primary)',
                                               border: '1px solid var(--border)',
                                               borderRadius: 'var(--radius-sm)',
-                                              boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                                              boxShadow: 'var(--shadow-xl)',
                                               maxHeight: '400px',
                                               overflowY: 'auto',
                                               zIndex: 1000,
@@ -2100,7 +2100,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               <div style={{
                                                 position: 'sticky',
                                                 top: 0,
-                                                background: 'white',
+                                                background: 'var(--bg-primary)',
                                                 borderBottom: '1px solid var(--border)',
                                                 padding: '12px',
                                                 zIndex: 10,
@@ -2451,14 +2451,14 @@ const styles = {
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'var(--overlay)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
   },
   modal: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--bg-primary)',
     borderRadius: 'var(--radius-lg)',
     boxShadow: 'var(--shadow-xl)',
     maxWidth: '1400px',
@@ -2476,7 +2476,7 @@ const styles = {
   },
   title: {
     margin: 0,
-    fontSize: '20px',
+    fontSize: 'var(--text-xl)',
     fontWeight: 600,
   },
   closeButton: {
@@ -2505,7 +2505,7 @@ const styles = {
   },
   dropzoneText: {
     marginTop: '16px',
-    fontSize: '16px',
+    fontSize: 'var(--text-md)',
     color: 'var(--text-secondary)',
   },
   link: {
@@ -2515,7 +2515,7 @@ const styles = {
   },
   dropzoneHint: {
     marginTop: '8px',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     color: 'var(--text-subtle)',
   },
   loading: {
@@ -2530,7 +2530,7 @@ const styles = {
   },
   loadingText: {
     marginTop: '16px',
-    fontSize: '16px',
+    fontSize: 'var(--text-md)',
     color: 'var(--text-secondary)',
   },
   error: {
@@ -2542,7 +2542,7 @@ const styles = {
   },
   errorText: {
     marginTop: '16px',
-    fontSize: '16px',
+    fontSize: 'var(--text-md)',
     color: 'var(--text-secondary)',
     textAlign: 'center',
   },
@@ -2553,7 +2553,7 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     cursor: 'pointer',
   },
@@ -2565,8 +2565,8 @@ const styles = {
   card: {
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-lg)',
-    background: 'white',
-    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+    background: 'var(--bg-primary)',
+    boxShadow: 'var(--shadow-xs)',
     overflow: 'hidden',
   },
   cardHeader: {
@@ -2584,7 +2584,7 @@ const styles = {
   },
   cardTitle: {
     margin: 0,
-    fontSize: '16px',
+    fontSize: 'var(--text-md)',
     fontWeight: 600,
     color: 'var(--text-primary)',
   },
@@ -2603,7 +2603,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    background: 'white',
+    background: 'var(--bg-primary)',
     borderRadius: 'var(--radius-sm)',
     border: '1px solid var(--border)',
     overflow: 'hidden',
@@ -2632,7 +2632,7 @@ const styles = {
   },
   sectionTitle: {
     margin: '0 0 16px 0',
-    fontSize: '16px',
+    fontSize: 'var(--text-md)',
     fontWeight: 600,
   },
   grid: {
@@ -2645,7 +2645,7 @@ const styles = {
     flexDirection: 'column',
   },
   label: {
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     marginBottom: '6px',
     color: 'var(--text-secondary)',
@@ -2657,10 +2657,10 @@ const styles = {
     padding: '8px 12px',
     border: '1px solid var(--border-strong)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
   },
   errorHint: {
-    fontSize: '12px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--error)',
     marginTop: '4px',
   },
@@ -2672,7 +2672,7 @@ const styles = {
   table: {
     width: '100%',
     borderCollapse: 'collapse',
-    fontSize: '13px',
+    fontSize: 'var(--text-sm)',
   },
   th: {
     padding: '10px',
@@ -2680,7 +2680,7 @@ const styles = {
     borderBottom: '2px solid var(--border)',
     textAlign: 'start',
     fontWeight: 600,
-    fontSize: '12px',
+    fontSize: 'var(--text-xs)',
     color: 'var(--text-secondary)',
     whiteSpace: 'nowrap',
   },
@@ -2705,7 +2705,7 @@ const styles = {
     padding: '6px 8px',
     border: '1px solid var(--border)',
     borderRadius: 'var(--radius-xs)',
-    fontSize: '13px',
+    fontSize: 'var(--text-sm)',
     width: '100%',
   },
   deleteButton: {
@@ -2730,7 +2730,7 @@ const styles = {
     border: '1px solid var(--error-border)',
     borderRadius: 'var(--radius-sm)',
     color: 'var(--error)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
   },
   footer: {
     padding: '16px 24px',
@@ -2741,10 +2741,10 @@ const styles = {
   },
   cancelButton: {
     padding: '10px 20px',
-    background: 'white',
+    background: 'var(--bg-primary)',
     border: '1px solid var(--border-strong)',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     cursor: 'pointer',
     color: 'var(--text-secondary)',
@@ -2755,7 +2755,7 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: 'var(--radius-sm)',
-    fontSize: '14px',
+    fontSize: 'var(--text-base)',
     fontWeight: 500,
     cursor: 'pointer',
     display: 'flex',
