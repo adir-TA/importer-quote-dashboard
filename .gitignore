@@ -23,3 +23,5 @@ npm-debug.log*
 
 # Cache
 .cache/
+.preview/
+.preview-dist/

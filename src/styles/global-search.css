@@ -168,7 +168,7 @@
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--text-secondary);
-  text-transform: uppercase;
+  text-transform: none;
   letter-spacing: 0.5px;
   position: sticky;
   top: 0;

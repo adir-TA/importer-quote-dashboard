@@ -2,8 +2,8 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(4px);
+  background: rgba(16, 24, 40, 0.5);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -20,7 +20,7 @@
 @keyframes slideUp {
   from {
     opacity: 0;
-    transform: translateY(20px) scale(0.98);
+    transform: translateY(8px) scale(0.99);
   }
   to {
     opacity: 1;
@@ -38,8 +38,8 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.15);
-  animation: slideUp 0.25s ease forwards;
+  box-shadow: var(--shadow-xl);
+  animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .modal-lg {
@@ -63,11 +63,13 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(99, 102, 241, 0.04);
+  gap: var(--space-4);
+  background: var(--bg-primary);
 }
 
 .modal-title {
-  font-size: 1.1rem;
+  font-size: var(--text-lg);
+  letter-spacing: -0.014em;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -86,43 +88,47 @@
   border-top: 1px solid var(--border-light);
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
-  background: var(--bg-secondary);
+  gap: var(--space-3);
+  background: var(--grey-25);
 }
 
 /* Confirmation Modal */
 .confirm-modal {
-  max-width: 400px;
+  max-width: 420px;
   text-align: center;
 }
 
 .confirm-modal .modal-body {
-  padding: 40px 32px;
+  padding: 32px 28px 24px;
 }
 
+/* Ringed icon - softer than a solid 64px disc */
 .confirm-icon {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 20px;
+  margin: 0 auto var(--space-4);
 }
 
 .confirm-icon.warning {
   background: var(--warning-light);
   color: var(--warning);
+  box-shadow: 0 0 0 6px #FFFAEB80;
 }
 
 .confirm-icon.danger {
   background: var(--error-light);
   color: var(--error);
+  box-shadow: 0 0 0 6px #FEF3F280;
 }
 
 .confirm-icon.success {
   background: var(--success-light);
   color: var(--success);
+  box-shadow: 0 0 0 6px #ECFDF380;
 }
 
 .confirm-icon svg {
@@ -131,22 +137,23 @@
 }
 
 .confirm-title {
-  font-size: 1.2rem;
+  font-size: var(--text-lg);
   font-weight: 600;
-  margin-bottom: 12px;
+  margin-bottom: 6px;
   color: var(--text-primary);
+  letter-spacing: -0.014em;
 }
 
 .confirm-message {
   color: var(--text-secondary);
-  font-size: 0.95rem;
+  font-size: var(--text-base);
   line-height: 1.6;
 }
 
 .confirm-actions {
   display: flex;
-  gap: 12px;
-  margin-top: 28px;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
   justify-content: center;
 }
 
