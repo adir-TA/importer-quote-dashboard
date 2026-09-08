@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Users, X, Check, Globe, MessageCircle } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { SearchInput } from '../components';
 import { filterBySearch } from '../utils/helpers';
@@ -14,7 +15,8 @@ const STATUS_OPTIONS = [
 
 function Suppliers() {
   const { state, actions, computed } = useAppContext();
-  const { confirm } = useModal();
+  const { t } = useLanguage();
+  const { confirm, alert: showAlert } = useModal();
   const { suppliers } = state;
 
   const [search, setSearch] = useState('');
@@ -43,7 +45,7 @@ function Suppliers() {
   const handleCloseModal = () => { setIsModalOpen(false); setEditingSupplier(null); };
 
   const handleSave = () => {
-    if (!formData.company.trim()) { alert('Please enter company name'); return; }
+    if (!formData.company.trim()) { showAlert({ title: 'Check your input', message: 'Please enter company name', type: 'warning' }); return; }
     if (editingSupplier) actions.updateSupplier({ ...editingSupplier, ...formData });
     else actions.addSupplier(formData);
     handleCloseModal();
@@ -79,7 +81,7 @@ function Suppliers() {
               <Users size={22} color="#6366F1" />
             </div>
             <div className="stat-content">
-              <div className="stat-label">Total Suppliers</div>
+              <div className="stat-label">{t('suppliers.totalSuppliers')}</div>
               <div className="stat-value">{suppliers.length}</div>
             </div>
           </div>
@@ -146,7 +148,7 @@ function Suppliers() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Total Suppliers</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{t('suppliers.totalSuppliers')}</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{suppliers.length}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
@@ -167,7 +169,7 @@ function Suppliers() {
         {filteredSuppliers.length === 0 ? (
           <div className="empty-state">
             <Users size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-            <h3>No suppliers found</h3>
+            <h3>{t('suppliers.none')}</h3>
             <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => handleOpenModal()}><Plus size={16} /> Add Supplier</button>
           </div>
         ) : (
@@ -206,12 +208,12 @@ function Suppliers() {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">Company Name *</label>
+                <label className="form-label">{t('suppliers.companyName')} *</label>
                 <input type="text" className="form-input" value={formData.company} onChange={e => setFormData({ ...formData, company: e.target.value })} />
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">Contact Person</label>
+                  <label className="form-label">{t('suppliers.contactPerson')}</label>
                   <input type="text" className="form-input" value={formData.contact} onChange={e => setFormData({ ...formData, contact: e.target.value })} />
                 </div>
                 <div className="form-group">
@@ -227,11 +229,11 @@ function Suppliers() {
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label className="form-label">WeChat ID</label>
+                  <label className="form-label">{t('suppliers.wechat')}</label>
                   <input type="text" className="form-input" value={formData.wechat} onChange={e => setFormData({ ...formData, wechat: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Website</label>
+                  <label className="form-label">{t('suppliers.website')}</label>
                   <input type="text" className="form-input" value={formData.website} onChange={e => setFormData({ ...formData, website: e.target.value })} />
                 </div>
               </div>

@@ -5,6 +5,7 @@ import {
   Package, ChevronDown, Search, X, AlertCircle, AlertTriangle
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 
 // DISPLAY ONLY - never used inside calculations.
 // These previously hardcoded 'USD', so a CNY quote's landed cost was labelled
@@ -15,6 +16,7 @@ import { formatCurrency, formatNumber, convertAmount, normalizeCurrency } from '
 // SEARCHABLE PRODUCT SELECTOR COMPONENT
 // ============================================
 function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteCounts }) {
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const dropdownRef = useRef(null);
@@ -113,7 +115,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
               </span>
             </>
           ) : (
-            <span style={{ color: '#9ca3af' }}>Select a buying intent...</span>
+            <span style={{ color: '#9ca3af' }}>{t('landedCost.selectIntent')}</span>
           )}
         </span>
         <ChevronDown size={18} style={{
@@ -421,6 +423,7 @@ function QuoteSelector({ quotes, selectedQuoteId, onSelect, productName }) {
 function LandedCost() {
   const navigate = useNavigate();
   const { state, computed } = useAppContext();
+  const { t } = useLanguage();
   const { fees, products, settings } = state;
   // Fees are denominated in the base currency, so the whole landed-cost
   // calculation runs in the base currency. Adding a fixed $500 freight fee to
@@ -679,7 +682,7 @@ function LandedCost() {
     <div className="page">
       <div className="header">
         <div>
-          <h2>Landed Cost Calculator</h2>
+          <h2>{t('landedCost.title')}</h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
             Calculate true landed cost including all import fees for accurate decision-making
           </p>
@@ -698,7 +701,7 @@ function LandedCost() {
             gap: '16px',
           }}>
             <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Loading buying intents...</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landedCost.loadingIntents')}</p>
           </div>
         ) : (
           <>
@@ -775,7 +778,7 @@ function LandedCost() {
             {!selectedProductId && (
               <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '6px' }}>
                 <AlertCircle size={16} style={{ color: '#3b82f6' }} />
-                <span style={{ color: '#1e40af' }}>Select a buying intent above to calculate landed costs for its quotes</span>
+                <span style={{ color: '#1e40af' }}>{t('landedCost.selectIntentPrompt')}</span>
               </div>
             )}
           </div>
@@ -858,7 +861,7 @@ function LandedCost() {
               {/* Quote Selection */}
               <div className="card" style={{ marginBottom: '16px' }}>
                 <div className="card-header">
-                  <span className="card-title">Step 2: Preview Quote</span>
+                  <span className="card-title">{t('landedCost.stepPreview')}</span>
                 </div>
                 <div className="card-body">
                   <div className="form-group" style={{ marginBottom: '16px' }}>
@@ -938,7 +941,7 @@ function LandedCost() {
                     <>
                       {/* Hero Result - Emphasis on $/unit */}
                       <div className="result-hero">
-                        <div className="result-label">Landed Cost</div>
+                        <div className="result-label">{t('landedCost.landedCost')}</div>
                         <div className="result-value">
                           {formatCurrency(calculation.landed_per_unit, baseCurrency)}<span className="result-unit">/unit</span>
                         </div>
@@ -959,17 +962,17 @@ function LandedCost() {
 
                       {/* Detailed Breakdown */}
                       <div className="result-breakdown" style={{ marginTop: '20px' }}>
-                        <div className="breakdown-section-title">Order Summary</div>
+                        <div className="breakdown-section-title">{t('landedCost.orderSummary')}</div>
                         <div className="breakdown-row">
-                          <span>Unit Price (FOB)</span>
+                          <span>{t('landedCost.unitPriceFob')}</span>
                           <span>{formatCurrency(calculation.unit_price, baseCurrency)}/unit</span>
                         </div>
                         <div className="breakdown-row">
-                          <span>Quantity</span>
+                          <span>{t('landedCost.quantity')}</span>
                           <span>{formatNumber(calculation.quantity)} units</span>
                         </div>
                         <div className="breakdown-row highlight">
-                          <span>FOB Total</span>
+                          <span>{t('landedCost.fobTotal')}</span>
                           <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(calculation.FOB_total, baseCurrency)}</span>
                         </div>
 
@@ -988,17 +991,17 @@ function LandedCost() {
                           </div>
                         ))}
                         <div className="breakdown-row highlight">
-                          <span>Total Import Fees</span>
+                          <span>{t('landedCost.totalImportFees')}</span>
                           <span style={{ color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_fees, baseCurrency)}</span>
                         </div>
 
                         {/* Total section - visually secondary, $/unit emphasized */}
                         <div className="breakdown-row total" style={{ marginTop: '12px' }}>
-                          <span>Total Landed Cost</span>
+                          <span>{t('landedCost.totalLandedCost')}</span>
                           <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_landed, baseCurrency)}</span>
                         </div>
                         <div className="breakdown-row total-unit">
-                          <span>Landed Cost Per Unit</span>
+                          <span>{t('landedCost.landedCostPerUnit')}</span>
                           <span style={{ fontWeight: 700, color: 'var(--success)' }}>{formatCurrency(calculation.landed_per_unit, baseCurrency)}/unit</span>
                         </div>
 
@@ -1024,12 +1027,12 @@ function LandedCost() {
                   ) : selectedQuote && !validation.valid ? (
                     <div className="empty-state" style={{ padding: '32px 16px' }}>
                       <AlertTriangle size={32} style={{ opacity: 0.5, marginBottom: '12px', color: 'var(--warning)' }} />
-                      <p>Fix validation errors above to see calculation</p>
+                      <p>{t('landedCost.fixErrors')}</p>
                     </div>
                   ) : (
                     <div className="empty-state" style={{ padding: '32px 16px' }}>
                       <Calculator size={32} style={{ opacity: 0.5, marginBottom: '12px' }} />
-                      <p>Select a quote above to preview landed cost</p>
+                      <p>{t('landedCost.selectQuotePrompt')}</p>
                     </div>
                   )}
                 </div>
@@ -1055,7 +1058,7 @@ function LandedCost() {
           <div className="disabled-overlay">
             <div className="disabled-content">
               <Package size={48} style={{ opacity: 0.3, marginBottom: '16px' }} />
-              <h3>Select a Product to Continue</h3>
+              <h3>{t('landedCost.selectProductToContinue')}</h3>
               <p>Choose a product above to configure fees and preview landed costs.</p>
             </div>
           </div>

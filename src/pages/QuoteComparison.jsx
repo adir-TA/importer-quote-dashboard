@@ -7,8 +7,8 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useModal } from '../context/ModalContext';
 import { BuyingIntentCommandSelect } from '../components';
-import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 // formatCurrency used to hardcode 'USD', so a CNY quote rendered as "$5.00".
 // It now respects each quote's own currency; see src/utils/currency.js.
@@ -27,6 +27,7 @@ function QuoteComparison() {
   const location = useLocation();
   const { state, computed, actions } = useAppContext();
   const { t } = useLanguage();
+  const { alert: showAlert } = useModal();
   const { products, settings } = state;
   // Base currency for cross-quote comparison. The Settings value was saved but
   // never actually used anywhere before.
@@ -196,18 +197,112 @@ function QuoteComparison() {
     setIsSelectionLocked(true);
   };
 
+  /**
+   * Export the supplier decision as a printable page (Save as PDF).
+   *
+   * This was a stub that only showed "your selection would be exported".
+   * The document is built with DOM APIs and textContent rather than an HTML
+   * string, so supplier-controlled text cannot inject markup.
+   */
   const handleExportDecision = () => {
-    alert('PDF export: Your supplier selection would be exported.');
+    const chosen = quotesWithLanded.find(q => q.id === selectedSupplierId) || bestQuote;
+
+    if (!selectedProduct || !chosen) {
+      showAlert({ title: 'Nothing to export', message: 'Select a supplier first.', type: 'warning' });
+      return;
+    }
+
+    // Opened synchronously so popup blockers do not swallow it
+    const win = window.open('', '_blank');
+    if (!win) {
+      showAlert({
+        title: 'Popup blocked',
+        message: 'Allow popups for this site to export the decision.',
+        type: 'warning',
+      });
+      return;
+    }
+
+    const doc = win.document;
+    doc.title = `Supplier decision — ${selectedProduct.name}`;
+
+    const style = doc.createElement('style');
+    style.textContent = `
+      body { font-family: Arial, Helvetica, sans-serif; padding: 40px; color: #1e293b; }
+      h1 { margin: 0 0 4px; font-size: 20px; }
+      .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+      th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 13px; }
+      th { background: #f1f5f9; }
+      tr.chosen td { background: #ecfdf5; font-weight: 600; }
+      .note { margin-top: 24px; font-size: 12px; color: #64748b; }
+    `;
+    doc.head.appendChild(style);
+
+    const h1 = doc.createElement('h1');
+    h1.textContent = `Supplier decision: ${selectedProduct.name}`;
+    doc.body.appendChild(h1);
+
+    const meta = doc.createElement('div');
+    meta.className = 'meta';
+    meta.textContent = `Selected: ${chosen.supplierName || 'Unknown supplier'} · Generated ${new Date().toLocaleString()}`;
+    doc.body.appendChild(meta);
+
+    const table = doc.createElement('table');
+    const thead = doc.createElement('thead');
+    const headRow = doc.createElement('tr');
+    ['Rank', 'Supplier', 'Unit price', `Comparable (${baseCurrency})`, 'MOQ', 'Incoterm'].forEach(label => {
+      const th = doc.createElement('th');
+      th.textContent = label;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = doc.createElement('tbody');
+    quotesWithLanded.forEach((quote, index) => {
+      const tr = doc.createElement('tr');
+      if (quote.id === chosen.id) tr.className = 'chosen';
+
+      [
+        String(index + 1),
+        quote.supplierName || 'Unknown supplier',
+        formatCurrency(quote.unit_price, quote.currency),
+        quote.comparablePrice === null ? 'no rate' : formatCurrency(quote.comparablePrice, baseCurrency),
+        formatNumber(quote.moq),
+        quote.incoterm || 'FOB',
+      ].forEach(value => {
+        const td = doc.createElement('td');
+        td.textContent = value; // never innerHTML - this text comes from suppliers
+        tr.appendChild(td);
+      });
+
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    doc.body.appendChild(table);
+
+    const note = doc.createElement('p');
+    note.className = 'note';
+    note.textContent =
+      `Comparable prices use the exchange rates configured in Settings. ` +
+      `Use your browser's "Save as PDF" option in the print dialog.`;
+    doc.body.appendChild(note);
+
+    // Wait for layout before printing, or some browsers print a blank page
+    win.setTimeout(() => win.print(), 100);
   };
 
   const handleExportExcel = async (themeName = 'vibrant') => {
     const theme = EXPORT_THEMES[themeName];
     if (!selectedProduct || quotesWithLanded.length === 0) {
-      alert('No quotes available to export');
+      showAlert({ title: 'Nothing to export', message: 'No quotes available to export.', type: 'warning' });
       return;
     }
 
-    // Create workbook
+    // exceljs is ~940kB minified. Imported on demand so it is only downloaded
+    // when the user actually exports, not on every page view.
+    const { default: ExcelJS } = await import('exceljs');
     const workbook = new ExcelJS.Workbook();
     workbook.creator = 'HA Tools';
     workbook.created = new Date();
@@ -919,9 +1014,9 @@ Write ONLY the message.`);
                         if (newName && newName.trim()) {
                           try {
                             await actions.finalizeBuyingIntent(selectedProduct.id, newName.trim());
-                            alert('Buying Intent finalized successfully!');
+                            showAlert({ title: 'Finalized', message: 'Buying Intent finalized successfully.', type: 'success' });
                           } catch (err) {
-                            alert(`Failed to finalize: ${err.message}`);
+                            showAlert({ title: 'Error', message: `Failed to finalize: ${err.message}`, type: 'error' });
                           }
                         }
                       }}
@@ -1139,7 +1234,7 @@ Write ONLY the message.`);
                               style={{ marginTop: '16px' }}
                               onClick={() => {
                                 navigator.clipboard.writeText(aiResponse.replace(/\*\*/g, ''));
-                                alert('Copied to clipboard!');
+                                showAlert({ title: 'Copied', message: 'Copied to clipboard.', type: 'success' });
                               }}
                             >
                               Copy Message

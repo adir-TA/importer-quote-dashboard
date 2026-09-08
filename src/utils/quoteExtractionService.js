@@ -468,56 +468,95 @@ async function processPdf(file) {
 }
 
 /**
- * Process Excel file - Parse with xlsx and extract structured data
+ * Process a spreadsheet (.xlsx / .csv) and extract structured data
  */
 async function processExcel(file) {
-  console.log('📊 [EXCEL] Processing Excel file:', file.name);
+  console.log('📊 [EXCEL] Processing spreadsheet:', file.name);
 
-  // Use xlsx library to parse Excel
-  const XLSX = await import('xlsx');
+  // exceljs rather than the `xlsx` package: xlsx@0.18.5 (the newest version
+  // published to npm) carries unpatched prototype-pollution and ReDoS
+  // advisories that are reachable exactly here, when parsing an untrusted
+  // supplier file. exceljs is already a dependency for the export path.
+  const { default: ExcelJS } = await import('exceljs');
 
   const arrayBuffer = await file.arrayBuffer();
-  const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+  const workbook = new ExcelJS.Workbook();
 
-  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+  const isCsv = /\.csv$/i.test(file.name) || file.type === 'text/csv';
+
+  try {
+    if (isCsv) {
+      // exceljs's csv.read wants a stream; parse the text ourselves instead.
+      const text = new TextDecoder().decode(arrayBuffer);
+      return await extractFromText(`CSV spreadsheet data:\n\n${text.slice(0, 100000)}`);
+    }
+
+    await workbook.xlsx.load(arrayBuffer);
+  } catch (error) {
+    if (/\.xls$/i.test(file.name)) {
+      throw new Error(
+        'Legacy .xls files are not supported. Please re-save the quote as .xlsx or CSV and try again.'
+      );
+    }
+    throw new Error(`Could not read that spreadsheet: ${error.message}`);
+  }
+
+  if (workbook.worksheets.length === 0) {
     throw new Error('That spreadsheet has no sheets to read');
   }
 
   // Read EVERY sheet. Only the first was parsed before, so quotes split across
   // tabs silently lost everything after sheet one.
   let totalRows = 0;
-  const sheetTexts = workbook.SheetNames.map(sheetName => {
-    const worksheet = workbook.Sheets[sheetName];
-    if (!worksheet) return null;
+  const sheetTexts = [];
 
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
-    if (jsonData.length === 0) return null;
+  workbook.eachSheet((worksheet) => {
+    const rows = [];
 
-    totalRows += jsonData.length;
+    worksheet.eachRow({ includeEmpty: false }, (row) => {
+      const cells = [];
+      // row.values is 1-indexed with a leading hole
+      row.eachCell({ includeEmpty: true }, (cell) => {
+        cells.push(formatCellValue(cell.value));
+      });
 
-    const rows = jsonData
-      // sheet_to_json can yield sparse rows; `row.join` on a hole-y array is
-      // fine but a missing row is not, so guard before joining.
-      .map(row => (Array.isArray(row) ? row.map(cell => (cell == null ? '' : cell)).join('\t') : ''))
-      .join('\n');
+      if (cells.some(v => v !== '')) {
+        rows.push(cells.join('\t'));
+        totalRows += 1;
+      }
+    });
 
-    return workbook.SheetNames.length > 1 ? `--- Sheet: ${sheetName} ---\n${rows}` : rows;
-  }).filter(Boolean);
+    if (rows.length > 0) {
+      sheetTexts.push(
+        workbook.worksheets.length > 1
+          ? `--- Sheet: ${worksheet.name} ---\n${rows.join('\n')}`
+          : rows.join('\n')
+      );
+    }
+  });
 
   if (sheetTexts.length === 0) {
     throw new Error('That spreadsheet appears to be empty');
   }
 
-  const textRepresentation = sheetTexts.join('\n\n');
+  console.log(`📊 [EXCEL] Parsed ${sheetTexts.length} sheet(s), ${totalRows} rows`);
 
-  console.log(`📊 [EXCEL:STEP-1] Parsed ${sheetTexts.length} sheet(s), ${totalRows} rows`);
-  console.log('📊 [EXCEL:STEP-2] Converting to text and sending to Claude...');
+  return extractFromText(`Excel spreadsheet data:\n\n${sheetTexts.join('\n\n')}`);
+}
 
-  // Send structured data to text extraction API
-  const result = await extractFromText(`Excel spreadsheet data:\n\n${textRepresentation}`);
+/** Flatten an exceljs cell value (which may be a rich-text or formula object). */
+function formatCellValue(value) {
+  if (value === null || value === undefined) return '';
+  if (value instanceof Date) return value.toISOString().split('T')[0];
 
-  console.log('✅ [EXCEL:STEP-3] Successfully extracted from Excel');
-  return result;
+  if (typeof value === 'object') {
+    if (Array.isArray(value.richText)) return value.richText.map(part => part.text).join('');
+    if ('result' in value) return formatCellValue(value.result); // formula cell
+    if ('text' in value) return String(value.text); // hyperlink cell
+    return '';
+  }
+
+  return String(value);
 }
 
 /**
@@ -676,7 +715,9 @@ export async function extractQuoteFromFile(file, hasApiKey = true) {
     if (fileName.endsWith('.pdf') || fileType === 'application/pdf') {
       extractionResult = await processPdf(file);
     } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') ||
-               fileType.includes('spreadsheet') || fileType.includes('excel')) {
+               fileName.endsWith('.csv') ||
+               fileType.includes('spreadsheet') || fileType.includes('excel') ||
+               fileType === 'text/csv') {
       extractionResult = await processExcel(file);
     } else if (fileType.startsWith('image/') ||
                fileName.match(/\.(jpg|jpeg|png|gif|webp|bmp)$/)) {

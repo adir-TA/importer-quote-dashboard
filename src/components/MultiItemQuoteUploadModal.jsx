@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useMultiItemQuoteExtraction } from '../hooks/useMultiItemQuoteExtraction';
 import { useAppContext } from '../context/AppContext';
+import { useModal } from '../context/ModalContext';
 import { calculateMatchConfidence, findBestMatch } from '../utils/buyingIntentMatcher';
 import { generateAutoName, generateAutoDescription } from '../utils/autoNaming';
 import API_BASE_URL from '../config/api';
@@ -537,6 +538,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
 
 function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyingIntentId = null }) {
   const { state, actions } = useAppContext();
+  const { alert: showAlert } = useModal();
   const { settings, products: rawProducts } = state;
   // Ensure products is always an array to prevent useMemo errors
   const products = rawProducts || [];
@@ -641,7 +643,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
   // Handle create new category
   const handleCreateCategory = () => {
     if (!newCategoryName.trim()) {
-      alert('Please enter a category name');
+      showAlert({ title: 'Check your input', message: 'Please enter a category name', type: 'warning' });
       return;
     }
     setNewIntentCategory(newCategoryName.trim());
@@ -940,7 +942,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       await handleSave();
     } catch (error) {
       console.error('[Modal] Quick save failed:', error);
-      alert('Failed to save quote: ' + error.message);
+      showAlert({ title: 'Error', message: 'Failed to save quote: ' + error.message, type: 'error' });
       setSaving(false);
     }
   };
@@ -968,12 +970,12 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
 
   const handleCreateNewIntent = async (lineItemIndex) => {
     if (!newIntentName.trim()) {
-      alert('Please enter a name for the new Buying Intent');
+      showAlert({ title: 'Check your input', message: 'Please enter a name for the new Buying Intent', type: 'warning' });
       return;
     }
 
     if (!newIntentCategory.trim()) {
-      alert('Please select or create a category');
+      showAlert({ title: 'Check your input', message: 'Please select or create a category', type: 'warning' });
       return;
     }
 
@@ -1007,7 +1009,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
       setNewCategoryName('');
     } catch (err) {
       console.error('❌ Failed to create buying intent:', err);
-      alert('Failed to create buying intent: ' + err.message);
+      showAlert({ title: 'Error', message: 'Failed to create buying intent: ' + err.message, type: 'error' });
     }
   };
 
@@ -1194,7 +1196,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                   <button
                     onClick={() => {
                       if (!textInput.trim()) {
-                        alert('Please paste some text first');
+                        showAlert({ title: 'Check your input', message: 'Please paste some text first', type: 'warning' });
                         return;
                       }
                       processText(textInput);

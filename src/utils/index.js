@@ -1,6 +1,5 @@
 export * from './helpers';
 export * from './currency';
-export * from './fileParser';
 export * from './aiService';
 export * from './quoteExtractionService';
 export * from './quoteDataModels';

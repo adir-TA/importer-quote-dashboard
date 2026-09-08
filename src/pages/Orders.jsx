@@ -1,13 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, Truck, X, Check, Edit2, Trash2 } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { SearchInput, OrderTimeline, StatusBadge, STATUSES, CustomSelect } from '../components';
 import { filterBySearch, formatDate } from '../utils/helpers';
 
 function Orders() {
   const { state, actions } = useAppContext();
-  const { confirm } = useModal();
+  const { t } = useLanguage();
+  const { confirm, alert: showAlert } = useModal();
   const { orders, suppliers } = state;
 
   const [search, setSearch] = useState('');
@@ -36,7 +38,7 @@ function Orders() {
   const handleCloseModal = () => { setIsModalOpen(false); setEditingOrder(null); };
 
   const handleSave = () => {
-    if (!formData.name.trim()) { alert('Please enter order name'); return; }
+    if (!formData.name.trim()) { showAlert({ title: 'Check your input', message: 'Please enter order name', type: 'warning' }); return; }
     if (editingOrder) actions.updateOrder({ ...editingOrder, ...formData });
     else actions.addOrder(formData);
     handleCloseModal();
@@ -81,7 +83,7 @@ function Orders() {
               <Truck size={22} color="#6366F1" />
             </div>
             <div className="stat-content">
-              <div className="stat-label">Total Orders</div>
+              <div className="stat-label">{t('orders.totalOrders')}</div>
               <div className="stat-value">{statusCounts.total}</div>
             </div>
           </div>
@@ -110,7 +112,7 @@ function Orders() {
         {filteredOrders.length === 0 ? (
           <div className="empty-state">
             <Truck size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-            <h3>No orders found</h3>
+            <h3>{t('orders.none')}</h3>
             <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => handleOpenModal()}><Plus size={16} /> New Order</button>
           </div>
         ) : (
@@ -158,7 +160,7 @@ function Orders() {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label className="form-label">Order Name *</label>
+                <label className="form-label">{t('orders.orderName')} *</label>
                 <input type="text" className="form-input" placeholder="e.g., PO-2024-001" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
               </div>
               <div className="form-row">
@@ -186,7 +188,7 @@ function Orders() {
                   <input type="text" className="form-input" placeholder="e.g., 10,000 pcs" value={formData.quantity} onChange={e => setFormData({ ...formData, quantity: e.target.value })} />
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Total Value</label>
+                  <label className="form-label">{t('orders.totalValue')}</label>
                   <input type="text" className="form-input" placeholder="e.g., $5,000" value={formData.total} onChange={e => setFormData({ ...formData, total: e.target.value })} />
                 </div>
               </div>

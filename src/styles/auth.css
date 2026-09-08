@@ -34,7 +34,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  text-align: left;
+  text-align: start;
 }
 
 .auth-logo .sidebar-brand-name {
@@ -108,7 +108,9 @@
 
 .input-with-icon .input-icon {
   position: absolute;
-  left: 14px;
+  /* Logical property: sits on the right in RTL automatically. Before this the
+     icon stayed on the left while the text flipped, and they overlapped. */
+  inset-inline-start: 14px;
   top: 50%;
   transform: translateY(-50%);
   color: var(--text-muted);
@@ -116,7 +118,7 @@
 }
 
 .input-with-icon .form-input {
-  padding-left: 44px;
+  padding-inline-start: 44px;
 }
 
 .auth-btn {
@@ -191,7 +193,7 @@
   font-size: 0.75rem;
   font-weight: 600;
   min-width: 50px;
-  text-align: right;
+  text-align: end;
 }
 
 /* Password Requirements */

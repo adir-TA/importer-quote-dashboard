@@ -11,7 +11,6 @@ import { useAuth } from '../context/AuthContext';
 import { uploadToStorage, validateFile, safeExtension, IMAGE_MIME_TYPES, MAX_IMAGE_BYTES } from '../utils/storageUpload';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { generateRFQExcel } from './ProductDetail';
-import ExcelJS from 'exceljs';
 
 // Helper to get image dimensions
 async function getImageDimensions(buffer) {
@@ -37,6 +36,9 @@ async function getImageDimensions(buffer) {
 
 // Export Buying Intents to Excel
 async function exportBuyingIntentsToExcel(intents, themeName = 'vibrant') {
+  // exceljs is ~940kB minified. Imported on demand so it is only downloaded
+  // when the user actually exports, not on every page view.
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'HA Tools';
   workbook.created = new Date();
@@ -381,7 +383,7 @@ function Products() {
   const { state, actions, computed } = useAppContext();
   const { user } = useAuth();
   const { t } = useLanguage();
-  const { confirm } = useModal();
+  const { confirm, alert: showAlert } = useModal();
   const { products } = state;
 
   const [search, setSearch] = useState('');
@@ -644,7 +646,7 @@ function Products() {
 
   const handleCreateCategory = () => {
     if (!newCategoryName.trim()) {
-      alert('Please enter a category name');
+      showAlert({ title: 'Check your input', message: 'Please enter a category name', type: 'warning' });
       return;
     }
     setFormData({ ...formData, category: newCategoryName.trim() });
@@ -660,7 +662,7 @@ function Products() {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      showAlert({ title: 'Check your input', message: 'Please select an image file', type: 'warning' });
       return;
     }
 
@@ -687,7 +689,7 @@ function Products() {
 
   const handleAddCustomField = () => {
     if (!customFieldName.trim()) {
-      alert('Please enter a field name');
+      showAlert({ title: 'Check your input', message: 'Please enter a field name', type: 'warning' });
       return;
     }
 
@@ -697,7 +699,7 @@ function Products() {
     );
 
     if (isDuplicate) {
-      alert('A field with this name already exists');
+      showAlert({ title: 'Check your input', message: 'A field with this name already exists', type: 'warning' });
       return;
     }
 
@@ -713,7 +715,7 @@ function Products() {
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim()) { alert('Please enter a buying intent name'); return; }
+    if (!formData.name.trim()) { showAlert({ title: 'Check your input', message: 'Please enter a buying intent name', type: 'warning' }); return; }
 
     // Guard: prevent duplicate submissions
     if (isSubmitting) return;
@@ -779,7 +781,13 @@ function Products() {
       handleCloseModal();
     } catch (error) {
       console.error('Error saving buying intent:', error);
-      alert('Error saving buying intent');
+      // The message used to be swallowed, leaving users with an opaque
+      // "Error saving buying intent" and no idea what to fix.
+      showAlert({
+        title: 'Could not save',
+        message: error.message || 'Error saving buying intent',
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }

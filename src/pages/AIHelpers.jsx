@@ -55,7 +55,7 @@ function AIHelpers() {
   const handleGenerateRFQ = async () => {
     if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
     const validProducts = rfqProducts.filter(p => p.name.trim());
-    if (validProducts.length === 0) { alert('Please add at least one product'); return; }
+    if (validProducts.length === 0) { setError('Please add at least one product'); return; }
     setIsLoading(true);
     setResult('');
     setError('');
@@ -68,7 +68,7 @@ function AIHelpers() {
 
   const handleTranslate = async () => {
     if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
-    if (!translateInput.trim()) { alert('Please enter text to translate'); return; }
+    if (!translateInput.trim()) { setError('Please enter text to translate'); return; }
     setIsLoading(true);
     setResult('');
     setError('');
@@ -81,7 +81,7 @@ function AIHelpers() {
 
   const handleNegotiate = async () => {
     if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
-    if (!currentPrice.trim() || !targetPrice.trim()) { alert('Please enter both prices'); return; }
+    if (!currentPrice.trim() || !targetPrice.trim()) { setError('Please enter both prices'); return; }
     setIsLoading(true);
     setResult('');
     setError('');
@@ -94,7 +94,7 @@ function AIHelpers() {
 
   const handleAnalyzeContract = async () => {
     if (!settings.hasApiKey) { setError('Add your Anthropic API key in Settings to use the AI helpers.'); return; }
-    if (!contractText.trim()) { alert('Please enter contract text'); return; }
+    if (!contractText.trim()) { setError('Please enter contract text'); return; }
     setIsLoading(true);
     setResult('');
     setError('');

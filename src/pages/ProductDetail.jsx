@@ -7,7 +7,6 @@ import { EditBuyingIntentModal } from '../components';
 import MultiItemQuoteUploadModal from '../components/MultiItemQuoteUploadModal';
 import DocumentsTab from '../components/DocumentsTab';
 import UploadDocumentModal from '../components/UploadDocumentModal';
-import ExcelJS from 'exceljs';
 import { EXPORT_THEMES } from '../utils/exportThemes';
 import { useAuth } from '../context/AuthContext';
 import { uploadToStorage, validateFile, safeExtension, IMAGE_MIME_TYPES, MAX_IMAGE_BYTES } from '../utils/storageUpload';
@@ -58,6 +57,9 @@ export async function generateRFQExcel(products, themeName = 'vibrant') {
   const productList = Array.isArray(products) ? products : [products];
   const theme = EXPORT_THEMES[themeName];
 
+  // exceljs is ~940kB minified. Imported on demand so it is only downloaded
+  // when the user actually exports, not on every page view.
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'HA Tools';
   workbook.created = new Date();
@@ -336,7 +338,7 @@ function ProductDetail() {
   const navigate = useNavigate();
   const { state, actions, computed } = useAppContext();
   const { user } = useAuth();
-  const { confirm } = useModal();
+  const { confirm, alert: showAlert } = useModal();
   const { products } = state;
 
   const product = computed.getProductById(id);
@@ -660,11 +662,11 @@ function ProductDetail() {
 
   const handleSaveQuote = async () => {
     if (!formData.supplierName.trim()) {
-      alert('Please enter a supplier name');
+      showAlert({ title: 'Check your input', message: 'Please enter a supplier name', type: 'warning' });
       return;
     }
     if (!formData.unitPrice || parseFloat(formData.unitPrice) <= 0) {
-      alert('Please enter a valid unit price');
+      showAlert({ title: 'Check your input', message: 'Please enter a valid unit price', type: 'warning' });
       return;
     }
 
@@ -686,7 +688,7 @@ function ProductDetail() {
       }
       handleCloseQuoteModal();
     } catch (error) {
-      alert('Error saving quote: ' + error.message);
+      showAlert({ title: 'Error', message: 'Error saving quote: ' + error.message, type: 'error' });
     }
   };
 
@@ -781,7 +783,7 @@ function ProductDetail() {
 
   const handleSaveEdit = async () => {
     if (!editFormData.name.trim()) {
-      alert('Please enter an intent name');
+      showAlert({ title: 'Check your input', message: 'Please enter an intent name', type: 'warning' });
       return;
     }
 
@@ -819,7 +821,13 @@ function ProductDetail() {
       closeEditModal();
     } catch (error) {
       console.error('Error saving buying intent:', error);
-      alert('Error saving buying intent');
+      // The message used to be swallowed, leaving users with an opaque
+      // "Error saving buying intent" and no idea what to fix.
+      showAlert({
+        title: 'Could not save',
+        message: error.message || 'Error saving buying intent',
+        type: 'error',
+      });
     } finally {
       setIsSubmitting(false);
     }

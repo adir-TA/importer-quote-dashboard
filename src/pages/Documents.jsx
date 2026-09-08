@@ -1,13 +1,15 @@
 import React, { useState, useMemo, useRef } from 'react';
 import { Plus, FileText, X, Check, Upload, FolderPlus } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
+import { useLanguage } from '../context/LanguageContext';
 import { useModal } from '../context/ModalContext';
 import { SearchInput, DocumentCard, FileUpload } from '../components';
 import { filterBySearch, getFileIcon, formatFileSize } from '../utils/helpers';
 
 function Documents() {
   const { state, actions, computed } = useAppContext();
-  const { confirm } = useModal();
+  const { t } = useLanguage();
+  const { confirm, alert: showAlert } = useModal();
   const { documents } = state;
 
   const [search, setSearch] = useState('');
@@ -47,7 +49,7 @@ function Documents() {
   };
 
   const handleSave = () => {
-    if (!formData.name.trim()) { alert('Please enter document name'); return; }
+    if (!formData.name.trim()) { showAlert({ title: 'Check your input', message: 'Please enter document name', type: 'warning' }); return; }
     const category = showNewCategory && newCategory.trim() ? newCategory.trim() : formData.category;
     
     if (editingDoc) {
@@ -121,7 +123,7 @@ function Documents() {
               <FileText size={22} color="#6366F1" />
             </div>
             <div className="stat-content">
-              <div className="stat-label">Total Documents</div>
+              <div className="stat-label">{t('documents.totalDocuments')}</div>
               <div className="stat-value">{documents.length}</div>
             </div>
           </div>
@@ -168,7 +170,7 @@ function Documents() {
                 onChange={e => setCategoryFilter(e.target.value)}
                 style={{ fontSize: '0.875rem' }}
               >
-                <option value="all">All Categories</option>
+                <option value="all">{t('documents.allCategories')}</option>
                 {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
               </select>
             </div>
@@ -184,7 +186,7 @@ function Documents() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
-                  <span style={{ color: 'var(--text-secondary)' }}>Total Documents</span>
+                  <span style={{ color: 'var(--text-secondary)' }}>{t('documents.totalDocuments')}</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{documents.length}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
@@ -205,7 +207,7 @@ function Documents() {
         {filteredDocs.length === 0 ? (
           <div className="empty-state">
             <FileText size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-            <h3>No documents found</h3>
+            <h3>{t('documents.none')}</h3>
             <button className="btn btn-primary" style={{ marginTop: '16px' }} onClick={() => handleOpenModal()}><Plus size={16} /> Upload Document</button>
           </div>
         ) : (
@@ -241,13 +243,13 @@ function Documents() {
                         </div>
                       </div>
                     ) : (
-                      <><div className="upload-icon"><Upload size={32} /></div><p className="upload-text">Drop file or click to browse</p></>
+                      <><div className="upload-icon"><Upload size={32} /></div><p className="upload-text">{t('documents.dropFile')}</p></>
                     )}
                   </FileUpload>
                 </div>
               )}
               <div className="form-group">
-                <label className="form-label">Document Name *</label>
+                <label className="form-label">{t('documents.documentName')} *</label>
                 <input type="text" className="form-input" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
               </div>
               <div className="form-group">

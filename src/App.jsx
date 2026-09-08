@@ -1,23 +1,24 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { useAuth } from './context/AuthContext';
 import { Sidebar, GlobalSearch } from './components';
-import {
-  Dashboard,
-  Products,
-  ProductDetail,
-  QuoteComparison,
-  Suppliers,
-  Orders,
-  Documents,
-  AIHelpers,
-  Settings,
-  Login,
-  Signup,
-  LandedCost,
-  NotFound,
-} from './pages';
+// Auth pages load eagerly - they are the first thing an unauthenticated
+// visitor needs. Everything else is split out so the initial bundle is not a
+// single 1.8MB download of the whole app.
+import { Login, Signup } from './pages';
+
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Products = lazy(() => import('./pages/Products'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const QuoteComparison = lazy(() => import('./pages/QuoteComparison'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Documents = lazy(() => import('./pages/Documents'));
+const AIHelpers = lazy(() => import('./pages/AIHelpers'));
+const Settings = lazy(() => import('./pages/Settings'));
+const LandedCost = lazy(() => import('./pages/LandedCost'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // Protected route wrapper
 function ProtectedRoute({ children }) {
@@ -109,6 +110,7 @@ function AppLayout() {
       )}
 
       <main className="main-content">
+        <Suspense fallback={<div className="loading-screen"><div className="spinner" /></div>}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/products" element={<Products />} />
@@ -124,6 +126,7 @@ function AppLayout() {
           {/* Catch-all: an unknown URL used to render an empty content area */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
       </main>
 
       {/* Global Search / Command Palette */}

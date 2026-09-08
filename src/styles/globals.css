@@ -369,7 +369,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   overflow: hidden;
 }
 .table th {
-  text-align: left;
+  text-align: start;
   padding: 10px 12px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -414,7 +414,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 .comparison-table th, .comparison-table td {
   padding: 16px 20px;
-  text-align: left;
+  text-align: start;
   border-bottom: 1px solid var(--border-light);
   font-size: 0.875rem;
 }
@@ -450,7 +450,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   font-size: 0.7rem;
   padding: 3px 8px;
   border-radius: var(--radius-sm);
-  margin-left: 8px;
+  margin-inline-start: 8px;
   font-weight: 700;
 }
 
@@ -522,7 +522,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 .checkbox svg { width: 14px; height: 14px; color: white; opacity: 0; }
 .checkbox.checked svg { opacity: 1; }
 
-.typewriter-cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-left: 2px; animation: blink 0.8s infinite; }
+.typewriter-cursor { display: inline-block; width: 2px; height: 1em; background: var(--accent); margin-inline-start: 2px; animation: blink 0.8s infinite; }
 @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
 
 ::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -536,17 +536,28 @@ textarea.form-input { resize: none; min-height: 100px; }
 .filters-sidebar::-webkit-scrollbar-thumb:hover { background: rgba(0, 82, 204, 0.5); }
 .filters-sidebar { scrollbar-color: rgba(0, 82, 204, 0.3) transparent; scrollbar-width: thin; }
 
-/* RTL Global Support */
-[dir="rtl"] .header { direction: rtl; }
-[dir="rtl"] .header-actions { direction: rtl; }
-[dir="rtl"] .content { direction: rtl; }
-[dir="rtl"] .stat-card { direction: rtl; }
-[dir="rtl"] .card-header { direction: rtl; }
-[dir="rtl"] .card-body { direction: rtl; }
-[dir="rtl"] .form-group { direction: rtl; text-align: right; }
-[dir="rtl"] .form-label { text-align: right; }
-[dir="rtl"] .btn { direction: rtl; }
+/* RTL Global Support
+   `dir` is set on <html>, so direction already inherits everywhere. The rules
+   below only re-assert it for containers whose layout depends on it, and
+   flip the few table/number alignments that must follow the reading order.
+   Everything else now uses logical properties (margin-inline-start,
+   padding-inline-start, text-align: start/end) so it flips automatically. */
+[dir="rtl"] .header,
+[dir="rtl"] .header-actions,
+[dir="rtl"] .content,
+[dir="rtl"] .stat-card,
+[dir="rtl"] .card-header,
+[dir="rtl"] .card-body,
+[dir="rtl"] .btn,
 [dir="rtl"] .empty-state { direction: rtl; }
+
+[dir="rtl"] .form-group { direction: rtl; text-align: start; }
+[dir="rtl"] .form-label { text-align: start; }
+
+/* Tables keep their numeric columns aligned to the reading direction */
+[dir="rtl"] table { direction: rtl; }
+[dir="rtl"] th,
+[dir="rtl"] td { text-align: start; }
 
 @media (max-width: 1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 768px) { .stats-grid { grid-template-columns: 1fr; } .header { flex-direction: column; gap: 16px; align-items: flex-start; } .content { padding: 20px; } .form-row { grid-template-columns: 1fr; } }
@@ -616,7 +627,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   padding: 12px 16px;
   background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  border-left: 3px solid var(--priority-color);
+  border-inline-start: 3px solid var(--priority-color);
 }
 .reminder-icon {
   width: 36px;
@@ -736,7 +747,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   color: var(--text-muted);
   font-size: 0.9rem;
   font-weight: 500;
-  border-right: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
   display: flex;
   align-items: center;
 }
@@ -767,7 +778,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 .fee-amount {
   min-width: 80px;
-  text-align: right;
+  text-align: end;
   font-size: 0.85rem;
   color: var(--text-secondary);
   font-weight: 500;
@@ -1244,7 +1255,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 
 .best-quote-price {
-  text-align: right;
+  text-align: end;
 }
 
 .best-quote-price .price-label {
@@ -1272,7 +1283,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 
 .comparison-table .row-highlight td:first-child {
-  border-left: 3px solid var(--success);
+  border-inline-start: 3px solid var(--success);
 }
 
 .rank-badge {
@@ -1410,7 +1421,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 }
 
 .row-selected td:first-child {
-  border-left: 3px solid var(--success);
+  border-inline-start: 3px solid var(--success);
 }
 
 .rank-badge.selected {
@@ -1420,7 +1431,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 
 .selected-label {
   display: inline-block;
-  margin-left: 8px;
+  margin-inline-start: 8px;
   padding: 2px 8px;
   background: var(--success-light);
   color: var(--success);
@@ -1511,7 +1522,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s;
-  text-align: left;
+  text-align: start;
 }
 
 .product-selector-trigger:hover {
@@ -1650,7 +1661,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   background: transparent;
   border: none;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   transition: background 0.1s;
 }
 
@@ -1776,7 +1787,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 .fee-type-label {
   font-size: 0.7rem;
   color: var(--text-muted);
-  margin-left: 6px;
+  margin-inline-start: 6px;
   font-weight: 400;
 }
 
@@ -2084,7 +2095,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all 0.2s;
-  text-align: left;
+  text-align: start;
 }
 
 .quote-selector-trigger:hover {
@@ -2143,7 +2154,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   background: transparent;
   border: none;
   cursor: pointer;
-  text-align: left;
+  text-align: start;
   transition: background 0.1s;
   border-bottom: 1px solid var(--border-light);
 }
@@ -2235,14 +2246,14 @@ textarea.form-input { resize: none; min-height: 100px; }
 .input-with-suffix .form-input {
   border-top-right-radius: 0;
   border-bottom-right-radius: 0;
-  border-right: none;
+  border-inline-end: none;
 }
 
 .input-suffix {
   padding: 10px 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-left: none;
+  border-inline-start: none;
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
   color: var(--text-muted);
   font-size: 0.85rem;
@@ -2256,7 +2267,7 @@ textarea.form-input { resize: none; min-height: 100px; }
   font-size: 0.5em;
   font-weight: 400;
   color: var(--text-muted);
-  margin-left: 2px;
+  margin-inline-start: 2px;
 }
 
 /* ========================================
@@ -2338,7 +2349,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 
 .line-item-card.selected {
   background: var(--success-light);
-  border-left: 3px solid var(--success);
+  border-inline-start: 3px solid var(--success);
 }
 
 .line-item-header {
@@ -2685,7 +2696,7 @@ textarea.form-input { resize: none; min-height: 100px; }
 
   /* Adjust main content for no fixed sidebar */
   .main-content {
-    margin-left: 0;
+    margin-inline-start: 0;
   }
 
   /* Header responsive */
@@ -2846,7 +2857,7 @@ html {
   div[style*='gridTemplateColumns: 320px 1fr'] > div:first-child {
     width: 100% !important;
     max-width: 100% !important;
-    border-right: none !important;
+    border-inline-end: none !important;
     border-bottom: 1px solid var(--border) !important;
     margin-bottom: 16px !important;
   }
@@ -2855,7 +2866,7 @@ html {
   div[style*='width: 280px'][style*='borderRight'] {
     width: 100% !important;
     max-width: 100% !important;
-    border-right: none !important;
+    border-inline-end: none !important;
     border-bottom: 1px solid #e5e7eb !important;
     padding-bottom: 16px !important;
   }
