@@ -218,7 +218,11 @@ function ContainerEditor() {
     setSavingBranches(true);
     try {
       await saveBranches(names, normalizeGroups(groups));
-      showAlert({ title: t('containers.saveDefaultsDone'), type: 'success' });
+      showAlert({
+        title: t('containers.saveDefaultsDone'),
+        message: t('containers.saveDefaultsDoneHint').replace('{n}', String(names.length)),
+        type: 'success',
+      });
     } catch (err) {
       showAlert({ title: t('containers.saveDefaultsFailed'), message: err.message, type: 'error' });
     } finally {
