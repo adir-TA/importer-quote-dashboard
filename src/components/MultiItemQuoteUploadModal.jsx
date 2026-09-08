@@ -29,27 +29,27 @@ const ACCEPTED_FILES = '.pdf,.xlsx,.xls,.png,.jpg,.jpeg,.webp';
 
 // Helper component for field confidence badges with source
 function FieldConfidenceBadge({ field, label }) {
-  if (!field) return <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>(Not found)</span>;
+  if (!field) return <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-subtle)' }}>(Not found)</span>;
 
   if (field.status === 'extracted') {
     const sourceColors = {
-      header: { bg: '#dbeafe', text: '#1e40af', label: 'Header' },
-      footer: { bg: '#fce7f3', text: '#9f1239', label: 'Footer' },
-      body: { bg: '#fef3c7', text: '#a16207', label: 'Body' },
+      header: { bg: 'var(--accent-light)', text: 'var(--accent-text)', label: 'Header' },
+      footer: { bg: 'var(--error-light)', text: 'var(--error)', label: 'Footer' },
+      body: { bg: 'var(--warning-light)', text: 'var(--warning)', label: 'Body' },
     };
 
     const sourceStyle = field.source && sourceColors[field.source];
 
     return (
       <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-        <span style={{ fontSize: '0.75rem', color: '#10b981', fontWeight: 500 }}>✓ Found</span>
+        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--success)', fontWeight: 500 }}>✓ Found</span>
         {sourceStyle && (
           <span style={{
-            fontSize: '0.65rem',
+            fontSize: 'var(--text-xs)',
             background: sourceStyle.bg,
             color: sourceStyle.text,
             padding: '2px 6px',
-            borderRadius: '3px',
+            borderRadius: 'var(--radius-xs)',
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: '0.3px',
@@ -62,7 +62,7 @@ function FieldConfidenceBadge({ field, label }) {
   }
 
   if (field.status === 'not_found') {
-    return <span style={{ fontSize: '0.75rem', color: '#9ca3af' }}>(Not found)</span>;
+    return <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-subtle)' }}>(Not found)</span>;
   }
 
   return null;
@@ -86,8 +86,8 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
         left: 0,
         marginTop: '4px',
         background: 'white',
-        border: '2px solid #3b82f6',
-        borderRadius: '8px',
+        border: '2px solid var(--accent)',
+        borderRadius: 'var(--radius-md)',
         boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
         zIndex: 1000,
         minWidth: '280px',
@@ -97,16 +97,16 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
       {/* Header */}
       <div style={{
         padding: '12px 16px',
-        background: '#eff6ff',
-        borderBottom: '1px solid #bfdbfe',
+        background: 'var(--accent-light)',
+        borderBottom: '1px solid var(--accent-border)',
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
       }}>
         <div style={{
-          fontSize: '0.85rem',
+          fontSize: 'var(--text-sm)',
           fontWeight: 600,
-          color: '#1e40af',
+          color: 'var(--accent-text)',
           display: 'flex',
           alignItems: 'center',
           gap: '6px',
@@ -121,7 +121,7 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
             border: 'none',
             cursor: 'pointer',
             padding: '2px',
-            color: '#64748b',
+            color: 'var(--text-secondary)',
             display: 'flex',
             alignItems: 'center',
           }}
@@ -137,22 +137,22 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {item.raw_product_name && item.raw_product_name !== item.productName && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Raw Name (Debug)
               </div>
               <div style={{
-                fontSize: '0.8rem',
-                color: '#374151',
-                background: '#f9fafb',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-secondary)',
+                background: 'var(--grey-50)',
                 padding: '6px 8px',
-                borderRadius: '4px',
+                borderRadius: 'var(--radius-xs)',
                 fontFamily: 'monospace',
-                border: '1px solid #e5e7eb',
+                border: '1px solid var(--border)',
               }}>
                 {item.raw_product_name}
               </div>
@@ -162,15 +162,15 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {item.material && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Material
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                 {item.material}
               </div>
             </div>
@@ -179,15 +179,15 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {item.dimensions && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Dimensions
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                 {item.dimensions}
               </div>
             </div>
@@ -196,15 +196,15 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {item.weight_g && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Weight
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                 {item.weight_g}g
               </div>
             </div>
@@ -213,15 +213,15 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {item.packing_pcs_per_ctn && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Packing
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                 {item.packing_pcs_per_ctn} pcs/carton
               </div>
             </div>
@@ -230,15 +230,15 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {(item.carton_length_cm || item.carton_width_cm || item.carton_height_cm) && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 Carton Dimensions
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                 {item.carton_length_cm || '?'} × {item.carton_width_cm || '?'} × {item.carton_height_cm || '?'} cm
               </div>
             </div>
@@ -247,15 +247,15 @@ function ProductSpecsPopover({ item, onClose, anchorRef }) {
           {item.cbm_per_carton && (
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
-                color: '#64748b',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 marginBottom: '3px',
               }}>
                 CBM per Carton
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#374151' }}>
+              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                 {item.cbm_per_carton} m³
               </div>
             </div>
@@ -272,23 +272,23 @@ function ConfidenceBadge({ level, confidence }) {
     high: {
       label: 'Strong Suggestion',
       icon: Info,
-      bg: '#eff6ff',
-      text: '#1e40af',
-      border: '#bfdbfe',
+      bg: 'var(--accent-light)',
+      text: 'var(--accent-text)',
+      border: 'var(--accent-border)',
     },
     medium: {
       label: 'Suggested',
       icon: Info,
-      bg: '#fef3c7',
-      text: '#a16207',
-      border: '#fcd34d',
+      bg: 'var(--warning-light)',
+      text: 'var(--warning)',
+      border: 'var(--warning-border)',
     },
     low: {
       label: 'Weak Suggestion',
       icon: AlertCircle,
-      bg: '#f3f4f6',
-      text: '#6b7280',
-      border: '#d1d5db',
+      bg: 'var(--grey-100)',
+      text: 'var(--text-muted)',
+      border: 'var(--border-strong)',
     },
   };
 
@@ -301,13 +301,13 @@ function ConfidenceBadge({ level, confidence }) {
       alignItems: 'center',
       gap: '4px',
       padding: '4px 10px',
-      fontSize: '0.75rem',
+      fontSize: 'var(--text-xs)',
       fontWeight: 600,
-      borderRadius: '4px',
+      borderRadius: 'var(--radius-xs)',
       background: badge.bg,
       color: badge.text,
       border: `1px solid ${badge.border}`,
-      marginLeft: '6px',
+      marginInlineStart: '6px',
     }}>
       <Icon size={12} />
       <span>{badge.label}</span>
@@ -332,26 +332,26 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
 
   return (
     <tr>
-      <td colSpan="8" style={{ padding: 0, background: '#f9fafb', borderTop: '1px solid #e5e7eb' }}>
-        <div style={{ padding: '16px', fontSize: '0.85rem' }}>
+      <td colSpan="8" style={{ padding: 0, background: 'var(--grey-50)', borderTop: '1px solid var(--border)' }}>
+        <div style={{ padding: '16px', fontSize: 'var(--text-sm)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
             <div>
-              <div style={{ fontWeight: 600, marginBottom: '4px', color: '#64748b' }}>
+              <div style={{ fontWeight: 600, marginBottom: '4px', color: 'var(--text-secondary)' }}>
                 Suggested: {buyingIntent.name}
               </div>
               {buyingIntent.category && (
-                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                   Category: {buyingIntent.category}
                 </div>
               )}
               <div style={{
                 marginTop: '8px',
                 padding: '8px 12px',
-                background: '#f3f4f6',
-                borderLeft: '3px solid #9ca3af',
-                borderRadius: '4px',
-                fontSize: '0.8rem',
-                color: '#374151',
+                background: 'var(--grey-100)',
+                borderInlineStart: '3px solid var(--text-subtle)',
+                borderRadius: 'var(--radius-xs)',
+                fontSize: 'var(--text-sm)',
+                color: 'var(--text-secondary)',
               }}>
                 {getMatchExplanation()}
               </div>
@@ -363,7 +363,7 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                 border: 'none',
                 cursor: 'pointer',
                 padding: '4px',
-                color: '#64748b',
+                color: 'var(--text-secondary)',
               }}
               title="Close details"
             >
@@ -374,10 +374,10 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
           {/* Match Breakdown - Grouped by Priority */}
           <div style={{ marginTop: '16px' }}>
             <div style={{
-              fontSize: '0.75rem',
+              fontSize: 'var(--text-xs)',
               fontWeight: 600,
               marginBottom: '8px',
-              color: '#64748b',
+              color: 'var(--text-secondary)',
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
             }}>
@@ -387,10 +387,10 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
             {/* Physical Specs Section */}
             <div style={{ marginBottom: '16px' }}>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 marginBottom: '6px',
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
               }}>
@@ -401,34 +401,34 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                   const data = matchBreakdown[key];
                   if (!data) return null;
                   const scorePercent = data.score;
-                  const barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+                  const barColor = scorePercent >= 80 ? 'var(--success)' : scorePercent >= 50 ? 'var(--warning)' : 'var(--error)';
 
                   return (
                     <div key={key} style={{
                       background: 'white',
                       padding: '10px',
-                      borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                         <span style={{
                           textTransform: 'capitalize',
                           fontWeight: 500,
-                          fontSize: '0.8rem',
+                          fontSize: 'var(--text-sm)',
                         }}>
                           {key}
                         </span>
                         <span style={{
-                          fontSize: '0.75rem',
-                          color: '#64748b',
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--text-secondary)',
                         }}>
                           {data.weight}% weight
                         </span>
                       </div>
                       <div style={{
                         height: '8px',
-                        background: '#e5e7eb',
-                        borderRadius: '4px',
+                        background: 'var(--border)',
+                        borderRadius: 'var(--radius-xs)',
                         overflow: 'hidden',
                         marginBottom: '4px',
                       }}>
@@ -437,11 +437,11 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                           width: `${scorePercent}%`,
                           background: barColor,
                           transition: 'width 0.3s',
-                          borderRadius: '4px',
+                          borderRadius: 'var(--radius-xs)',
                         }} />
                       </div>
                       {data.detail && (
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                           {data.detail.explanation || JSON.stringify(data.detail)}
                         </div>
                       )}
@@ -454,10 +454,10 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
             {/* Other Attributes Section */}
             <div>
               <div style={{
-                fontSize: '0.7rem',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 marginBottom: '6px',
-                color: '#374151',
+                color: 'var(--text-secondary)',
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
               }}>
@@ -472,9 +472,9 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                   // Name mismatch uses neutral/amber, never red
                   let barColor;
                   if (key === 'name') {
-                    barColor = scorePercent >= 80 ? '#10b981' : '#f59e0b'; // Green or amber only
+                    barColor = scorePercent >= 80 ? 'var(--success)' : 'var(--warning)'; // Green or amber only
                   } else {
-                    barColor = scorePercent >= 80 ? '#10b981' : scorePercent >= 50 ? '#f59e0b' : '#ef4444';
+                    barColor = scorePercent >= 80 ? 'var(--success)' : scorePercent >= 50 ? 'var(--warning)' : 'var(--error)';
                   }
 
                   // Special label for name differences
@@ -486,28 +486,28 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                     <div key={key} style={{
                       background: 'white',
                       padding: '10px',
-                      borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid var(--border)',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
                         <span style={{
                           textTransform: key === 'name' && scorePercent < 50 ? 'none' : 'capitalize',
                           fontWeight: 500,
-                          fontSize: '0.8rem',
+                          fontSize: 'var(--text-sm)',
                         }}>
                           {label}
                         </span>
                         <span style={{
-                          fontSize: '0.75rem',
-                          color: '#64748b',
+                          fontSize: 'var(--text-xs)',
+                          color: 'var(--text-secondary)',
                         }}>
                           {data.weight}% weight
                         </span>
                       </div>
                       <div style={{
                         height: '8px',
-                        background: '#e5e7eb',
-                        borderRadius: '4px',
+                        background: 'var(--border)',
+                        borderRadius: 'var(--radius-xs)',
                         overflow: 'hidden',
                         marginBottom: '4px',
                       }}>
@@ -516,11 +516,11 @@ function InlineMatchDetails({ item, buyingIntent, matchBreakdown, confidence, co
                           width: `${scorePercent}%`,
                           background: barColor,
                           transition: 'width 0.3s',
-                          borderRadius: '4px',
+                          borderRadius: 'var(--radius-xs)',
                         }} />
                       </div>
                       {data.detail && (
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)' }}>
                           {data.detail.explanation || JSON.stringify(data.detail)}
                         </div>
                       )}
@@ -1083,7 +1083,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
           <h2 style={styles.title}>
             Upload Supplier Quote
             {preselectedBuyingIntentId && (
-              <span style={{ fontSize: '0.85rem', fontWeight: 400, color: '#64748b', marginLeft: '12px' }}>
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 400, color: 'var(--text-secondary)', marginInlineStart: '12px' }}>
                 (Auto-linking to selected intent)
               </span>
             )}
@@ -1147,7 +1147,7 @@ function MultiItemQuoteUploadModal({ isOpen, onClose, onSuccess, preselectedBuyi
                   onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
                 >
-                  <Upload size={48} color="#94a3b8" />
+                  <Upload size={48} color="var(--text-subtle)" />
                   <p style={styles.dropzoneText}>
                     Drop quote file here or <span style={styles.link}>browse</span>
                   </p>
@@ -1183,8 +1183,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       minHeight: '200px',
                       padding: '16px',
                       border: '2px dashed var(--border)',
-                      borderRadius: '12px',
-                      fontSize: '0.95rem',
+                      borderRadius: 'var(--radius-lg)',
+                      fontSize: 'var(--text-md)',
                       fontFamily: 'inherit',
                       resize: 'vertical',
                       outline: 'none',
@@ -1208,8 +1208,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       background: textInput.trim() ? 'var(--accent)' : 'var(--bg-light)',
                       color: textInput.trim() ? 'white' : 'var(--text-muted)',
                       border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: 'var(--text-md)',
                       fontWeight: 600,
                       cursor: textInput.trim() ? 'pointer' : 'not-allowed',
                       transition: 'all 0.2s',
@@ -1225,7 +1225,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
           {/* EXTRACTING */}
           {step === 'extracting' && (
             <div style={styles.loading}>
-              <Loader size={48} color="#3b82f6" style={styles.spinner} />
+              <Loader size={48} color="var(--accent)" style={styles.spinner} />
               <p style={styles.loadingText}>{progress}</p>
             </div>
           )}
@@ -1233,7 +1233,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
           {/* ERROR */}
           {step === 'error' && (
             <div style={styles.error}>
-              <AlertCircle size={48} color="#ef4444" />
+              <AlertCircle size={48} color="var(--error)" />
               <p style={styles.errorText}>{error}</p>
               <button onClick={reset} style={styles.retryButton}>
                 Try Again
@@ -1247,9 +1247,9 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
               {/* Quick Save Banner - Show when all items have high confidence matches */}
               {matchStats.allHighConfidence && (
                 <div style={{
-                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                  border: '2px solid #10b981',
-                  borderRadius: '12px',
+                  background: 'linear-gradient(135deg, var(--success-light) 0%, var(--success-light) 100%)',
+                  border: '2px solid var(--success)',
+                  borderRadius: 'var(--radius-lg)',
                   padding: '20px',
                   marginBottom: '20px',
                   boxShadow: '0 4px 12px rgba(16, 185, 129, 0.15)',
@@ -1260,21 +1260,21 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                     gap: '16px',
                     marginBottom: '12px',
                   }}>
-                    <CheckCircle size={32} color="#10b981" />
+                    <CheckCircle size={32} color="var(--success)" />
                     <div>
                       <h3 style={{
                         margin: 0,
-                        fontSize: '1.1rem',
+                        fontSize: 'var(--text-lg)',
                         fontWeight: 600,
-                        color: '#065f46',
+                        color: 'var(--success)',
                         marginBottom: '4px',
                       }}>
                         Ready to Save!
                       </h3>
                       <p style={{
                         margin: 0,
-                        fontSize: '0.9rem',
-                        color: '#047857',
+                        fontSize: 'var(--text-md)',
+                        color: 'var(--success)',
                       }}>
                         All {matchStats.total} items have strong matches. You can save immediately or review details first.
                       </p>
@@ -1290,29 +1290,29 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       disabled={saving}
                       style={{
                         padding: '12px 24px',
-                        background: '#10b981',
+                        background: 'var(--success)',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '6px',
+                        borderRadius: 'var(--radius-sm)',
                         fontWeight: 600,
                         cursor: saving ? 'not-allowed' : 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        fontSize: '0.95rem',
+                        fontSize: 'var(--text-md)',
                         transition: 'all 0.2s',
                         boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)',
                         opacity: saving ? 0.6 : 1,
                       }}
                       onMouseEnter={(e) => {
                         if (!saving) {
-                          e.target.style.background = '#059669';
+                          e.target.style.background = 'var(--success)';
                           e.target.style.transform = 'translateY(-1px)';
                           e.target.style.boxShadow = '0 4px 8px rgba(16, 185, 129, 0.4)';
                         }
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.background = '#10b981';
+                        e.target.style.background = 'var(--success)';
                         e.target.style.transform = 'translateY(0)';
                         e.target.style.boxShadow = '0 2px 4px rgba(16, 185, 129, 0.3)';
                       }}
@@ -1330,8 +1330,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                       )}
                     </button>
                     <div style={{
-                      fontSize: '0.8rem',
-                      color: '#6b7280',
+                      fontSize: 'var(--text-sm)',
+                      color: 'var(--text-muted)',
                       alignSelf: 'center',
                       fontStyle: 'italic',
                     }}>
@@ -1375,11 +1375,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                           />
                         ) : (
                           <div style={styles.previewFallback}>
-                            <FileText size={48} color="#94a3b8" />
-                            <p style={{ marginTop: '12px', color: '#64748b' }}>
+                            <FileText size={48} color="var(--text-subtle)" />
+                            <p style={{ marginTop: '12px', color: 'var(--text-secondary)' }}>
                               {uploadedFile.name}
                             </p>
-                            <p style={{ fontSize: '0.85rem', color: '#94a3b8' }}>
+                            <p style={{ fontSize: 'var(--text-sm)', color: 'var(--text-subtle)' }}>
                               Preview not available for this file type
                             </p>
                           </div>
@@ -1547,9 +1547,9 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                     {/* Accept All Suggestions Banner */}
                     {matchStats.allHighConfidence && (
                       <div style={{
-                        background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
-                        border: '2px solid #3b82f6',
-                        borderRadius: '8px',
+                        background: 'linear-gradient(135deg, var(--accent-light) 0%, var(--accent-light) 100%)',
+                        border: '2px solid var(--accent)',
+                        borderRadius: 'var(--radius-md)',
                         padding: '16px',
                         marginBottom: '16px',
                         display: 'flex',
@@ -1558,12 +1558,12 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                         gap: '12px',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
-                          <CheckCircle size={24} color="#3b82f6" />
+                          <CheckCircle size={24} color="var(--accent)" />
                           <div>
-                            <div style={{ fontWeight: 600, color: '#1e40af', marginBottom: '2px' }}>
+                            <div style={{ fontWeight: 600, color: 'var(--accent-text)', marginBottom: '2px' }}>
                               ✓ Found matches for all {matchStats.total} items
                             </div>
-                            <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
                               All items have high-confidence matches (85%+). Accept all suggestions to save time.
                             </div>
                           </div>
@@ -1575,10 +1575,10 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                           }}
                           style={{
                             padding: '12px 24px',
-                            background: '#3b82f6',
+                            background: 'var(--accent)',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '6px',
+                            borderRadius: 'var(--radius-sm)',
                             fontWeight: 600,
                             cursor: 'pointer',
                             whiteSpace: 'nowrap',
@@ -1589,12 +1589,12 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                             boxShadow: '0 2px 4px rgba(59, 130, 246, 0.3)',
                           }}
                           onMouseEnter={(e) => {
-                            e.target.style.background = '#2563eb';
+                            e.target.style.background = 'var(--accent)';
                             e.target.style.transform = 'translateY(-1px)';
                             e.target.style.boxShadow = '0 4px 8px rgba(59, 130, 246, 0.4)';
                           }}
                           onMouseLeave={(e) => {
-                            e.target.style.background = '#3b82f6';
+                            e.target.style.background = 'var(--accent)';
                             e.target.style.transform = 'translateY(0)';
                             e.target.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.3)';
                           }}
@@ -1606,7 +1606,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                     )}
                     {editableLineItems.length === 0 ? (
                       <div style={styles.noItems}>
-                        <AlertCircle size={32} color="#94a3b8" />
+                        <AlertCircle size={32} color="var(--text-subtle)" />
                         <p>No line items extracted</p>
                       </div>
                     ) : (
@@ -1649,29 +1649,29 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                         setOpenSpecsPopover(openSpecsPopover === index ? null : index);
                                       }}
                                       style={{
-                                        background: openSpecsPopover === index ? '#eff6ff' : '#f9fafb',
-                                        border: openSpecsPopover === index ? '1px solid #3b82f6' : '1px solid #e5e7eb',
-                                        borderRadius: '4px',
+                                        background: openSpecsPopover === index ? 'var(--accent-light)' : 'var(--grey-50)',
+                                        border: openSpecsPopover === index ? '1px solid var(--accent)' : '1px solid var(--border)',
+                                        borderRadius: 'var(--radius-xs)',
                                         cursor: 'pointer',
                                         padding: '6px',
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
-                                        color: openSpecsPopover === index ? '#3b82f6' : '#64748b',
+                                        color: openSpecsPopover === index ? 'var(--accent)' : 'var(--text-secondary)',
                                         transition: 'all 0.2s',
                                         flexShrink: 0,
                                       }}
                                       title="View product specifications"
                                       onMouseEnter={(e) => {
                                         if (openSpecsPopover !== index) {
-                                          e.target.style.background = '#f3f4f6';
-                                          e.target.style.color = '#3b82f6';
+                                          e.target.style.background = 'var(--grey-100)';
+                                          e.target.style.color = 'var(--accent)';
                                         }
                                       }}
                                       onMouseLeave={(e) => {
                                         if (openSpecsPopover !== index) {
-                                          e.target.style.background = '#f9fafb';
-                                          e.target.style.color = '#64748b';
+                                          e.target.style.background = 'var(--grey-50)';
+                                          e.target.style.color = 'var(--text-secondary)';
                                         }
                                       }}
                                     >
@@ -1738,22 +1738,22 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                         alignItems: 'center',
                                         gap: '6px',
                                         padding: '6px 8px',
-                                        background: '#f9fafb',
-                                        border: '1px solid #e5e7eb',
-                                        borderRadius: '4px',
+                                        background: 'var(--grey-50)',
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 'var(--radius-xs)',
                                       }}>
-                                        <span style={{ fontSize: '0.75rem', color: '#64748b', flex: 1 }}>
+                                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-secondary)', flex: 1 }}>
                                           Suggested: {suggestedIntent.name}
                                         </span>
                                         <button
                                           onClick={() => handleBuyingIntentChange(index, suggestedIntent.id)}
                                           style={{
                                             padding: '4px 8px',
-                                            fontSize: '0.7rem',
-                                            background: '#3b82f6',
+                                            fontSize: 'var(--text-xs)',
+                                            background: 'var(--accent)',
                                             color: 'white',
                                             border: 'none',
-                                            borderRadius: '3px',
+                                            borderRadius: 'var(--radius-xs)',
                                             cursor: 'pointer',
                                             fontWeight: 500,
                                           }}
@@ -1768,9 +1768,9 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                     {showCreateIntent === index ? (
                                       <div style={{
                                         padding: '12px',
-                                        background: '#f0f9ff',
-                                        border: '1px solid #3b82f6',
-                                        borderRadius: '6px',
+                                        background: 'var(--accent-light)',
+                                        border: '1px solid var(--accent)',
+                                        borderRadius: 'var(--radius-sm)',
                                       }}>
                                         {/* Name input */}
                                         <input
@@ -1810,11 +1810,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 onClick={handleCreateCategory}
                                                 style={{
                                                   padding: '6px 12px',
-                                                  fontSize: '0.7rem',
-                                                  background: '#10b981',
+                                                  fontSize: 'var(--text-xs)',
+                                                  background: 'var(--success)',
                                                   color: 'white',
                                                   border: 'none',
-                                                  borderRadius: '4px',
+                                                  borderRadius: 'var(--radius-xs)',
                                                   cursor: 'pointer',
                                                   fontWeight: 500,
                                                 }}
@@ -1828,11 +1828,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 }}
                                                 style={{
                                                   padding: '6px 12px',
-                                                  fontSize: '0.7rem',
-                                                  background: '#ef4444',
+                                                  fontSize: 'var(--text-xs)',
+                                                  background: 'var(--error)',
                                                   color: 'white',
                                                   border: 'none',
-                                                  borderRadius: '4px',
+                                                  borderRadius: 'var(--radius-xs)',
                                                   cursor: 'pointer',
                                                   fontWeight: 500,
                                                 }}
@@ -1847,7 +1847,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               style={{
                                                 ...styles.tableInput,
                                                 width: '100%',
-                                                textAlign: 'left',
+                                                textAlign: 'start',
                                                 cursor: 'pointer',
                                                 background: 'white',
                                                 display: 'flex',
@@ -1855,7 +1855,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 alignItems: 'center',
                                               }}
                                             >
-                                              <span style={{ color: newIntentCategory ? '#374151' : '#9ca3af' }}>
+                                              <span style={{ color: newIntentCategory ? 'var(--text-secondary)' : 'var(--text-subtle)' }}>
                                                 {newIntentCategory || 'Select Category *'}
                                               </span>
                                               <ChevronDown size={14} />
@@ -1870,9 +1870,9 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               left: 0,
                                               right: 0,
                                               background: 'white',
-                                              border: '1px solid #e5e7eb',
-                                              borderRadius: '4px',
-                                              boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                              border: '1px solid var(--border)',
+                                              borderRadius: 'var(--radius-xs)',
+                                              boxShadow: 'var(--shadow-md)',
                                               maxHeight: '200px',
                                               overflowY: 'auto',
                                               zIndex: 1000,
@@ -1884,9 +1884,9 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 alignItems: 'center',
                                                 gap: '8px',
                                                 padding: '8px',
-                                                borderBottom: '1px solid #e5e7eb'
+                                                borderBottom: '1px solid var(--border)'
                                               }}>
-                                                <Search size={14} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                                                <Search size={14} style={{ color: 'var(--text-subtle)', flexShrink: 0 }} />
                                                 <input
                                                   type="text"
                                                   value={categorySearch}
@@ -1895,7 +1895,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                   style={{
                                                     ...styles.tableInput,
                                                     width: '100%',
-                                                    fontSize: '0.75rem',
+                                                    fontSize: 'var(--text-xs)',
                                                     border: 'none',
                                                     background: 'transparent',
                                                     padding: 0,
@@ -1914,15 +1914,15 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                     style={{
                                                       width: '100%',
                                                       padding: '8px 12px',
-                                                      textAlign: 'left',
+                                                      textAlign: 'start',
                                                       border: 'none',
-                                                      background: newIntentCategory === cat ? '#eff6ff' : 'white',
+                                                      background: newIntentCategory === cat ? 'var(--accent-light)' : 'white',
                                                       cursor: 'pointer',
-                                                      fontSize: '0.75rem',
-                                                      borderBottom: '1px solid #f3f4f6',
+                                                      fontSize: 'var(--text-xs)',
+                                                      borderBottom: '1px solid var(--grey-100)',
                                                     }}
-                                                    onMouseEnter={(e) => e.target.style.background = '#f9fafb'}
-                                                    onMouseLeave={(e) => e.target.style.background = newIntentCategory === cat ? '#eff6ff' : 'white'}
+                                                    onMouseEnter={(e) => e.target.style.background = 'var(--grey-50)'}
+                                                    onMouseLeave={(e) => e.target.style.background = newIntentCategory === cat ? 'var(--accent-light)' : 'white'}
                                                   >
                                                     {cat}
                                                   </button>
@@ -1931,8 +1931,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 <div style={{
                                                   padding: '12px',
                                                   textAlign: 'center',
-                                                  color: '#9ca3af',
-                                                  fontSize: '0.75rem',
+                                                  color: 'var(--text-subtle)',
+                                                  fontSize: 'var(--text-xs)',
                                                 }}>
                                                   No categories found
                                                 </div>
@@ -1947,14 +1947,14 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 style={{
                                                   width: '100%',
                                                   padding: '10px 12px',
-                                                  textAlign: 'left',
+                                                  textAlign: 'start',
                                                   border: 'none',
-                                                  background: '#f0fdf4',
-                                                  color: '#10b981',
+                                                  background: 'var(--success-light)',
+                                                  color: 'var(--success)',
                                                   cursor: 'pointer',
-                                                  fontSize: '0.75rem',
+                                                  fontSize: 'var(--text-xs)',
                                                   fontWeight: 600,
-                                                  borderTop: '2px solid #e5e7eb',
+                                                  borderTop: '2px solid var(--border)',
                                                 }}
                                               >
                                                 + Create New Category
@@ -1970,11 +1970,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                             style={{
                                               flex: 1,
                                               padding: '8px 12px',
-                                              fontSize: '0.75rem',
-                                              background: '#3b82f6',
+                                              fontSize: 'var(--text-xs)',
+                                              background: 'var(--accent)',
                                               color: 'white',
                                               border: 'none',
-                                              borderRadius: '4px',
+                                              borderRadius: 'var(--radius-xs)',
                                               cursor: 'pointer',
                                               fontWeight: 500,
                                             }}
@@ -1994,11 +1994,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                             style={{
                                               flex: 1,
                                               padding: '8px 12px',
-                                              fontSize: '0.75rem',
+                                              fontSize: 'var(--text-xs)',
                                               background: 'white',
-                                              color: '#64748b',
-                                              border: '1px solid #e5e7eb',
-                                              borderRadius: '4px',
+                                              color: 'var(--text-secondary)',
+                                              border: '1px solid var(--border)',
+                                              borderRadius: 'var(--radius-xs)',
                                               cursor: 'pointer',
                                             }}
                                           >
@@ -2022,11 +2022,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 onClick={() => toggleCategory(category)}
                                                 style={{
                                                   padding: '4px 10px',
-                                                  fontSize: '0.7rem',
-                                                  background: selectedCategories.includes(category) ? '#3b82f6' : '#f3f4f6',
-                                                  color: selectedCategories.includes(category) ? 'white' : '#374151',
+                                                  fontSize: 'var(--text-xs)',
+                                                  background: selectedCategories.includes(category) ? 'var(--accent)' : 'var(--grey-100)',
+                                                  color: selectedCategories.includes(category) ? 'white' : 'var(--text-secondary)',
                                                   border: 'none',
-                                                  borderRadius: '12px',
+                                                  borderRadius: 'var(--radius-lg)',
                                                   cursor: 'pointer',
                                                   fontWeight: 500,
                                                   transition: 'all 0.2s',
@@ -2041,11 +2041,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 onClick={() => setSelectedCategories([])}
                                                 style={{
                                                   padding: '4px 10px',
-                                                  fontSize: '0.7rem',
-                                                  background: '#fef2f2',
-                                                  color: '#ef4444',
+                                                  fontSize: 'var(--text-xs)',
+                                                  background: 'var(--error-light)',
+                                                  color: 'var(--error)',
                                                   border: 'none',
-                                                  borderRadius: '12px',
+                                                  borderRadius: 'var(--radius-lg)',
                                                   cursor: 'pointer',
                                                   fontWeight: 500,
                                                 }}
@@ -2072,17 +2072,17 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                             style={{
                                               ...styles.tableInput,
                                               width: '100%',
-                                              textAlign: 'left',
+                                              textAlign: 'start',
                                               cursor: 'pointer',
                                               background: 'white',
                                               display: 'flex',
                                               justifyContent: 'space-between',
                                               alignItems: 'center',
-                                              borderColor: '#e5e7eb', // No warning needed - will auto-create
+                                              borderColor: 'var(--border)', // No warning needed - will auto-create
                                             }}
                                           >
                                             <span style={{
-                                              color: item.linkedBuyingIntentId ? '#374151' : '#9ca3af',
+                                              color: item.linkedBuyingIntentId ? 'var(--text-secondary)' : 'var(--text-subtle)',
                                               overflow: 'hidden',
                                               textOverflow: 'ellipsis',
                                               whiteSpace: 'nowrap',
@@ -2092,7 +2092,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 : `Select Buying Intent (Required)${selectedCategories.length > 0 ? ` (${filteredProducts.length} filtered)` : ''}`
                                               }
                                             </span>
-                                            <ChevronDown size={14} style={{ flexShrink: 0, marginLeft: '8px' }} />
+                                            <ChevronDown size={14} style={{ flexShrink: 0, marginInlineStart: '8px' }} />
                                           </button>
 
                                           {/* Dropdown menu */}
@@ -2103,8 +2103,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               left: 0,
                                               right: 0,
                                               background: 'white',
-                                              border: '1px solid #e5e7eb',
-                                              borderRadius: '6px',
+                                              border: '1px solid var(--border)',
+                                              borderRadius: 'var(--radius-sm)',
                                               boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
                                               maxHeight: '400px',
                                               overflowY: 'auto',
@@ -2116,7 +2116,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                 position: 'sticky',
                                                 top: 0,
                                                 background: 'white',
-                                                borderBottom: '1px solid #e5e7eb',
+                                                borderBottom: '1px solid var(--border)',
                                                 padding: '12px',
                                                 zIndex: 10,
                                               }}>
@@ -2125,11 +2125,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                   alignItems: 'center',
                                                   gap: '8px',
                                                   padding: '8px 12px',
-                                                  border: '1px solid #e5e7eb',
-                                                  borderRadius: '6px',
-                                                  background: '#f9fafb',
+                                                  border: '1px solid var(--border)',
+                                                  borderRadius: 'var(--radius-sm)',
+                                                  background: 'var(--grey-50)',
                                                 }}>
-                                                  <Search size={16} style={{ color: '#9ca3af', flexShrink: 0 }} />
+                                                  <Search size={16} style={{ color: 'var(--text-subtle)', flexShrink: 0 }} />
                                                   <input
                                                     type="text"
                                                     value={buyingIntentSearch}
@@ -2140,7 +2140,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                       background: 'transparent',
                                                       outline: 'none',
                                                       width: '100%',
-                                                      fontSize: '0.875rem',
+                                                      fontSize: 'var(--text-base)',
                                                     }}
                                                     onClick={(e) => e.stopPropagation()}
                                                     autoFocus
@@ -2156,7 +2156,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                         border: 'none',
                                                         cursor: 'pointer',
                                                         padding: '2px',
-                                                        color: '#9ca3af',
+                                                        color: 'var(--text-subtle)',
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                       }}
@@ -2177,12 +2177,12 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                       <div style={{
                                                         padding: '24px',
                                                         textAlign: 'center',
-                                                        color: '#9ca3af',
-                                                        fontSize: '0.875rem',
+                                                        color: 'var(--text-subtle)',
+                                                        fontSize: 'var(--text-base)',
                                                       }}>
                                                         No buying intents found
                                                         {buyingIntentSearch && (
-                                                          <div style={{ marginTop: '4px', fontSize: '0.8rem' }}>
+                                                          <div style={{ marginTop: '4px', fontSize: 'var(--text-sm)' }}>
                                                             Try a different search term
                                                           </div>
                                                         )}
@@ -2202,10 +2202,10 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                     <div key={category}>
                                                       <div style={{
                                                         padding: '8px 12px',
-                                                        background: '#f9fafb',
-                                                        fontSize: '0.75rem',
+                                                        background: 'var(--grey-50)',
+                                                        fontSize: 'var(--text-xs)',
                                                         fontWeight: 600,
-                                                        color: '#64748b',
+                                                        color: 'var(--text-secondary)',
                                                         textTransform: 'uppercase',
                                                         letterSpacing: '0.5px',
                                                         position: 'sticky',
@@ -2225,12 +2225,12 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                           style={{
                                                             width: '100%',
                                                             padding: '10px 16px',
-                                                            textAlign: 'left',
+                                                            textAlign: 'start',
                                                             border: 'none',
-                                                            background: item.linkedBuyingIntentId === product.id ? '#eff6ff' : 'white',
+                                                            background: item.linkedBuyingIntentId === product.id ? 'var(--accent-light)' : 'white',
                                                             cursor: 'pointer',
-                                                            fontSize: '0.875rem',
-                                                            borderBottom: '1px solid #f3f4f6',
+                                                            fontSize: 'var(--text-base)',
+                                                            borderBottom: '1px solid var(--grey-100)',
                                                             display: 'flex',
                                                             alignItems: 'center',
                                                             gap: '8px',
@@ -2238,7 +2238,7 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                           }}
                                                           onMouseEnter={(e) => {
                                                             if (item.linkedBuyingIntentId !== product.id) {
-                                                              e.target.style.background = '#f9fafb';
+                                                              e.target.style.background = 'var(--grey-50)';
                                                             }
                                                           }}
                                                           onMouseLeave={(e) => {
@@ -2248,19 +2248,19 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                                           }}
                                                         >
                                                           {item.linkedBuyingIntentId === product.id && (
-                                                            <Check size={14} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                                                            <Check size={14} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                                                           )}
                                                           <span style={{
                                                             flex: 1,
-                                                            color: '#374151',
+                                                            color: 'var(--text-secondary)',
                                                             fontWeight: item.linkedBuyingIntentId === product.id ? 500 : 400,
                                                           }}>
                                                             {product.name}
                                                           </span>
                                                           {product.dimensions && (
                                                             <span style={{
-                                                              fontSize: '0.75rem',
-                                                              color: '#9ca3af',
+                                                              fontSize: 'var(--text-xs)',
+                                                              color: 'var(--text-subtle)',
                                                               flexShrink: 0,
                                                             }}>
                                                               {product.dimensions}
@@ -2277,11 +2277,11 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                               <div style={{
                                                 position: 'sticky',
                                                 bottom: 0,
-                                                background: '#f9fafb',
-                                                borderTop: '2px solid #e5e7eb',
+                                                background: 'var(--grey-50)',
+                                                borderTop: '2px solid var(--border)',
                                                 padding: '10px 16px',
-                                                fontSize: '0.75rem',
-                                                color: '#64748b',
+                                                fontSize: 'var(--text-xs)',
+                                                color: 'var(--text-secondary)',
                                                 textAlign: 'center',
                                                 fontStyle: 'italic',
                                               }}>
@@ -2304,15 +2304,15 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                                           onClick={() => toggleMatchDetails(index)}
                                           style={{
                                             background: 'none',
-                                            border: '1px solid #e5e7eb',
-                                            borderRadius: '4px',
+                                            border: '1px solid var(--border)',
+                                            borderRadius: 'var(--radius-xs)',
                                             cursor: 'pointer',
                                             padding: '4px 8px',
                                             display: 'flex',
                                             alignItems: 'center',
                                             gap: '4px',
-                                            fontSize: '0.75rem',
-                                            color: '#64748b',
+                                            fontSize: 'var(--text-xs)',
+                                            color: 'var(--text-secondary)',
                                           }}
                                           title={showDetails ? "Hide details" : "Why suggested?"}
                                         >
@@ -2359,17 +2359,17 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
               {/* Suggestion Summary - Informational */}
               {editableLineItems.length > 0 && suggestionStats.totalSuggestions > 0 && (
                 <div style={{
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
+                  background: 'var(--grey-50)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md)',
                   padding: '14px 18px',
-                  fontSize: '0.85rem',
+                  fontSize: 'var(--text-sm)',
                   marginTop: '16px',
                 }}>
                   <div style={{
                     fontWeight: 500,
                     marginBottom: '6px',
-                    color: '#374151',
+                    color: 'var(--text-secondary)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
@@ -2381,8 +2381,8 @@ The price is USD 0.5 per roll FOB Shenzhen, with a Minimum Order Quantity (MOQ) 
                     </span>
                   </div>
                   <div style={{
-                    fontSize: '0.75rem',
-                    color: '#6b7280',
+                    fontSize: 'var(--text-xs)',
+                    color: 'var(--text-muted)',
                     marginTop: '4px',
                   }}>
                     Click "Why?" to see how each suggestion was calculated. Apply suggestions manually or select from the dropdown.
@@ -2476,8 +2476,8 @@ const styles = {
   },
   modal: {
     backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-xl)',
     maxWidth: '1400px',
     width: '95vw',
     maxHeight: '90vh',
@@ -2486,7 +2486,7 @@ const styles = {
   },
   header: {
     padding: '20px 24px',
-    borderBottom: '1px solid #e5e7eb',
+    borderBottom: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -2501,7 +2501,7 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     padding: '4px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   content: {
     padding: '24px',
@@ -2509,31 +2509,31 @@ const styles = {
     flex: 1,
   },
   dropzone: {
-    border: '2px dashed #cbd5e1',
-    borderRadius: '8px',
+    border: '2px dashed var(--border-strong)',
+    borderRadius: 'var(--radius-md)',
     padding: '60px 20px',
     textAlign: 'center',
     cursor: 'pointer',
     transition: 'all 0.2s',
   },
   dropzoneActive: {
-    borderColor: '#3b82f6',
-    backgroundColor: '#eff6ff',
+    borderColor: 'var(--accent)',
+    backgroundColor: 'var(--accent-light)',
   },
   dropzoneText: {
     marginTop: '16px',
     fontSize: '16px',
-    color: '#475569',
+    color: 'var(--text-secondary)',
   },
   link: {
-    color: '#3b82f6',
+    color: 'var(--accent)',
     textDecoration: 'underline',
     cursor: 'pointer',
   },
   dropzoneHint: {
     marginTop: '8px',
     fontSize: '14px',
-    color: '#94a3b8',
+    color: 'var(--text-subtle)',
   },
   loading: {
     display: 'flex',
@@ -2548,7 +2548,7 @@ const styles = {
   loadingText: {
     marginTop: '16px',
     fontSize: '16px',
-    color: '#475569',
+    color: 'var(--text-secondary)',
   },
   error: {
     display: 'flex',
@@ -2560,16 +2560,16 @@ const styles = {
   errorText: {
     marginTop: '16px',
     fontSize: '16px',
-    color: '#475569',
+    color: 'var(--text-secondary)',
     textAlign: 'center',
   },
   retryButton: {
     marginTop: '24px',
     padding: '10px 20px',
-    background: '#3b82f6',
+    background: 'var(--accent)',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
@@ -2580,39 +2580,39 @@ const styles = {
     gap: '32px',
   },
   card: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '12px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-lg)',
     background: 'white',
     boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
     overflow: 'hidden',
   },
   cardHeader: {
     padding: '18px 24px',
-    background: '#f9fafb',
-    borderBottom: '1px solid #e5e7eb',
+    background: 'var(--grey-50)',
+    borderBottom: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     cursor: 'pointer',
     transition: 'background 0.2s',
     ':hover': {
-      background: '#f3f4f6',
+      background: 'var(--grey-100)',
     },
   },
   cardTitle: {
     margin: 0,
     fontSize: '16px',
     fontWeight: 600,
-    color: '#1f2937',
+    color: 'var(--text-primary)',
   },
   cardBody: {
     padding: '24px',
   },
   previewSection: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
     padding: '20px',
-    background: '#f9fafb',
+    background: 'var(--grey-50)',
   },
   previewContainer: {
     width: '100%',
@@ -2621,8 +2621,8 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     background: 'white',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border)',
     overflow: 'hidden',
   },
   previewImage: {
@@ -2640,11 +2640,11 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
-    color: '#94a3b8',
+    color: 'var(--text-subtle)',
   },
   section: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
     padding: '20px',
   },
   sectionTitle: {
@@ -2665,26 +2665,26 @@ const styles = {
     fontSize: '14px',
     fontWeight: 500,
     marginBottom: '6px',
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   required: {
-    color: '#ef4444',
+    color: 'var(--error)',
   },
   input: {
     padding: '8px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
   },
   errorHint: {
     fontSize: '12px',
-    color: '#ef4444',
+    color: 'var(--error)',
     marginTop: '4px',
   },
   tableContainer: {
     overflowX: 'auto',
-    border: '1px solid #e5e7eb',
-    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-sm)',
   },
   table: {
     width: '100%',
@@ -2693,22 +2693,22 @@ const styles = {
   },
   th: {
     padding: '10px',
-    background: '#f9fafb',
-    borderBottom: '2px solid #e5e7eb',
-    textAlign: 'left',
+    background: 'var(--grey-50)',
+    borderBottom: '2px solid var(--border)',
+    textAlign: 'start',
     fontWeight: 600,
     fontSize: '12px',
-    color: '#374151',
+    color: 'var(--text-secondary)',
     whiteSpace: 'nowrap',
   },
   thActions: {
     padding: '10px',
-    background: '#f9fafb',
-    borderBottom: '2px solid #e5e7eb',
+    background: 'var(--grey-50)',
+    borderBottom: '2px solid var(--border)',
     width: '50px',
   },
   tr: {
-    borderBottom: '1px solid #e5e7eb',
+    borderBottom: '1px solid var(--border)',
   },
   td: {
     padding: '8px',
@@ -2720,8 +2720,8 @@ const styles = {
   },
   tableInput: {
     padding: '6px 8px',
-    border: '1px solid #e5e7eb',
-    borderRadius: '4px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-xs)',
     fontSize: '13px',
     width: '100%',
   },
@@ -2729,7 +2729,7 @@ const styles = {
     background: 'none',
     border: 'none',
     cursor: 'pointer',
-    color: '#ef4444',
+    color: 'var(--error)',
     padding: '4px',
   },
   noItems: {
@@ -2737,21 +2737,21 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '40px',
-    color: '#94a3b8',
+    color: 'var(--text-subtle)',
   },
   validationError: {
     display: 'flex',
     gap: '12px',
     padding: '12px',
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    color: '#b91c1c',
+    background: 'var(--error-light)',
+    border: '1px solid var(--error-border)',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--error)',
     fontSize: '14px',
   },
   footer: {
     padding: '16px 24px',
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '12px',
@@ -2759,19 +2759,19 @@ const styles = {
   cancelButton: {
     padding: '10px 20px',
     background: 'white',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   saveButton: {
     padding: '10px 20px',
-    background: '#3b82f6',
+    background: 'var(--accent)',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
@@ -2780,7 +2780,7 @@ const styles = {
     gap: '8px',
   },
   saveButtonDisabled: {
-    background: '#cbd5e1',
+    background: 'var(--border-strong)',
     cursor: 'not-allowed',
   },
 };

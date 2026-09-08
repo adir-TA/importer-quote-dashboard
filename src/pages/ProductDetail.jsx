@@ -551,7 +551,7 @@ function ProductDetail() {
       bottom: 24px;
       right: 24px;
       padding: 12px 20px;
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+      background: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : 'var(--accent)'};
       color: white;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
@@ -897,7 +897,7 @@ function ProductDetail() {
           <div>
             <h2>{product.name}</h2>
             {product.category && (
-              <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: 'var(--text-md)', color: 'var(--text-muted)' }}>
                 {product.category}
               </span>
             )}
@@ -952,9 +952,9 @@ function ProductDetail() {
           gap: '20px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
             <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-              <FileText size={22} color="#6366F1" />
+              <FileText size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
               <div className="stat-label">Total Quotes</div>
@@ -970,17 +970,17 @@ function ProductDetail() {
             // If nothing is convertible, we cannot name a best price
             if (!best) return null;
             return (
-              <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+              <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
                 <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                  <DollarSign size={22} color="#10b981" />
+                  <DollarSign size={22} color="var(--success)" />
                 </div>
                 <div className="stat-content">
                   <div className="stat-label">Best Price</div>
-                  <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+                  <div className="stat-value" style={{ fontSize: 'var(--text-2xl)' }}>
                     {formatCurrency(best.unit_price, best.currency)}
                   </div>
                   {best.isConverted && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                       ≈ {formatCurrency(best.comparablePrice, baseCurrency)}
                     </div>
                   )}
@@ -1001,7 +1001,7 @@ function ProductDetail() {
             boxShadow: 'var(--shadow-sm)',
           }}>
             <h3 style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
@@ -1014,7 +1014,7 @@ function ProductDetail() {
             {/* Product Image Preview */}
             {product.image_url && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Product Image
                 </div>
                 <img
@@ -1038,7 +1038,7 @@ function ProductDetail() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     padding: '6px 12px'
                   }}
                 >
@@ -1050,7 +1050,7 @@ function ProductDetail() {
 
             {product.category && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Category
                 </div>
                 <div style={{
@@ -1058,7 +1058,7 @@ function ProductDetail() {
                   background: 'var(--accent-light)',
                   color: 'var(--accent)',
                   borderRadius: 'var(--radius-md)',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--text-base)',
                   fontWeight: 600,
                   display: 'inline-block'
                 }}>
@@ -1070,12 +1070,12 @@ function ProductDetail() {
             {/* Specifications (or fallback to description) */}
             {(product.specs && product.specs.length > 0) ? (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Specifications
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   {product.specs.filter(spec => spec.value).map((spec, index) => (
-                    <div key={index} style={{ display: 'flex', gap: '8px', fontSize: '0.875rem' }}>
+                    <div key={index} style={{ display: 'flex', gap: '8px', fontSize: 'var(--text-base)' }}>
                       <span style={{ fontWeight: 600, color: 'var(--text-secondary)', minWidth: '100px' }}>
                         {spec.key}:
                       </span>
@@ -1088,10 +1088,10 @@ function ProductDetail() {
               </div>
             ) : product.description && (
               <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   Description
                 </div>
-                <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem', lineHeight: '1.6' }}>
+                <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: 'var(--text-md)', lineHeight: '1.6' }}>
                   {product.description}
                 </p>
               </div>
@@ -1104,7 +1104,7 @@ function ProductDetail() {
               borderRadius: 'var(--radius-md)',
               marginTop: '24px'
             }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Quick Actions
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1112,7 +1112,7 @@ function ProductDetail() {
                   <button
                     className="btn btn-secondary"
                     onClick={handleCompare}
-                    style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem' }}
+                    style={{ width: '100%', justifyContent: 'center', fontSize: 'var(--text-base)' }}
                   >
                     Compare Quotes
                   </button>
@@ -1120,7 +1120,7 @@ function ProductDetail() {
                 <button
                   className="btn btn-secondary"
                   onClick={() => setIsDocumentModalOpen(true)}
-                  style={{ width: '100%', justifyContent: 'center', fontSize: '0.875rem' }}
+                  style={{ width: '100%', justifyContent: 'center', fontSize: 'var(--text-base)' }}
                 >
                   <File size={14} />
                   Upload Document
@@ -1213,22 +1213,22 @@ function ProductDetail() {
                       return (
                         <tr
                           key={item.id}
-                          style={isBest ? { background: '#f0fdf4', borderLeft: '3px solid #10b981' } : {}}
+                          style={isBest ? { background: 'var(--success-light)', borderInlineStart: '3px solid var(--success)' } : {}}
                         >
                           <td style={{ fontWeight: isBest ? 700 : 500 }}>
                             {item.supplierName}
                             {isBest && (
                               <span style={{
-                                marginLeft: '8px',
-                                fontSize: '0.7rem',
-                                color: '#10b981',
+                                marginInlineStart: '8px',
+                                fontSize: 'var(--text-xs)',
+                                color: 'var(--success)',
                                 fontWeight: 600
                               }}>
                                 ⭐ BEST
                               </span>
                             )}
                           </td>
-                          <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? '#10b981' : 'inherit' }}>
+                          <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? 'var(--success)' : 'inherit' }}>
                             {formatCurrency(item.unit_price, item.currency)}
                           </td>
                           <td>{item.moq?.toLocaleString() || '-'}</td>
@@ -1259,31 +1259,31 @@ function ProductDetail() {
                       return (
                         <tr
                           key={item.id}
-                          style={isBest ? { background: '#f0fdf4', borderLeft: '3px solid #10b981' } : { background: '#f9fafb' }}
+                          style={isBest ? { background: 'var(--success-light)', borderInlineStart: '3px solid var(--success)' } : { background: 'var(--grey-50)' }}
                         >
                           <td style={{ fontWeight: isBest ? 700 : 500 }}>
                             {item.supplierName}
                             {isBest && (
                               <span style={{
-                                marginLeft: '8px',
-                                fontSize: '0.7rem',
-                                color: '#10b981',
+                                marginInlineStart: '8px',
+                                fontSize: 'var(--text-xs)',
+                                color: 'var(--success)',
                                 fontWeight: 600
                               }}>
                                 ⭐ BEST
                               </span>
                             )}
-                            <div style={{ fontSize: '0.85rem', color: '#059669', marginTop: '2px' }}>
+                            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--success)', marginTop: '2px' }}>
                               {item.product_name}
                             </div>
                           </td>
-                          <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? '#10b981' : 'inherit' }}>
+                          <td style={{ fontWeight: isBest ? 700 : 400, color: isBest ? 'var(--success)' : 'inherit' }}>
                             {formatCurrency(item.unit_price, item.currency)}
                           </td>
                           <td>{item.moq ? parseInt(item.moq).toLocaleString() : '-'}</td>
                           <td>{item.incoterm || '-'}</td>
                           <td>
-                            <span style={{ fontSize: '0.85rem', color: '#059669', fontWeight: 500 }}>
+                            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--success)', fontWeight: 500 }}>
                               From Upload
                             </span>
                           </td>
@@ -1361,7 +1361,7 @@ function ProductDetail() {
                     <label className="form-label" style={{ height: '32px', display: 'block', lineHeight: '1.4' }}>
                       <div>Unit Price (RMB/CNY)</div>
                       {exchangeRate && (
-                        <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, marginTop: '2px' }}>
+                        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', textTransform: 'none', letterSpacing: 'normal', fontWeight: 400, marginTop: '2px' }}>
                           Rate: {exchangeRate.toFixed(4)}
                         </div>
                       )}
@@ -1376,13 +1376,13 @@ function ProductDetail() {
                       onChange={(e) => handleRmbChange(e.target.value)}
                       disabled={!exchangeRate}
                       style={{
-                        background: !exchangeRate ? '#f1f5f9' : 'white',
+                        background: !exchangeRate ? 'var(--grey-100)' : 'white',
                         fontStyle: 'italic',
-                        color: '#64748b'
+                        color: 'var(--text-secondary)'
                       }}
                     />
                     {exchangeRateError && (
-                      <p style={{ fontSize: '0.75rem', color: '#ef4444', marginTop: '4px' }}>
+                      <p style={{ fontSize: 'var(--text-xs)', color: 'var(--error)', marginTop: '4px' }}>
                         Rate unavailable - conversion disabled
                       </p>
                     )}
@@ -1485,8 +1485,8 @@ function ProductDetail() {
         }}>
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-xl)',
             maxWidth: '900px',
             width: '90%',
             maxHeight: '90vh',
@@ -1497,16 +1497,16 @@ function ProductDetail() {
             {/* Header */}
             <div style={{
               padding: '24px 32px',
-              borderBottom: '1px solid #e5e7eb',
+              borderBottom: '1px solid var(--border)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: '4px' }}>
                   Choose RFQ Export Theme
                 </h2>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', margin: 0 }}>
                   Select a theme for your RFQ Excel export
                 </p>
               </div>
@@ -1517,16 +1517,16 @@ function ProductDetail() {
                   border: 'none',
                   cursor: 'pointer',
                   padding: '8px',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--grey-100)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
               >
-                <X size={24} color="#64748b" />
+                <X size={24} color="var(--text-secondary)" />
               </button>
             </div>
 
@@ -1539,9 +1539,9 @@ function ProductDetail() {
               {/* Left: Theme List */}
               <div style={{
                 width: '280px',
-                borderRight: '1px solid #e5e7eb',
+                borderInlineEnd: '1px solid var(--border)',
                 padding: '16px',
-                background: '#f8fafc',
+                background: 'var(--grey-25)',
                 overflow: 'auto',
               }}>
                 <div style={{
@@ -1560,22 +1560,22 @@ function ProductDetail() {
                         gap: '12px',
                         padding: '16px',
                         marginBottom: '8px',
-                        background: selectedRFQTheme === key ? '#eff6ff' : 'white',
-                        border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#e5e7eb'}`,
-                        borderRadius: '10px',
+                        background: selectedRFQTheme === key ? 'var(--accent-light)' : 'white',
+                        border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border)'}`,
+                        borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
                         transition: 'all 0.2s',
-                        textAlign: 'left',
+                        textAlign: 'start',
                       }}
                       onMouseEnter={(e) => {
                         if (selectedRFQTheme !== key) {
-                          e.currentTarget.style.borderColor = '#cbd5e1';
-                          e.currentTarget.style.background = '#f9fafb';
+                          e.currentTarget.style.borderColor = 'var(--border-strong)';
+                          e.currentTarget.style.background = 'var(--grey-50)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (selectedRFQTheme !== key) {
-                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.borderColor = 'var(--border)';
                           e.currentTarget.style.background = 'white';
                         }
                       }}
@@ -1585,7 +1585,7 @@ function ProductDetail() {
                         width: '20px',
                         height: '20px',
                         borderRadius: '50%',
-                        border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#d1d5db'}`,
+                        border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1596,7 +1596,7 @@ function ProductDetail() {
                             width: '10px',
                             height: '10px',
                             borderRadius: '50%',
-                            background: '#3b82f6',
+                            background: 'var(--accent)',
                           }} />
                         )}
                       </div>
@@ -1604,15 +1604,15 @@ function ProductDetail() {
                       <div style={{ flex: 1 }}>
                         <div style={{
                           fontWeight: 600,
-                          fontSize: '0.95rem',
-                          color: '#1e293b',
+                          fontSize: 'var(--text-md)',
+                          color: 'var(--text-primary)',
                           marginBottom: '4px',
                         }}>
                           {theme.name}
                         </div>
                         <div style={{
-                          fontSize: '0.85rem',
-                          color: '#64748b',
+                          fontSize: 'var(--text-sm)',
+                          color: 'var(--text-secondary)',
                           marginBottom: '10px',
                         }}>
                           {theme.description}
@@ -1625,7 +1625,7 @@ function ProductDetail() {
                               style={{
                                 width: '24px',
                                 height: '24px',
-                                borderRadius: '4px',
+                                borderRadius: 'var(--radius-xs)',
                                 background: color,
                                 border: '1px solid rgba(0,0,0,0.1)',
                               }}
@@ -1643,21 +1643,23 @@ function ProductDetail() {
                 flex: 1,
                 padding: '32px',
                 overflow: 'auto',
-                background: '#f8fafc',
+                background: 'var(--grey-25)',
                 display: 'flex',
                 alignItems: 'flex-start',
                 justifyContent: 'center',
               }}>
-                {/* Excel-Style Preview */}
+                {/* Excel-style preview. The hardcoded blacks and greys below
+                    are deliberate: they imitate a spreadsheet's own gridlines,
+                    so they must NOT follow the app theme. */}
                 {(() => {
                   const theme = EXPORT_THEMES[selectedRFQTheme];
                   return (
                     <div style={{
                       background: 'white',
                       border: '2px solid #000',
-                      borderRadius: '4px',
+                      borderRadius: 'var(--radius-xs)',
                       overflow: 'hidden',
-                      boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                      boxShadow: 'var(--shadow-lg)',
                       width: '100%',
                       maxWidth: '450px',
                     }}>
@@ -1667,7 +1669,7 @@ function ProductDetail() {
                         background: `#${theme.colors.title.bg.substring(2)}`,
                         color: `#${theme.colors.title.text.substring(2)}`,
                         fontWeight: 700,
-                        fontSize: '0.95rem',
+                        fontSize: 'var(--text-md)',
                         textAlign: 'center',
                         borderBottom: '2px solid #000',
                       }}>
@@ -1679,7 +1681,7 @@ function ProductDetail() {
                         padding: '8px',
                         background: `#${theme.colors.productName.bg.substring(2)}`,
                         color: `#${theme.colors.productName.text.substring(2)}`,
-                        fontSize: '0.8rem',
+                        fontSize: 'var(--text-sm)',
                         fontWeight: 600,
                         borderBottom: '1px solid #ddd',
                       }}>
@@ -1689,7 +1691,7 @@ function ProductDetail() {
                         padding: '8px',
                         background: `#${theme.colors.category.bg.substring(2)}`,
                         color: `#${theme.colors.category.text.substring(2)}`,
-                        fontSize: '0.8rem',
+                        fontSize: 'var(--text-sm)',
                         fontWeight: 600,
                         borderBottom: '1px solid #ddd',
                       }}>
@@ -1703,11 +1705,11 @@ function ProductDetail() {
                         background: `#${theme.colors.header.bg.substring(2)}`,
                         color: `#${theme.colors.header.text.substring(2)}`,
                         fontWeight: 700,
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--text-xs)',
                         borderBottom: '1px solid #000',
                       }}>
-                        <div style={{ padding: '6px 8px', borderRight: '1px solid #555' }}>Item Name</div>
-                        <div style={{ padding: '6px 8px', borderRight: '1px solid #555' }}>Specs</div>
+                        <div style={{ padding: '6px 8px', borderInlineEnd: '1px solid #555' }}>Item Name</div>
+                        <div style={{ padding: '6px 8px', borderInlineEnd: '1px solid #555' }}>Specs</div>
                         <div style={{ padding: '6px 8px' }}>MOQ/Price</div>
                       </div>
 
@@ -1715,11 +1717,11 @@ function ProductDetail() {
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: '1fr 1fr 1fr',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--text-xs)',
                         borderBottom: '1px solid #ddd',
                       }}>
-                        <div style={{ padding: '6px 8px', borderRight: '1px solid #ddd' }}>Sample Item</div>
-                        <div style={{ padding: '6px 8px', borderRight: '1px solid #ddd' }}>Spec Value</div>
+                        <div style={{ padding: '6px 8px', borderInlineEnd: '1px solid #ddd' }}>Sample Item</div>
+                        <div style={{ padding: '6px 8px', borderInlineEnd: '1px solid #ddd' }}>Spec Value</div>
                         <div style={{ padding: '6px 8px' }}>-</div>
                       </div>
                     </div>
@@ -1731,8 +1733,8 @@ function ProductDetail() {
             {/* Footer */}
             <div style={{
               padding: '20px 32px',
-              borderTop: '1px solid #e5e7eb',
-              background: '#f8fafc',
+              borderTop: '1px solid var(--border)',
+              background: 'var(--grey-25)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
@@ -1741,22 +1743,22 @@ function ProductDetail() {
                 onClick={() => setShowRFQThemeSelector(false)}
                 style={{
                   padding: '10px 20px',
-                  border: '1px solid #cbd5e1',
+                  border: '1px solid var(--border-strong)',
                   background: 'white',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                   fontWeight: 500,
-                  fontSize: '0.95rem',
-                  color: '#475569',
+                  fontSize: 'var(--text-md)',
+                  color: 'var(--text-secondary)',
                   transition: 'all 0.2s',
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = '#f1f5f9';
-                  e.currentTarget.style.borderColor = '#94a3b8';
+                  e.currentTarget.style.background = 'var(--grey-100)';
+                  e.currentTarget.style.borderColor = 'var(--text-subtle)';
                 }}
                 onMouseLeave={(e) => {
                   e.currentTarget.style.background = 'white';
-                  e.currentTarget.style.borderColor = '#cbd5e1';
+                  e.currentTarget.style.borderColor = 'var(--border-strong)';
                 }}
               >
                 Cancel
@@ -1770,13 +1772,13 @@ function ProductDetail() {
                 style={{
                   padding: '10px 24px',
                   border: 'none',
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                  borderRadius: '8px',
+                  background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)',
+                  borderRadius: 'var(--radius-md)',
                   cursor: 'pointer',
                   fontWeight: 600,
-                  fontSize: '0.95rem',
+                  fontSize: 'var(--text-md)',
                   color: 'white',
-                  boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)',
+                  boxShadow: 'var(--shadow-md)',
                   transition: 'all 0.2s',
                   display: 'flex',
                   alignItems: 'center',

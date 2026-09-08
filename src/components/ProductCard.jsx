@@ -62,13 +62,13 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
       onClick={() => onClick?.(product)}
       style={{
         border: isSelected
-          ? '1px solid #93c5fd'
-          : '1px solid #e5e7eb',
+          ? '1px solid var(--accent-border)'
+          : '1px solid var(--border)',
         background: isSelected
-          ? '#f0f9ff'
+          ? 'var(--accent-light)'
           : 'white',
         padding: '12px',
-        borderRadius: '6px',
+        borderRadius: 'var(--radius-sm)',
         cursor: 'pointer',
         transition: 'all 0.2s',
         display: 'flex',
@@ -77,7 +77,7 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
       }}
       onMouseEnter={(e) => {
         if (!isSelected) {
-          e.currentTarget.style.background = '#f9fafb';
+          e.currentTarget.style.background = 'var(--grey-50)';
         }
       }}
       onMouseLeave={(e) => {
@@ -122,8 +122,8 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
             fontWeight: 600,
-            fontSize: '0.875rem',
-            color: '#1e293b',
+            fontSize: 'var(--text-base)',
+            color: 'var(--text-primary)',
             display: 'flex',
             alignItems: 'center',
             gap: '6px',
@@ -141,10 +141,10 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
             {product.status === 'draft' && (
               <span style={{
                 padding: '2px 6px',
-                background: '#fef3c7',
-                color: '#92400e',
-                borderRadius: '3px',
-                fontSize: '0.6rem',
+                background: 'var(--warning-light)',
+                color: 'var(--warning)',
+                borderRadius: 'var(--radius-xs)',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
                 textTransform: 'uppercase',
                 letterSpacing: '0.3px',
@@ -181,15 +181,15 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
         alignItems: 'center',
         gap: '4px',
         padding: '4px 8px',
-        background: hasQuotes ? '#d1fae5' : '#fee2e2',
-        borderRadius: '4px',
+        background: hasQuotes ? 'var(--success-light)' : 'var(--error-light)',
+        borderRadius: 'var(--radius-xs)',
         alignSelf: 'flex-start',
       }}>
-        <FileText size={11} style={{ color: hasQuotes ? '#065f46' : '#991b1b' }} />
+        <FileText size={11} style={{ color: hasQuotes ? 'var(--success)' : 'var(--error)' }} />
         <span style={{
-          fontSize: '0.7rem',
+          fontSize: 'var(--text-xs)',
           fontWeight: 600,
-          color: hasQuotes ? '#065f46' : '#991b1b',
+          color: hasQuotes ? 'var(--success)' : 'var(--error)',
         }}>
           {quoteCount} {quoteCount === 1 ? 'quote' : 'quotes'}
         </span>
@@ -206,8 +206,8 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
               width: '40px',
               height: '40px',
               objectFit: 'cover',
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--border)',
               flexShrink: 0,
             }}
           />
@@ -218,12 +218,12 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#f1f5f9',
-            borderRadius: '6px',
-            border: '1px solid #e2e8f0',
+            background: 'var(--grey-100)',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border)',
             flexShrink: 0,
           }}>
-            <Package size={18} style={{ color: '#94a3b8' }} />
+            <Package size={18} style={{ color: 'var(--text-subtle)' }} />
           </div>
         )}
 
@@ -232,20 +232,20 @@ function ProductCard({ product, quoteCount = 0, onClick, onEdit, onDuplicate, on
           <div style={{ flex: 1, minWidth: 0 }}>
             {primary.map((spec, index) => (
               <div key={index} style={{
-                fontSize: '0.7rem',
-                color: '#64748b',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-secondary)',
                 marginBottom: '1px',
                 display: 'flex',
                 gap: '4px',
               }}>
-                <span style={{ fontWeight: 600, color: '#475569' }}>{spec.key}:</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>{spec.key}:</span>
                 <span>{spec.value}</span>
               </div>
             ))}
             {remaining > 0 && (
               <div style={{
-                fontSize: '0.65rem',
-                color: '#94a3b8',
+                fontSize: 'var(--text-xs)',
+                color: 'var(--text-subtle)',
                 marginTop: '2px',
               }}>
                 +{remaining} more

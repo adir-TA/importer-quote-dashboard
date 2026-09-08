@@ -26,12 +26,12 @@ function DocumentCard({ document, onEdit, onDelete, onDownload }) {
         <div style={{
           width: '40px',
           height: '40px',
-          borderRadius: '8px',
+          borderRadius: 'var(--radius-md)',
           background: 'var(--bg-tertiary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: '1.2rem',
+          fontSize: 'var(--text-xl)',
           flexShrink: 0
         }}>
           {fileIcon}
@@ -46,14 +46,14 @@ function DocumentCard({ document, onEdit, onDelete, onDownload }) {
           }}>
             {document.name}
           </div>
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '4px' }}>
             {document.category && <span>{document.category} • </span>}
             {formatDate(document.createdAt)}
             {document.size && <span> • {formatFileSize(document.size)}</span>}
           </div>
           {document.notes && (
             <div style={{
-              fontSize: '0.85rem',
+              fontSize: 'var(--text-sm)',
               color: 'var(--text-secondary)',
               marginTop: '8px',
               overflow: 'hidden',

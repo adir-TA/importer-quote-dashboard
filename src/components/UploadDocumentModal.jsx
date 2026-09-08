@@ -250,7 +250,7 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
           {supplierQuotes.length > 0 && (
           <div style={styles.field}>
             <label style={styles.label}>
-              Link to Supplier <span style={{ color: '#94a3b8', fontWeight: 400 }}>(optional)</span>
+              Link to Supplier <span style={{ color: 'var(--text-subtle)', fontWeight: 400 }}>(optional)</span>
             </label>
             <select
               value={selectedSupplierQuoteId}
@@ -285,18 +285,18 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
             >
               {file ? (
                 <div style={styles.fileInfo}>
-                  <FileText size={24} color="#3b82f6" />
+                  <FileText size={24} color="var(--accent)" />
                   <div>
                     <div style={styles.fileName}>{file.name}</div>
                     <div style={styles.fileSize}>
                       {(file.size / 1024).toFixed(1)} KB
                     </div>
                   </div>
-                  <Check size={20} color="#10b981" />
+                  <Check size={20} color="var(--success)" />
                 </div>
               ) : (
                 <div style={styles.dropzoneEmpty}>
-                  <Upload size={32} color="#94a3b8" />
+                  <Upload size={32} color="var(--text-subtle)" />
                   <p>Click to select file</p>
                   <p style={styles.hint}>PDF or Image (PNG, JPG) • Max 10MB</p>
                 </div>
@@ -381,7 +381,7 @@ function UploadDocumentModal({ isOpen, onClose, buyingIntentId, onUploadSuccess 
                 />
               ) : (
                 <div style={styles.noPreview}>
-                  <FileText size={48} color="#94a3b8" />
+                  <FileText size={48} color="var(--text-subtle)" />
                   <p>Preview not available</p>
                 </div>
               )}
@@ -462,8 +462,8 @@ const styles = {
   },
   modal: {
     background: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+    borderRadius: 'var(--radius-lg)',
+    boxShadow: 'var(--shadow-xl)',
     width: '90%',
     maxWidth: '500px',
     display: 'flex',
@@ -471,7 +471,7 @@ const styles = {
   },
   header: {
     padding: '20px 24px',
-    borderBottom: '1px solid #e5e7eb',
+    borderBottom: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -486,7 +486,7 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     padding: '4px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   content: {
     padding: '24px',
@@ -502,15 +502,15 @@ const styles = {
     fontSize: '14px',
     fontWeight: 500,
     marginBottom: '8px',
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   required: {
-    color: '#ef4444',
+    color: 'var(--error)',
   },
   select: {
     padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
   },
   noSuppliers: {
@@ -518,15 +518,15 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     padding: '12px',
-    background: '#fef3c7',
-    border: '1px solid #fcd34d',
-    borderRadius: '6px',
+    background: 'var(--warning-light)',
+    border: '1px solid var(--warning-border)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
-    color: '#92400e',
+    color: 'var(--warning)',
   },
   dropzone: {
-    border: '2px dashed #cbd5e1',
-    borderRadius: '8px',
+    border: '2px dashed var(--border-strong)',
+    borderRadius: 'var(--radius-md)',
     padding: '20px',
     cursor: 'pointer',
     transition: 'all 0.2s',
@@ -536,11 +536,11 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     gap: '8px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   hint: {
     fontSize: '12px',
-    color: '#94a3b8',
+    color: 'var(--text-subtle)',
     margin: 0,
   },
   fileInfo: {
@@ -551,35 +551,35 @@ const styles = {
   fileName: {
     fontSize: '14px',
     fontWeight: 500,
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   fileSize: {
     fontSize: '12px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   error: {
     display: 'flex',
     gap: '8px',
     padding: '12px',
-    background: '#fef2f2',
-    border: '1px solid #fecaca',
-    borderRadius: '6px',
-    color: '#b91c1c',
+    background: 'var(--error-light)',
+    border: '1px solid var(--error-border)',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--error)',
     fontSize: '14px',
   },
   info: {
     display: 'flex',
     gap: '8px',
     padding: '12px',
-    background: '#eff6ff',
-    border: '1px solid #bfdbfe',
-    borderRadius: '6px',
-    color: '#1e40af',
+    background: 'var(--accent-light)',
+    border: '1px solid var(--accent-border)',
+    borderRadius: 'var(--radius-sm)',
+    color: 'var(--accent-text)',
     fontSize: '13px',
   },
   footer: {
     padding: '16px 24px',
-    borderTop: '1px solid #e5e7eb',
+    borderTop: '1px solid var(--border)',
     display: 'flex',
     justifyContent: 'flex-end',
     gap: '12px',
@@ -587,28 +587,28 @@ const styles = {
   cancelButton: {
     padding: '10px 20px',
     background: 'white',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   uploadButton: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
     padding: '10px 20px',
-    background: '#3b82f6',
+    background: 'var(--accent)',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
   },
   uploadButtonDisabled: {
-    background: '#cbd5e1',
+    background: 'var(--border-strong)',
     cursor: 'not-allowed',
   },
   spinner: {
@@ -633,8 +633,8 @@ const styles = {
   },
   input: {
     padding: '10px 12px',
-    border: '1px solid #d1d5db',
-    borderRadius: '6px',
+    border: '1px solid var(--border-strong)',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     width: '100%',
   },
@@ -653,20 +653,20 @@ const styles = {
     alignItems: 'center',
     gap: '6px',
     padding: '8px 16px',
-    background: '#10b981',
+    background: 'var(--success)',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '13px',
     fontWeight: 500,
     cursor: 'pointer',
     transition: 'background 0.2s',
   },
   previewBox: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
     overflow: 'hidden',
-    background: '#f9fafb',
+    background: 'var(--grey-50)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -688,17 +688,17 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '40px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   fileMetadata: {
     display: 'flex',
     flexDirection: 'column',
     gap: '8px',
     padding: '16px',
-    background: '#f9fafb',
-    borderRadius: '8px',
+    background: 'var(--grey-50)',
+    borderRadius: 'var(--radius-md)',
     fontSize: '13px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
 };
 

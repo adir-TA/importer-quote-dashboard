@@ -15,7 +15,7 @@ function NotFound() {
   return (
     <div className="page">
       <div style={styles.wrapper}>
-        <Compass size={44} color="#94a3b8" />
+        <Compass size={44} color="var(--text-subtle)" />
         <h1 style={styles.title}>{t('notFound.title')}</h1>
         <p style={styles.message}>{t('notFound.message')}</p>
         <code style={styles.path}>{location.pathname}</code>
@@ -42,16 +42,16 @@ const styles = {
     padding: '64px 24px',
     gap: '8px',
   },
-  title: { margin: '12px 0 0', fontSize: '1.4rem', color: 'var(--text-primary, #0f172a)' },
-  message: { margin: 0, color: 'var(--text-secondary, #64748b)' },
+  title: { margin: '12px 0 0', fontSize: 'var(--text-2xl)', color: 'var(--text-primary, var(--text-primary))' },
+  message: { margin: 0, color: 'var(--text-secondary, var(--text-secondary))' },
   path: {
     display: 'inline-block',
     margin: '4px 0 16px',
     padding: '4px 10px',
-    borderRadius: '6px',
-    background: 'var(--surface-alt, #f1f5f9)',
-    fontSize: '0.8rem',
-    color: 'var(--text-secondary, #64748b)',
+    borderRadius: 'var(--radius-sm)',
+    background: 'var(--surface-alt, var(--grey-100))',
+    fontSize: 'var(--text-sm)',
+    color: 'var(--text-secondary, var(--text-secondary))',
     maxWidth: '100%',
     overflowWrap: 'anywhere',
   },

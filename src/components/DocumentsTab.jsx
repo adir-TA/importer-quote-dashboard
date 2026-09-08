@@ -8,10 +8,10 @@ import { useModal } from '../context/ModalContext';
 
 // Document type badges
 const TYPE_BADGES = {
-  PI: { label: 'Proforma Invoice', color: '#3b82f6', bg: '#eff6ff' },
-  QUOTE: { label: 'Quote', color: '#10b981', bg: '#f0fdf4' },
-  SPEC: { label: 'Specification', color: '#f59e0b', bg: '#fef3c7' },
-  OTHER: { label: 'Other', color: '#64748b', bg: '#f8fafc' },
+  PI: { label: 'Proforma Invoice', color: 'var(--accent)', bg: 'var(--accent-light)' },
+  QUOTE: { label: 'Quote', color: 'var(--success)', bg: 'var(--success-light)' },
+  SPEC: { label: 'Specification', color: 'var(--warning)', bg: 'var(--warning-light)' },
+  OTHER: { label: 'Other', color: 'var(--text-secondary)', bg: 'var(--grey-25)' },
 };
 
 function DocumentsTab({ buyingIntentId, onUploadClick }) {
@@ -152,7 +152,7 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
       {/* Document List */}
       {documents.length === 0 ? (
         <div style={styles.emptyState}>
-          <FileText size={48} color="#94a3b8" />
+          <FileText size={48} color="var(--text-subtle)" />
           <p style={styles.emptyText}>No documents uploaded yet</p>
           <p style={styles.emptyHint}>
             Upload Proforma Invoices, quotes, or specs to keep everything organized
@@ -172,9 +172,9 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
                   <div key={doc.id} style={styles.docCard}>
                     <div style={styles.docIcon}>
                       {doc.file_type?.startsWith('image/') ? (
-                        <Image size={20} color="#64748b" />
+                        <Image size={20} color="var(--text-secondary)" />
                       ) : (
-                        <FileText size={20} color="#64748b" />
+                        <FileText size={20} color="var(--text-secondary)" />
                       )}
                     </div>
 
@@ -215,7 +215,7 @@ function DocumentsTab({ buyingIntentId, onUploadClick }) {
                         <Download size={16} />
                       </button>
                       <button
-                        style={{...styles.actionButton, color: '#ef4444'}}
+                        style={{...styles.actionButton, color: 'var(--error)'}}
                         onClick={() => handleDelete(doc.id)}
                         title="Delete"
                       >
@@ -269,7 +269,7 @@ function DocumentPreviewModal({ doc, onClose }) {
             />
           ) : (
             <div style={styles.noPreview}>
-              <File size={48} color="#94a3b8" />
+              <File size={48} color="var(--text-subtle)" />
               <p>Preview not available for this file type</p>
               <a
                 href={doc.signedUrl}
@@ -294,10 +294,10 @@ const styles = {
     gap: '8px',
     padding: '10px 12px',
     marginBottom: '16px',
-    borderRadius: '8px',
-    background: '#fef2f2',
-    color: '#b91c1c',
-    fontSize: '0.875rem',
+    borderRadius: 'var(--radius-md)',
+    background: 'var(--error-light)',
+    color: 'var(--error)',
+    fontSize: 'var(--text-base)',
   },
   container: {
     padding: '24px',
@@ -316,17 +316,17 @@ const styles = {
   subtitle: {
     margin: '4px 0 0 0',
     fontSize: '14px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   uploadButton: {
     display: 'flex',
     alignItems: 'center',
     gap: '8px',
     padding: '10px 16px',
-    background: '#3b82f6',
+    background: 'var(--accent)',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
@@ -336,10 +336,10 @@ const styles = {
     alignItems: 'center',
     gap: '8px',
     padding: '12px 20px',
-    background: '#3b82f6',
+    background: 'var(--accent)',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: 'var(--radius-sm)',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
@@ -351,7 +351,7 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '60px 20px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   emptyState: {
     display: 'flex',
@@ -359,20 +359,20 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '60px 20px',
-    background: '#f8fafc',
-    borderRadius: '8px',
-    border: '1px dashed #cbd5e1',
+    background: 'var(--grey-25)',
+    borderRadius: 'var(--radius-md)',
+    border: '1px dashed var(--border-strong)',
   },
   emptyText: {
     marginTop: '16px',
     fontSize: '16px',
     fontWeight: 500,
-    color: '#475569',
+    color: 'var(--text-secondary)',
   },
   emptyHint: {
     marginTop: '8px',
     fontSize: '14px',
-    color: '#94a3b8',
+    color: 'var(--text-subtle)',
   },
   groups: {
     display: 'flex',
@@ -380,8 +380,8 @@ const styles = {
     gap: '24px',
   },
   group: {
-    border: '1px solid #e5e7eb',
-    borderRadius: '8px',
+    border: '1px solid var(--border)',
+    borderRadius: 'var(--radius-md)',
     padding: '20px',
     background: 'white',
   },
@@ -389,7 +389,7 @@ const styles = {
     margin: '0 0 16px 0',
     fontSize: '16px',
     fontWeight: 600,
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   docList: {
     display: 'flex',
@@ -401,9 +401,9 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     padding: '12px',
-    background: '#f9fafb',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
+    background: 'var(--grey-50)',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border)',
   },
   docIcon: {
     display: 'flex',
@@ -412,8 +412,8 @@ const styles = {
     width: '40px',
     height: '40px',
     background: 'white',
-    borderRadius: '6px',
-    border: '1px solid #e5e7eb',
+    borderRadius: 'var(--radius-sm)',
+    border: '1px solid var(--border)',
   },
   docInfo: {
     flex: 1,
@@ -422,7 +422,7 @@ const styles = {
   docName: {
     fontSize: '14px',
     fontWeight: 500,
-    color: '#374151',
+    color: 'var(--text-secondary)',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
@@ -433,11 +433,11 @@ const styles = {
     gap: '8px',
     marginTop: '4px',
     fontSize: '12px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   typeBadge: {
     padding: '2px 8px',
-    borderRadius: '4px',
+    borderRadius: 'var(--radius-xs)',
     fontSize: '11px',
     fontWeight: 500,
   },
@@ -456,8 +456,8 @@ const styles = {
     border: 'none',
     cursor: 'pointer',
     padding: '6px',
-    color: '#64748b',
-    borderRadius: '4px',
+    color: 'var(--text-secondary)',
+    borderRadius: 'var(--radius-xs)',
     transition: 'background 0.2s',
   },
   modal: {
@@ -474,7 +474,7 @@ const styles = {
   },
   modalContent: {
     background: 'white',
-    borderRadius: '12px',
+    borderRadius: 'var(--radius-lg)',
     maxWidth: '90vw',
     maxHeight: '90vh',
     display: 'flex',
@@ -486,7 +486,7 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '20px',
-    borderBottom: '1px solid #e5e7eb',
+    borderBottom: '1px solid var(--border)',
   },
   modalTitle: {
     margin: 0,
@@ -498,7 +498,7 @@ const styles = {
     border: 'none',
     fontSize: '28px',
     cursor: 'pointer',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
     lineHeight: 1,
     padding: '4px',
   },
@@ -525,11 +525,11 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '40px',
-    color: '#64748b',
+    color: 'var(--text-secondary)',
   },
   downloadLink: {
     marginTop: '16px',
-    color: '#3b82f6',
+    color: 'var(--accent)',
     textDecoration: 'none',
     fontWeight: 500,
   },

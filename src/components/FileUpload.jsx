@@ -85,7 +85,7 @@ function FileUpload({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: '#10b981'
+            color: 'var(--success)'
           }}>
             <Check size={24} />
           </div>

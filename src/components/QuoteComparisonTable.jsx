@@ -88,7 +88,7 @@ function QuoteComparisonTable({ quotes }) {
         <div style={{
           background: 'rgba(16, 185, 129, 0.1)',
           border: '1px solid rgba(16, 185, 129, 0.3)',
-          borderRadius: '12px',
+          borderRadius: 'var(--radius-lg)',
           padding: '16px 20px',
           marginBottom: '20px',
           display: 'flex',
@@ -97,7 +97,7 @@ function QuoteComparisonTable({ quotes }) {
         }}>
           <div>
             <strong style={{ color: 'var(--accent)' }}>Best Overall: {bestSupplier}</strong>
-            <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+            <p style={{ margin: 0, fontSize: 'var(--text-sm)', color: 'var(--text-secondary)' }}>
               Based on lowest prices across {Object.keys(bestPrices).length} price fields
             </p>
           </div>
@@ -128,12 +128,12 @@ function QuoteComparisonTable({ quotes }) {
                   {bestPrices && Object.values(bestPrices).filter(i => i === idx).length > 0 && (
                     <span style={{
                       display: 'inline-block',
-                      marginLeft: '8px',
+                      marginInlineStart: '8px',
                       background: 'var(--accent)',
                       color: 'white',
-                      fontSize: '0.65rem',
+                      fontSize: 'var(--text-xs)',
                       padding: '2px 6px',
-                      borderRadius: '4px'
+                      borderRadius: 'var(--radius-xs)'
                     }}>
                       ⭐ {Object.values(bestPrices).filter(i => i === idx).length} best
                     </span>

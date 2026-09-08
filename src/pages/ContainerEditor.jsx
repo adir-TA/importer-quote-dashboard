@@ -341,7 +341,7 @@ function ContainerEditor() {
             <h2 style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {name || t('containers.untitled')}
             </h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
               {t('containers.summary')
                 .replace('{p}', summary.products)
                 .replace('{b}', summary.branches)

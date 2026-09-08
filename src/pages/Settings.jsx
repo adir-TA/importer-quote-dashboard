@@ -171,7 +171,7 @@ function Settings() {
           marginBottom: '28px',
         }}>
           {stats.map(stat => (
-            <div key={stat.label} className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div key={stat.label} className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
               <div className="stat-content">
                 <div className="stat-label">{stat.label}</div>
                 <div className="stat-value">{stat.count}</div>
@@ -183,7 +183,7 @@ function Settings() {
         {/* API Configuration */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-header">
-            <span className="card-title"><Key size={18} style={{ marginRight: '8px' }} /> {t('settings.apiConfiguration')}</span>
+            <span className="card-title"><Key size={18} style={{ marginInlineEnd: '8px' }} /> {t('settings.apiConfiguration')}</span>
           </div>
           <div className="card-body">
             <div className="form-group">
@@ -249,7 +249,7 @@ function Settings() {
               }}>
                 {SUPPORTED_CURRENCIES.map(code => (
                   <div key={code}>
-                    <label className="form-label" style={{ fontSize: '0.8rem' }} htmlFor={`rate-${code}`}>
+                    <label className="form-label" style={{ fontSize: 'var(--text-sm)' }} htmlFor={`rate-${code}`}>
                       {code}
                     </label>
                     <input
@@ -294,7 +294,7 @@ function Settings() {
         {/* Backup & Restore */}
         <div className="card" style={{ marginBottom: '24px' }}>
           <div className="card-header">
-            <span className="card-title"><Download size={18} style={{ marginRight: '8px' }} /> {t('settings.backupRestore')}</span>
+            <span className="card-title"><Download size={18} style={{ marginInlineEnd: '8px' }} /> {t('settings.backupRestore')}</span>
           </div>
           <div className="card-body">
             <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
@@ -318,14 +318,14 @@ function Settings() {
         {/* Danger Zone */}
         <div className="card" style={{ borderColor: 'rgba(239, 68, 68, 0.3)' }}>
           <div className="card-header" style={{ background: 'rgba(239, 68, 68, 0.1)' }}>
-            <span className="card-title" style={{ color: '#ef4444' }}><Trash2 size={18} style={{ marginRight: '8px' }} /> {t('settings.dangerZone')}</span>
+            <span className="card-title" style={{ color: 'var(--error)' }}><Trash2 size={18} style={{ marginInlineEnd: '8px' }} /> {t('settings.dangerZone')}</span>
           </div>
           <div className="card-body">
             <p style={{ color: 'var(--text-secondary)', marginBottom: '16px' }}>
               {t('settings.dangerDesc')}
             </p>
             <div style={{ display: 'flex', gap: '12px', flexDirection: 'column' }}>
-              <button className="btn" onClick={handleClearSeedData} disabled={busy} style={{ background: '#f59e0b', color: 'white', padding: '12px 20px' }}>
+              <button className="btn" onClick={handleClearSeedData} disabled={busy} style={{ background: 'var(--warning)', color: 'white', padding: '12px 20px' }}>
                 <Trash2 size={16} /> {t('settings.deleteFakeSeed')}
               </button>
               <button className="btn btn-danger" onClick={handleClearAllData} disabled={busy}>
@@ -337,8 +337,8 @@ function Settings() {
 
         {/* About */}
         <div style={{ marginTop: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <p style={{ fontSize: '0.9rem' }}>{t('settings.about')}</p>
-          <p style={{ fontSize: '0.8rem' }}>{t('settings.aboutDesc')}</p>
+          <p style={{ fontSize: 'var(--text-md)' }}>{t('settings.about')}</p>
+          <p style={{ fontSize: 'var(--text-sm)' }}>{t('settings.aboutDesc')}</p>
         </div>
       </div>
     </div>

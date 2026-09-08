@@ -12,7 +12,13 @@ import {
 // Hardcoded '$' before, mislabelling every non-USD price.
 import { formatCurrency } from '../utils/currency';
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6'];
+// Categorical series palette, assigned in fixed order and never cycled, so a
+// supplier keeps its colour when the set is filtered. Validated for
+// colour-vision deficiency separation and lightness band against a light
+// surface. Three of these sit below 3:1 contrast, which is why the legend and
+// the dot markers are mandatory rather than decorative.
+const SERIES_COLORS = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4'];
+const OTHER_COLOR = 'var(--text-subtle)';
 
 function PriceChart({ quotes, productId, currency = 'USD' }) {
   const chartData = useMemo(() => {
@@ -94,13 +100,13 @@ function PriceChart({ quotes, productId, currency = 'USD' }) {
             alignItems: 'center', 
             justifyContent: 'center',
             background: 'var(--bg-primary)',
-            borderRadius: '8px',
+            borderRadius: 'var(--radius-md)',
             border: '2px dashed var(--border)'
           }}>
             <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
               Add more quotes to see price trends
             </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
               Compare prices from different suppliers over time
             </p>
           </div>
@@ -130,19 +136,23 @@ function PriceChart({ quotes, productId, currency = 'USD' }) {
             />
             <Tooltip
               contentStyle={{
-                background: 'var(--bg-secondary)',
+                background: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
-                borderRadius: '8px'
+                borderRadius: 'var(--radius-md)',
+                boxShadow: 'var(--shadow-lg)',
+                fontSize: 'var(--text-sm)',
               }}
               formatter={(value) => [formatCurrency(value, currency), '']}
             />
-            <Legend />
+            <Legend iconType="line" wrapperStyle={{ fontSize: 12 }} />
             {chartData.suppliers.map((supplier, idx) => (
               <Line
                 key={supplier}
                 type="monotone"
                 dataKey={supplier}
-                stroke={COLORS[idx % COLORS.length]}
+                // Past the palette a series is grey rather than a recycled hue:
+                // two suppliers sharing a colour is worse than one being muted.
+                stroke={SERIES_COLORS[idx] || OTHER_COLOR}
                 strokeWidth={2}
                 dot={{ r: 4 }}
                 activeDot={{ r: 6 }}

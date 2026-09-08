@@ -61,14 +61,14 @@ function AIResponse({ text, isLoading = false, title = 'AI Analysis', showCopy =
             h2: ({node, ...props}) => <h3 style={{ color: 'var(--accent)', marginTop: '16px' }} {...props} />,
             h3: ({node, ...props}) => <h3 style={{ color: 'var(--accent)', marginTop: '16px' }} {...props} />,
             strong: ({node, ...props}) => <strong style={{ color: 'var(--text-primary)' }} {...props} />,
-            ul: ({node, ...props}) => <ul style={{ marginLeft: '20px', marginBottom: '12px' }} {...props} />,
-            ol: ({node, ...props}) => <ol style={{ marginLeft: '20px', marginBottom: '12px' }} {...props} />,
+            ul: ({node, ...props}) => <ul style={{ marginInlineStart: '20px', marginBottom: '12px' }} {...props} />,
+            ol: ({node, ...props}) => <ol style={{ marginInlineStart: '20px', marginBottom: '12px' }} {...props} />,
             li: ({node, ...props}) => <li style={{ marginBottom: '4px' }} {...props} />,
             p: ({node, ...props}) => <p style={{ marginBottom: '12px' }} {...props} />,
             code: ({node, inline, ...props}) => 
               inline 
-                ? <code style={{ background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: '4px' }} {...props} />
-                : <pre style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: '8px', overflow: 'auto' }}><code {...props} /></pre>
+                ? <code style={{ background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: 'var(--radius-xs)' }} {...props} />
+                : <pre style={{ background: 'var(--bg-tertiary)', padding: '12px', borderRadius: 'var(--radius-md)', overflow: 'auto' }}><code {...props} /></pre>
           }}
         >
           {displayedText}

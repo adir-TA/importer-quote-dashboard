@@ -184,7 +184,7 @@ export default function GlobalSearch({ isOpen, onClose }) {
             <div className="search-empty-state">
               <Search size={48} style={{ opacity: 0.3 }} />
               <p>No results found for "{query}"</p>
-              <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              <span style={{ fontSize: 'var(--text-base)', color: 'var(--text-muted)' }}>
                 Try a different search term
               </span>
             </div>

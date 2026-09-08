@@ -118,18 +118,18 @@ function Documents() {
           gap: '20px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
             <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-              <FileText size={22} color="#6366F1" />
+              <FileText size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
               <div className="stat-label">{t('documents.totalDocuments')}</div>
               <div className="stat-value">{documents.length}</div>
             </div>
           </div>
-          <div className="stat-card" style={{ '--stat-color': '#8b5cf6', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
             <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-              <FolderPlus size={22} color="#8b5cf6" />
+              <FolderPlus size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
               <div className="stat-label">Categories</div>
@@ -149,7 +149,7 @@ function Documents() {
             boxShadow: 'var(--shadow-sm)',
           }}>
             <h3 style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
@@ -161,14 +161,14 @@ function Documents() {
 
             {/* Category Filter */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 Category
               </label>
               <select
                 className="form-input"
                 value={categoryFilter}
                 onChange={e => setCategoryFilter(e.target.value)}
-                style={{ fontSize: '0.875rem' }}
+                style={{ fontSize: 'var(--text-base)' }}
               >
                 <option value="all">{t('documents.allCategories')}</option>
                 {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -181,15 +181,15 @@ function Documents() {
               background: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-md)',
             }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Quick Stats
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-base)' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{t('documents.totalDocuments')}</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{documents.length}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-base)' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Filtered</span>
                   <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{filteredDocs.length}</span>
                 </div>
@@ -236,10 +236,10 @@ function Documents() {
                   <FileUpload onFileSelect={handleFileSelect}>
                     {selectedFile ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ fontSize: '2rem' }}>{getFileIcon(selectedFile.name)}</span>
+                        <span style={{ fontSize: 'var(--text-3xl)' }}>{getFileIcon(selectedFile.name)}</span>
                         <div>
                           <div style={{ fontWeight: 500 }}>{selectedFile.name}</div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{formatFileSize(selectedFile.size)}</div>
+                          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>{formatFileSize(selectedFile.size)}</div>
                         </div>
                       </div>
                     ) : (

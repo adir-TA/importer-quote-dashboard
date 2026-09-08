@@ -101,8 +101,8 @@ function Dashboard() {
   }, [selectedProductId, quoteCounts]);
 
   const stats = [
-    { label: t('dashboard.buyingIntents'), value: products.length, icon: Package, color: '#7c5cfc', bgColor: 'rgba(124, 92, 252, 0.1)' },
-    { label: t('dashboard.quotes'), value: quotes.length, icon: FileText, color: '#3b82f6', bgColor: 'rgba(59, 130, 246, 0.1)' },
+    { label: t('dashboard.buyingIntents'), value: products.length, icon: Package, color: 'var(--accent)', bgColor: 'rgba(124, 92, 252, 0.1)' },
+    { label: t('dashboard.quotes'), value: quotes.length, icon: FileText, color: 'var(--accent)', bgColor: 'rgba(59, 130, 246, 0.1)' },
   ];
 
   return (
@@ -110,7 +110,7 @@ function Dashboard() {
       <div className="header">
         <div>
           <h2>{t('dashboard.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: '2px' }}>
             {t('dashboard.subtitle')}
           </p>
         </div>
@@ -120,7 +120,7 @@ function Dashboard() {
         {/* Section: Overview */}
         <div style={{ marginBottom: '24px' }}>
           <h3 style={{
-            fontSize: '0.875rem',
+            fontSize: 'var(--text-base)',
             fontWeight: 600,
             color: 'var(--text-primary)',
             marginBottom: '12px',
@@ -159,7 +159,7 @@ function Dashboard() {
               background: 'var(--bg-secondary)'
             }}>
               <h3 style={{
-                fontSize: '0.875rem',
+                fontSize: 'var(--text-base)',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
                 margin: 0
@@ -184,12 +184,12 @@ function Dashboard() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 600,
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--text-base)',
                   flexShrink: 0
                 }}>1</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step1Title')}</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step1Desc')}</p>
+                  <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step1Title')}</h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step1Desc')}</p>
                 </div>
               </div>
               <div
@@ -207,12 +207,12 @@ function Dashboard() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 600,
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--text-base)',
                   flexShrink: 0
                 }}>2</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step2Title')}</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step2Desc')}</p>
+                  <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step2Title')}</h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step2Desc')}</p>
                 </div>
               </div>
               <div
@@ -230,12 +230,12 @@ function Dashboard() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 600,
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--text-base)',
                   flexShrink: 0
                 }}>3</div>
                 <div style={{ flex: 1 }}>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step3Title')}</h4>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step3Desc')}</p>
+                  <h4 style={{ fontSize: 'var(--text-base)', fontWeight: 500, marginBottom: '2px', color: 'var(--text-primary)' }}>{t('dashboard.step3Title')}</h4>
+                  <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', margin: 0 }}>{t('dashboard.step3Desc')}</p>
                 </div>
                 <CheckCircle size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
               </div>
@@ -256,7 +256,7 @@ function Dashboard() {
               background: 'var(--bg-secondary)'
             }}>
               <h3 style={{
-                fontSize: '0.875rem',
+                fontSize: 'var(--text-base)',
                 fontWeight: 600,
                 color: 'var(--text-primary)',
                 margin: 0,
@@ -274,7 +274,7 @@ function Dashboard() {
           <div style={{ marginBottom: '20px' }}>
             <label style={{ 
               display: 'block', 
-              fontSize: '0.75rem', 
+              fontSize: 'var(--text-xs)', 
               fontWeight: 600, 
               color: 'var(--text-muted)', 
               textTransform: 'uppercase', 
@@ -297,7 +297,7 @@ function Dashboard() {
             bestQuoteForProduct ? (
               <>
                 <div style={{
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--text-sm)',
                   color: 'var(--text-muted)',
                   marginBottom: '12px',
                   fontWeight: 500
@@ -313,7 +313,7 @@ function Dashboard() {
                     <div className="best-quote-unit">
                       {formatCurrency(bestQuoteForProduct.unit_price, bestQuoteForProduct.currency)}/unit
                       {bestQuoteForProduct.isConverted && (
-                        <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block' }}>
+                        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', display: 'block' }}>
                           ≈ {formatCurrency(bestQuoteForProduct.comparablePrice, baseCurrency)}/unit
                         </span>
                       )}
@@ -364,7 +364,7 @@ function Dashboard() {
         {/* Section: Quick Actions */}
         <div style={{ marginTop: '24px' }}>
           <h3 style={{
-            fontSize: '0.875rem',
+            fontSize: 'var(--text-base)',
             fontWeight: 600,
             color: 'var(--text-primary)',
             marginBottom: '12px',

@@ -39,10 +39,10 @@ function Signup() {
   const passwordStrength = useMemo(() => {
     const passed = passwordChecks.filter(c => c.passed).length;
     if (passed === 0) return { level: 0, label: '', color: '' };
-    if (passed <= 2) return { level: 1, label: t('signup.weak'), color: '#ef4444' };
-    if (passed <= 3) return { level: 2, label: t('signup.fair'), color: '#f59e0b' };
-    if (passed <= 4) return { level: 3, label: t('signup.good'), color: '#3b82f6' };
-    return { level: 4, label: t('signup.strong'), color: '#22c55e' };
+    if (passed <= 2) return { level: 1, label: t('signup.weak'), color: 'var(--error)' };
+    if (passed <= 3) return { level: 2, label: t('signup.fair'), color: 'var(--warning)' };
+    if (passed <= 4) return { level: 3, label: t('signup.good'), color: 'var(--accent)' };
+    return { level: 4, label: t('signup.strong'), color: 'var(--success)' };
   }, [passwordChecks]);
 
   const allRequirementsMet = passwordChecks.every(c => c.passed);
@@ -103,10 +103,10 @@ function Signup() {
             </div>
             <h1>{t('signup.checkEmail')}</h1>
             <p>{t('signup.sentConfirmation')} <strong>{email}</strong></p>
-            <p style={{ marginTop: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+            <p style={{ marginTop: '12px', fontSize: 'var(--text-md)', color: 'var(--text-secondary)' }}>
               {t('signup.clickLink')}
             </p>
-            <p style={{ marginTop: '16px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            <p style={{ marginTop: '16px', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
               {t('signup.didntReceive')}
             </p>
           </div>

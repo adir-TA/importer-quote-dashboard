@@ -315,19 +315,19 @@ function BuyingIntentCommandSelect({
           gap: '10px',
           padding: '8px 12px',
           cursor: 'pointer',
-          background: isSelected ? '#eff6ff' : (isActive ? '#f0fdf4' : 'transparent'),
-          borderLeft: isActive ? '3px solid #10b981' : '3px solid transparent',
+          background: isSelected ? 'var(--accent-light)' : (isActive ? 'var(--success-light)' : 'transparent'),
+          borderInlineStart: isActive ? '3px solid var(--success)' : '3px solid transparent',
           transition: 'all 0.1s',
         }}
         onMouseEnter={() => setSelectedIndex(index)}
       >
-        <Package size={16} style={{ color: '#94a3b8', flexShrink: 0 }} />
+        <Package size={16} style={{ color: 'var(--text-subtle)', flexShrink: 0 }} />
 
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: '0.875rem',
+            fontSize: 'var(--text-base)',
             fontWeight: 500,
-            color: '#1e293b',
+            color: 'var(--text-primary)',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             whiteSpace: 'nowrap',
@@ -338,10 +338,10 @@ function BuyingIntentCommandSelect({
 
         <div style={{
           padding: '2px 8px',
-          background: hasQuotes ? '#d1fae5' : '#fee2e2',
-          color: hasQuotes ? '#065f46' : '#991b1b',
-          borderRadius: '4px',
-          fontSize: '0.7rem',
+          background: hasQuotes ? 'var(--success-light)' : 'var(--error-light)',
+          color: hasQuotes ? 'var(--success)' : 'var(--error)',
+          borderRadius: 'var(--radius-xs)',
+          fontSize: 'var(--text-xs)',
           fontWeight: 600,
           flexShrink: 0,
         }}>
@@ -372,8 +372,8 @@ function BuyingIntentCommandSelect({
       ref={dropdownRef}
       style={{
         background: 'white',
-        border: '1px solid #e2e8f0',
-        borderRadius: '8px',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
         boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
         maxHeight: `${responsiveMaxHeight}px`,
         overflow: 'hidden',
@@ -397,8 +397,8 @@ function BuyingIntentCommandSelect({
       {/* Search input */}
       <div style={{
         padding: '12px',
-        borderBottom: '1px solid #e2e8f0',
-        background: '#f8fafc',
+        borderBottom: '1px solid var(--border)',
+        background: 'var(--grey-25)',
       }}>
         <div style={{
           display: 'flex',
@@ -406,10 +406,10 @@ function BuyingIntentCommandSelect({
           gap: '8px',
           padding: '8px 12px',
           background: 'white',
-          border: '1px solid #cbd5e1',
-          borderRadius: '6px',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--radius-sm)',
         }}>
-          <Search size={16} style={{ color: '#94a3b8' }} />
+          <Search size={16} style={{ color: 'var(--text-subtle)' }} />
           <input
             ref={searchInputRef}
             type="text"
@@ -421,8 +421,8 @@ function BuyingIntentCommandSelect({
               flex: 1,
               border: 'none',
               outline: 'none',
-              fontSize: '0.875rem',
-              color: '#1e293b',
+              fontSize: 'var(--text-base)',
+              color: 'var(--text-primary)',
               background: 'transparent',
             }}
           />
@@ -438,8 +438,8 @@ function BuyingIntentCommandSelect({
           <div style={{
             padding: '24px',
             textAlign: 'center',
-            color: '#94a3b8',
-            fontSize: '0.875rem',
+            color: 'var(--text-subtle)',
+            fontSize: 'var(--text-base)',
           }}>
             No buying intents found
           </div>
@@ -450,12 +450,12 @@ function BuyingIntentCommandSelect({
               <div>
                 <div style={{
                   padding: '8px 12px',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--text-xs)',
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
-                  color: '#64748b',
-                  background: '#f8fafc',
+                  color: 'var(--text-secondary)',
+                  background: 'var(--grey-25)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -484,12 +484,12 @@ function BuyingIntentCommandSelect({
                 <div key={group.category}>
                   <div style={{
                     padding: '8px 12px',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 700,
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    color: '#64748b',
-                    background: '#f8fafc',
+                    color: 'var(--text-secondary)',
+                    background: 'var(--grey-25)',
                   }}>
                     {group.category}
                   </div>
@@ -520,26 +520,26 @@ function BuyingIntentCommandSelect({
           width: '100%',
           padding: '12px 16px',
           background: 'white',
-          border: '2px solid #e2e8f0',
-          borderRadius: '8px',
+          border: '2px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
           cursor: disabled ? 'not-allowed' : 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: '10px',
-          fontSize: '0.875rem',
-          color: selectedIntent ? '#1e293b' : '#94a3b8',
+          fontSize: 'var(--text-base)',
+          color: selectedIntent ? 'var(--text-primary)' : 'var(--text-subtle)',
           opacity: disabled ? 0.5 : 1,
           transition: 'all 0.2s',
         }}
       >
-        <Package size={18} style={{ color: '#94a3b8' }} />
-        <span style={{ flex: 1, textAlign: 'left' }}>
+        <Package size={18} style={{ color: 'var(--text-subtle)' }} />
+        <span style={{ flex: 1, textAlign: 'start' }}>
           {selectedIntent ? selectedIntent.name : placeholder}
         </span>
         <ChevronDown
           size={18}
           style={{
-            color: '#94a3b8',
+            color: 'var(--text-subtle)',
             transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
             transition: 'transform 0.2s',
           }}

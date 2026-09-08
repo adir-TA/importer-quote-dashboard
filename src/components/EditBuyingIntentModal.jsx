@@ -178,7 +178,7 @@ function EditBuyingIntentModal({
                   className="form-input"
                   onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
                   style={{
-                    textAlign: 'left',
+                    textAlign: 'start',
                     cursor: 'pointer',
                     display: 'flex',
                     justifyContent: 'space-between',
@@ -225,7 +225,7 @@ function EditBuyingIntentModal({
                       onKeyDown={handleCategorySearchKeyDown}
                       placeholder="Search categories..."
                       onClick={e => e.stopPropagation()}
-                      style={{ fontSize: '0.875rem', flex: 1, border: 'none', background: 'transparent', padding: 0 }}
+                      style={{ fontSize: 'var(--text-base)', flex: 1, border: 'none', background: 'transparent', padding: 0 }}
                     />
                   </div>
 
@@ -238,12 +238,12 @@ function EditBuyingIntentModal({
                         style={{
                           width: '100%',
                           padding: '10px 16px',
-                          textAlign: 'left',
+                          textAlign: 'start',
                           border: 'none',
                           background: formData.category === cat ? 'var(--accent-light)' : 'transparent',
                           color: formData.category === cat ? 'var(--accent)' : 'var(--text-primary)',
                           cursor: 'pointer',
-                          fontSize: '0.875rem',
+                          fontSize: 'var(--text-base)',
                           borderBottom: '1px solid var(--border-light)',
                           transition: 'background var(--transition)',
                         }}
@@ -258,7 +258,7 @@ function EditBuyingIntentModal({
                       padding: '16px',
                       textAlign: 'center',
                       color: 'var(--text-muted)',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--text-base)',
                     }}>
                       No categories found
                     </div>
@@ -273,12 +273,12 @@ function EditBuyingIntentModal({
                     style={{
                       width: '100%',
                       padding: '12px 16px',
-                      textAlign: 'left',
+                      textAlign: 'start',
                       border: 'none',
                       background: 'var(--accent-light)',
                       color: 'var(--accent)',
                       cursor: 'pointer',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--text-base)',
                       fontWeight: 600,
                       borderTop: '1px solid var(--border)',
                     }}
@@ -291,7 +291,7 @@ function EditBuyingIntentModal({
 
             <div className="form-group">
               <label className="form-label">
-                <ImageIcon size={16} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+                <ImageIcon size={16} style={{ verticalAlign: 'middle', marginInlineEnd: '4px' }} />
                 Product Image (Optional)
               </label>
               {imagePreview ? (
@@ -311,7 +311,7 @@ function EditBuyingIntentModal({
                     type="button"
                     className="btn btn-secondary"
                     onClick={handleRemoveImage}
-                    style={{ padding: '6px 12px', fontSize: '0.875rem' }}
+                    style={{ padding: '6px 12px', fontSize: 'var(--text-base)' }}
                   >
                     <X size={14} /> Remove
                   </button>
@@ -361,7 +361,7 @@ function EditBuyingIntentModal({
                   value={spec.key}
                   readOnly
                   placeholder="Spec Name"
-                  style={{ flex: 1, background: '#f1f5f9' }}
+                  style={{ flex: 1, background: 'var(--grey-100)' }}
                 />
                 <input
                   type="text"
@@ -382,7 +382,7 @@ function EditBuyingIntentModal({
               </div>
             ))}
             <div style={{ marginTop: '12px' }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '8px' }}>Add Custom Field:</p>
+              <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginBottom: '8px' }}>Add Custom Field:</p>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"

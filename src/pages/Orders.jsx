@@ -78,9 +78,9 @@ function Orders() {
           gap: '16px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
             <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-              <Truck size={22} color="#6366F1" />
+              <Truck size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
               <div className="stat-label">{t('orders.totalOrders')}</div>
@@ -122,8 +122,8 @@ function Orders() {
                 <div className="card-body">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                     <div>
-                      <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{order.name}</h3>
-                      <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                      <h3 style={{ margin: 0, fontSize: 'var(--text-lg)' }}>{order.name}</h3>
+                      <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>
                         {order.supplier && `${order.supplier} • `}{formatDate(order.createdAt)}
                       </p>
                     </div>
@@ -133,13 +133,13 @@ function Orders() {
                     </div>
                   </div>
                   <OrderTimeline status={order.status} />
-                  <div style={{ marginTop: '16px', display: 'flex', gap: '24px', fontSize: '0.9rem' }}>
+                  <div style={{ marginTop: '16px', display: 'flex', gap: '24px', fontSize: 'var(--text-md)' }}>
                     {order.quantity && <span><strong>Qty:</strong> {order.quantity}</span>}
                     {order.total && <span><strong>Total:</strong> {order.total}</span>}
                   </div>
                   <div style={{ marginTop: '16px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {STATUSES.map(s => (
-                      <button key={s.key} className={`btn btn-ghost ${order.status === s.key ? 'active' : ''}`} onClick={() => handleStatusChange(order.id, s.key)} style={{ padding: '6px 12px', fontSize: '0.8rem', background: order.status === s.key ? `${s.color}20` : undefined, color: order.status === s.key ? s.color : undefined }}>
+                      <button key={s.key} className={`btn btn-ghost ${order.status === s.key ? 'active' : ''}`} onClick={() => handleStatusChange(order.id, s.key)} style={{ padding: '6px 12px', fontSize: 'var(--text-sm)', background: order.status === s.key ? `${s.color}20` : undefined, color: order.status === s.key ? s.color : undefined }}>
                         {s.label}
                       </button>
                     ))}

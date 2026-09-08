@@ -79,47 +79,47 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
           width: '100%',
           padding: '14px 18px',
           background: 'white',
-          border: '2px solid #e5e7eb',
-          borderRadius: '10px',
+          border: '2px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
-          fontSize: '0.95rem',
+          fontSize: 'var(--text-md)',
           fontWeight: 500,
           transition: 'all 0.2s',
-          textAlign: 'left',
+          textAlign: 'start',
         }}
         onMouseEnter={(e) => {
-          if (!isOpen) e.currentTarget.style.borderColor = '#3b82f6';
+          if (!isOpen) e.currentTarget.style.borderColor = 'var(--accent)';
         }}
         onMouseLeave={(e) => {
-          if (!isOpen) e.currentTarget.style.borderColor = '#e5e7eb';
+          if (!isOpen) e.currentTarget.style.borderColor = 'var(--border)';
         }}
       >
-        <Package size={20} style={{ color: '#64748b', flexShrink: 0 }} />
+        <Package size={20} style={{ color: 'var(--text-secondary)', flexShrink: 0 }} />
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {selectedProduct ? (
             <>
               {selectedProduct.name}
               <span style={{
-                marginLeft: '8px',
+                marginInlineStart: '8px',
                 padding: '2px 8px',
-                background: selectedProduct.quoteCount > 0 ? '#d1fae5' : '#fee2e2',
-                color: selectedProduct.quoteCount > 0 ? '#065f46' : '#991b1b',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
+                background: selectedProduct.quoteCount > 0 ? 'var(--success-light)' : 'var(--error-light)',
+                color: selectedProduct.quoteCount > 0 ? 'var(--success)' : 'var(--error)',
+                borderRadius: 'var(--radius-xs)',
+                fontSize: 'var(--text-xs)',
                 fontWeight: 600,
               }}>
                 {selectedProduct.quoteCount} {selectedProduct.quoteCount === 1 ? 'quote' : 'quotes'}
               </span>
             </>
           ) : (
-            <span style={{ color: '#9ca3af' }}>{t('landedCost.selectIntent')}</span>
+            <span style={{ color: 'var(--text-subtle)' }}>{t('landedCost.selectIntent')}</span>
           )}
         </span>
         <ChevronDown size={18} style={{
-          color: '#64748b',
+          color: 'var(--text-secondary)',
           flexShrink: 0,
           transform: isOpen ? 'rotate(180deg)' : 'rotate(0)',
           transition: 'transform 0.2s',
@@ -134,8 +134,8 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
           right: 0,
           marginTop: '8px',
           background: 'white',
-          border: '2px solid #e5e7eb',
-          borderRadius: '12px',
+          border: '2px solid var(--border)',
+          borderRadius: 'var(--radius-lg)',
           boxShadow: '0 10px 40px rgba(0,0,0,0.15)',
           maxHeight: '500px',
           overflowY: 'auto',
@@ -146,7 +146,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
             position: 'sticky',
             top: 0,
             background: 'white',
-            borderBottom: '2px solid #e5e7eb',
+            borderBottom: '2px solid var(--border)',
             padding: '16px',
             zIndex: 10,
             borderTopLeftRadius: '12px',
@@ -157,11 +157,11 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
               alignItems: 'center',
               gap: '10px',
               padding: '10px 14px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              background: '#f9fafb',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              background: 'var(--grey-50)',
             }}>
-              <Search size={18} style={{ color: '#9ca3af', flexShrink: 0 }} />
+              <Search size={18} style={{ color: 'var(--text-subtle)', flexShrink: 0 }} />
               <input
                 ref={inputRef}
                 type="text"
@@ -173,8 +173,8 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                   background: 'transparent',
                   outline: 'none',
                   width: '100%',
-                  fontSize: '0.95rem',
-                  color: '#1f2937',
+                  fontSize: 'var(--text-md)',
+                  color: 'var(--text-primary)',
                 }}
                 onClick={(e) => e.stopPropagation()}
               />
@@ -189,7 +189,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                     padding: '4px',
                     display: 'flex',
                     alignItems: 'center',
-                    color: '#9ca3af',
+                    color: 'var(--text-subtle)',
                   }}
                 >
                   <X size={16} />
@@ -204,12 +204,12 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
               <div style={{
                 padding: '40px 20px',
                 textAlign: 'center',
-                color: '#9ca3af',
-                fontSize: '0.95rem',
+                color: 'var(--text-subtle)',
+                fontSize: 'var(--text-md)',
               }}>
                 No buying intents found
                 {searchTerm && (
-                  <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
+                  <div style={{ marginTop: '8px', fontSize: 'var(--text-sm)' }}>
                     Try a different search term
                   </div>
                 )}
@@ -219,16 +219,16 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                 <div key={category}>
                   <div style={{
                     padding: '10px 16px',
-                    background: '#f9fafb',
-                    fontSize: '0.75rem',
+                    background: 'var(--grey-50)',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 700,
-                    color: '#64748b',
+                    color: 'var(--text-secondary)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     position: 'sticky',
                     top: '72px',
                     zIndex: 5,
-                    borderTop: '1px solid #e5e7eb',
+                    borderTop: '1px solid var(--border)',
                   }}>
                     {category}
                   </div>
@@ -244,12 +244,12 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                       style={{
                         width: '100%',
                         padding: '14px 18px',
-                        textAlign: 'left',
+                        textAlign: 'start',
                         border: 'none',
-                        background: product.id === selectedProductId ? '#eff6ff' : 'white',
+                        background: product.id === selectedProductId ? 'var(--accent-light)' : 'white',
                         cursor: 'pointer',
-                        fontSize: '0.9rem',
-                        borderBottom: '1px solid #f3f4f6',
+                        fontSize: 'var(--text-md)',
+                        borderBottom: '1px solid var(--grey-100)',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '12px',
@@ -257,7 +257,7 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                       }}
                       onMouseEnter={(e) => {
                         if (product.id !== selectedProductId) {
-                          e.target.style.background = '#f9fafb';
+                          e.target.style.background = 'var(--grey-50)';
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -267,21 +267,21 @@ function ProductSelector({ products, quotes, selectedProductId, onSelect, quoteC
                       }}
                     >
                       {product.id === selectedProductId && (
-                        <Check size={16} style={{ color: '#3b82f6', flexShrink: 0 }} />
+                        <Check size={16} style={{ color: 'var(--accent)', flexShrink: 0 }} />
                       )}
                       <span style={{
                         flex: 1,
-                        color: '#374151',
+                        color: 'var(--text-secondary)',
                         fontWeight: product.id === selectedProductId ? 600 : 400,
                       }}>
                         {product.name}
                       </span>
                       <span style={{
                         padding: '3px 10px',
-                        background: product.quoteCount > 0 ? '#d1fae5' : '#fee2e2',
-                        color: product.quoteCount > 0 ? '#065f46' : '#991b1b',
-                        borderRadius: '6px',
-                        fontSize: '0.75rem',
+                        background: product.quoteCount > 0 ? 'var(--success-light)' : 'var(--error-light)',
+                        color: product.quoteCount > 0 ? 'var(--success)' : 'var(--error)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: 'var(--text-xs)',
                         fontWeight: 600,
                         flexShrink: 0,
                       }}>
@@ -694,7 +694,7 @@ function LandedCost() {
       <div className="header">
         <div>
           <h2>{t('landedCost.title')}</h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginTop: '4px' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)', marginTop: '4px' }}>
             Calculate true landed cost including all import fees for accurate decision-making
           </p>
         </div>
@@ -712,14 +712,14 @@ function LandedCost() {
             gap: '16px',
           }}>
             <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('landedCost.loadingIntents')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>{t('landedCost.loadingIntents')}</p>
           </div>
         ) : (
           <>
         {/* Recently Used Buying Intents */}
         {!selectedProductId && products.filter(p => (quoteCounts[p.id] || 0) > 0).slice(0, 3).length > 0 && (
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#64748b', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: 'var(--text-base)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
               Recently Used
             </h3>
             <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -730,37 +730,37 @@ function LandedCost() {
                   style={{
                     padding: '12px 18px',
                     background: 'white',
-                    border: '2px solid #e5e7eb',
-                    borderRadius: '10px',
+                    border: '2px solid var(--border)',
+                    borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '10px',
                     transition: 'all 0.2s',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 500,
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.background = '#f9fafb';
-                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.background = 'var(--grey-50)';
+                    e.currentTarget.style.borderColor = 'var(--accent)';
                     e.currentTarget.style.transform = 'translateY(-2px)';
                     e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.2)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.background = 'white';
-                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.borderColor = 'var(--border)';
                     e.currentTarget.style.transform = 'translateY(0)';
                     e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
-                  <Package size={18} style={{ color: '#64748b' }} />
+                  <Package size={18} style={{ color: 'var(--text-secondary)' }} />
                   <span>{product.name}</span>
                   <span style={{
                     padding: '3px 10px',
-                    background: '#d1fae5',
-                    color: '#065f46',
-                    borderRadius: '6px',
-                    fontSize: '0.75rem',
+                    background: 'var(--success-light)',
+                    color: 'var(--success)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 600,
                   }}>
                     {quoteCounts[product.id]} {quoteCounts[product.id] === 1 ? 'quote' : 'quotes'}
@@ -772,8 +772,8 @@ function LandedCost() {
         )}
 
         {/* STEP 1: Product Selection */}
-        <div className="card" style={{ marginBottom: '24px', border: '2px solid #e5e7eb', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div className="card-header" style={{ background: '#f9fafb', borderBottom: '2px solid #e5e7eb' }}>
+        <div className="card" style={{ marginBottom: '24px', border: '2px solid var(--border)', boxShadow: 'var(--shadow-sm)' }}>
+          <div className="card-header" style={{ background: 'var(--grey-50)', borderBottom: '2px solid var(--border)' }}>
             <span className="card-title">
               <Package size={18} /> Select Buying Intent to Calculate
             </span>
@@ -787,9 +787,9 @@ function LandedCost() {
               quoteCounts={quoteCounts}
             />
             {!selectedProductId && (
-              <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: '#eff6ff', borderLeft: '4px solid #3b82f6', borderRadius: '6px' }}>
-                <AlertCircle size={16} style={{ color: '#3b82f6' }} />
-                <span style={{ color: '#1e40af' }}>{t('landedCost.selectIntentPrompt')}</span>
+              <div className="info-message" style={{ marginTop: '16px', padding: '12px 16px', background: 'var(--accent-light)', borderInlineStart: '4px solid var(--accent)', borderRadius: 'var(--radius-sm)' }}>
+                <AlertCircle size={16} style={{ color: 'var(--accent)' }} />
+                <span style={{ color: 'var(--accent-text)' }}>{t('landedCost.selectIntentPrompt')}</span>
               </div>
             )}
           </div>
@@ -808,7 +808,7 @@ function LandedCost() {
                 </button>
               </div>
               <div className="card-body">
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginBottom: '20px' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginBottom: '20px' }}>
                   {/* Complete sentences per key - splitting a bolded label from
                       its predicate produced Hebrew that disagreed in gender
                       and number. */}
@@ -956,7 +956,7 @@ function LandedCost() {
                   <span className="card-title">
                     Landed Cost Breakdown
                     {selectedQuote && (
-                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginLeft: '8px' }}>
+                      <span style={{ fontWeight: 400, color: 'var(--text-muted)', marginInlineStart: '8px' }}>
                         — {selectedQuote.supplierName}
                       </span>
                     )}
@@ -1024,7 +1024,7 @@ function LandedCost() {
                         {/* Total section - visually secondary, $/unit emphasized */}
                         <div className="breakdown-row total" style={{ marginTop: '12px' }}>
                           <span>{t('landedCost.totalLandedCost')}</span>
-                          <span style={{ fontSize: '0.95rem', color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_landed, baseCurrency)}</span>
+                          <span style={{ fontSize: 'var(--text-md)', color: 'var(--text-secondary)' }}>{formatCurrency(calculation.total_landed, baseCurrency)}</span>
                         </div>
                         <div className="breakdown-row total-unit">
                           <span>{t('landedCost.landedCostPerUnit')}</span>
@@ -1038,7 +1038,7 @@ function LandedCost() {
                             padding: '10px 12px',
                             background: 'var(--bg-secondary)',
                             borderRadius: 'var(--radius-md)',
-                            fontSize: '0.8rem',
+                            fontSize: 'var(--text-sm)',
                             color: 'var(--text-muted)',
                             display: 'flex',
                             alignItems: 'center',

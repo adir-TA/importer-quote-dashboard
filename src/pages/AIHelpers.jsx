@@ -138,12 +138,12 @@ function AIHelpers() {
           marginBottom: '28px',
         }}>
           {TABS.map((tab, idx) => (
-            <div key={tab.id} className="stat-card" style={{ '--stat-color': activeTab === tab.id ? '#6366F1' : '#64748b', '--stat-bg': activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
+            <div key={tab.id} className="stat-card" style={{ '--stat-color': activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)', '--stat-bg': activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
               <div className="stat-icon-wrapper" style={{ background: activeTab === tab.id ? 'rgba(99, 102, 241, 0.1)' : 'rgba(100, 116, 139, 0.05)' }}>
-                <tab.icon size={20} color={activeTab === tab.id ? '#6366F1' : '#64748b'} />
+                <tab.icon size={20} color={activeTab === tab.id ? 'var(--accent)' : 'var(--text-secondary)'} />
               </div>
               <div className="stat-content">
-                <div className="stat-label" style={{ fontSize: '0.75rem' }}>{tab.label}</div>
+                <div className="stat-label" style={{ fontSize: 'var(--text-xs)' }}>{tab.label}</div>
               </div>
             </div>
           ))}
@@ -254,10 +254,10 @@ function AIHelpers() {
                   </div>
                   <button className="btn btn-primary" onClick={handleConvertCurrency}><DollarSign size={16} /> Convert</button>
                   {convertedAmount && (
-                    <div style={{ marginTop: '20px', padding: '20px', background: 'var(--bg-tertiary)', borderRadius: '12px', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>{currencyAmount} {fromCurrency} =</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--accent)' }}>{convertedAmount.amount.toFixed(2)} {toCurrency}</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>Rate: 1 {fromCurrency} = {convertedAmount.rate.toFixed(4)} {toCurrency}</div>
+                    <div style={{ marginTop: '20px', padding: '20px', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-lg)', textAlign: 'center' }}>
+                      <div style={{ fontSize: 'var(--text-md)', color: 'var(--text-muted)' }}>{currencyAmount} {fromCurrency} =</div>
+                      <div style={{ fontSize: 'var(--text-3xl)', fontWeight: 700, color: 'var(--accent)' }}>{convertedAmount.amount.toFixed(2)} {toCurrency}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-muted)', marginTop: '8px' }}>Rate: 1 {fromCurrency} = {convertedAmount.rate.toFixed(4)} {toCurrency}</div>
                     </div>
                   )}
                 </>

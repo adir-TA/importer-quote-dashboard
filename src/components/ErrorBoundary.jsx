@@ -39,7 +39,7 @@ class ErrorBoundary extends React.Component {
     return (
       <div style={styles.container} role="alert">
         <div style={styles.card}>
-          <AlertTriangle size={40} color="#ef4444" />
+          <AlertTriangle size={40} color="var(--error)" />
           <h1 style={styles.title}>Something went wrong</h1>
           <p style={styles.message}>
             The page hit an unexpected error. Your saved data is safe — reloading
@@ -73,29 +73,29 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '24px',
-    background: '#f8fafc',
+    background: 'var(--grey-25)',
   },
   card: {
     maxWidth: '520px',
     width: '100%',
     background: '#fff',
-    borderRadius: '12px',
+    borderRadius: 'var(--radius-lg)',
     padding: '32px',
     textAlign: 'center',
     boxShadow: '0 4px 24px rgba(15, 23, 42, 0.08)',
   },
-  title: { margin: '16px 0 8px', fontSize: '1.25rem', color: '#0f172a' },
-  message: { margin: '0 0 20px', color: '#64748b', lineHeight: 1.6 },
+  title: { margin: '16px 0 8px', fontSize: 'var(--text-xl)', color: 'var(--text-primary)' },
+  message: { margin: '0 0 20px', color: 'var(--text-secondary)', lineHeight: 1.6 },
   details: {
-    textAlign: 'left',
-    fontSize: '0.75rem',
-    background: '#f1f5f9',
+    textAlign: 'start',
+    fontSize: 'var(--text-xs)',
+    background: 'var(--grey-100)',
     padding: '12px',
-    borderRadius: '8px',
+    borderRadius: 'var(--radius-md)',
     overflowX: 'auto',
     maxHeight: '200px',
     marginBottom: '20px',
-    color: '#334155',
+    color: 'var(--text-secondary)',
   },
   actions: { display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' },
 };

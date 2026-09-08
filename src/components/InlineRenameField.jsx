@@ -70,9 +70,9 @@ export function InlineRenameField({
           style={{
             flex: 1,
             padding: '6px 10px',
-            border: '2px solid #3b82f6',
-            borderRadius: '6px',
-            fontSize: '0.95rem',
+            border: '2px solid var(--accent)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: 'var(--text-md)',
             outline: 'none',
             fontWeight: 500,
           }}
@@ -80,10 +80,10 @@ export function InlineRenameField({
         <button
           onClick={handleSave}
           style={{
-            background: '#10b981',
+            background: 'var(--success)',
             color: 'white',
             border: 'none',
-            borderRadius: '4px',
+            borderRadius: 'var(--radius-xs)',
             padding: '6px',
             cursor: 'pointer',
             display: 'flex',
@@ -97,10 +97,10 @@ export function InlineRenameField({
         <button
           onClick={handleCancel}
           style={{
-            background: '#ef4444',
+            background: 'var(--error)',
             color: 'white',
             border: 'none',
-            borderRadius: '4px',
+            borderRadius: 'var(--radius-xs)',
             padding: '6px',
             cursor: 'pointer',
             display: 'flex',
@@ -128,7 +128,7 @@ export function InlineRenameField({
         onClick={() => setIsEditing(true)}
         style={{
           fontWeight: isDraft ? 400 : 500,
-          color: isDraft ? '#64748b' : '#1e293b',
+          color: isDraft ? 'var(--text-secondary)' : 'var(--text-primary)',
           flex: 1,
         }}
         title={isDraft ? 'Click to rename and finalize' : 'Click to rename'}
@@ -140,10 +140,10 @@ export function InlineRenameField({
         <span style={{
           display: 'inline-block',
           padding: '2px 8px',
-          background: '#fef3c7',
-          color: '#92400e',
-          borderRadius: '4px',
-          fontSize: '0.7rem',
+          background: 'var(--warning-light)',
+          color: 'var(--warning)',
+          borderRadius: 'var(--radius-xs)',
+          fontSize: 'var(--text-xs)',
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: '0.3px',
@@ -157,15 +157,15 @@ export function InlineRenameField({
         style={{
           background: 'transparent',
           border: 'none',
-          color: '#94a3b8',
+          color: 'var(--text-subtle)',
           cursor: 'pointer',
           padding: '4px',
           display: 'flex',
           alignItems: 'center',
           transition: 'color 0.2s',
         }}
-        onMouseEnter={(e) => e.currentTarget.style.color = '#3b82f6'}
-        onMouseLeave={(e) => e.currentTarget.style.color = '#94a3b8'}
+        onMouseEnter={(e) => e.currentTarget.style.color = 'var(--accent)'}
+        onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-subtle)'}
         title="Rename"
       >
         <Edit2 size={14} />

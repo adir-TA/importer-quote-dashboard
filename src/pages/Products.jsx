@@ -893,7 +893,7 @@ function Products() {
             gap: '16px',
           }}>
             <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('products.loading')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>{t('products.loading')}</p>
           </div>
         ) : (
           <>
@@ -906,36 +906,36 @@ function Products() {
             marginBottom: '28px',
             flexShrink: 0,
           }}>
-            <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-                <Package size={22} color="#6366F1" />
+                <Package size={22} color="var(--accent)" />
               </div>
               <div className="stat-content">
                 <div className="stat-label">{t('products.totalIntents')}</div>
                 <div className="stat-value">{stats.totalProducts}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                <TrendingUp size={22} color="#10b981" />
+                <TrendingUp size={22} color="var(--success)" />
               </div>
               <div className="stat-content">
                 <div className="stat-label">{t('products.withQuotes')}</div>
                 <div className="stat-value">{stats.totalWithQuotes}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': '#f59e0b', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--warning)', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-                <TrendingDown size={22} color="#f59e0b" />
+                <TrendingDown size={22} color="var(--warning)" />
               </div>
               <div className="stat-content">
                 <div className="stat-label">{t('products.withoutQuotes')}</div>
                 <div className="stat-value">{stats.totalWithoutQuotes}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': '#8b5cf6', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(139, 92, 246, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(139, 92, 246, 0.1)' }}>
-                <Grid size={22} color="#8b5cf6" />
+                <Grid size={22} color="var(--accent)" />
               </div>
               <div className="stat-content">
                 <div className="stat-label">{t('products.categories')}</div>
@@ -958,7 +958,7 @@ function Products() {
             border: 'none',
             borderRadius: 'var(--radius-md)',
             cursor: 'pointer',
-            fontSize: '0.875rem',
+            fontSize: 'var(--text-base)',
             fontWeight: 600,
             alignItems: 'center',
             gap: '8px',
@@ -1012,17 +1012,17 @@ function Products() {
                   }}
                   style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-primary)' }}>
                   {t('products.selectAll')}
                 </span>
-                <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: 'auto' }}>
+                <span style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', marginInlineStart: 'auto' }}>
                   {selectedProducts.size > 0 ? `${selectedProducts.size} ${t('products.selected')}` : `${filteredProducts.length}`}
                 </span>
               </div>
             )}
 
             <h3 style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
@@ -1034,7 +1034,7 @@ function Products() {
 
             {/* View Mode */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 {t('products.viewMode')}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1055,7 +1055,7 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 600,
                   }}
                 >
@@ -1079,7 +1079,7 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 600,
                   }}
                 >
@@ -1091,7 +1091,7 @@ function Products() {
 
             {/* Sort By */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 {t('products.sortBy')}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1107,7 +1107,7 @@ function Products() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
@@ -1127,7 +1127,7 @@ function Products() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
@@ -1147,7 +1147,7 @@ function Products() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
@@ -1162,14 +1162,14 @@ function Products() {
             {categories.length > 0 && (
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {t('products.categories')}
                   </label>
                   {selectedCategoryFilters.length > 0 && (
                     <button
                       onClick={() => setSelectedCategoryFilters([])}
                       style={{
-                        fontSize: '0.7rem',
+                        fontSize: 'var(--text-xs)',
                         color: 'var(--error)',
                         background: 'none',
                         border: 'none',
@@ -1195,7 +1195,7 @@ function Products() {
                         border: selectedCategoryFilters.includes(category) ? '1px solid var(--accent)' : '1px solid transparent',
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--text-base)',
                         fontWeight: 500,
                         transition: 'all 0.2s',
                       }}
@@ -1214,7 +1214,7 @@ function Products() {
                       />
                       <span style={{ flex: 1, color: 'var(--text-primary)' }}>{category}</span>
                       <span style={{
-                        fontSize: '0.7rem',
+                        fontSize: 'var(--text-xs)',
                         padding: '2px 8px',
                         background: 'white',
                         borderRadius: 'var(--radius-sm)',
@@ -1237,7 +1237,7 @@ function Products() {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--error)',
               }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {selectedProducts.size} {t('products.selected')}
                 </div>
                 <button
@@ -1245,12 +1245,12 @@ function Products() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1267,12 +1267,12 @@ function Products() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    background: 'linear-gradient(135deg, var(--success) 0%, var(--success) 100%)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1294,7 +1294,7 @@ function Products() {
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1315,7 +1315,7 @@ function Products() {
                     color: 'var(--error)',
                     border: 'none',
                     cursor: 'pointer',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     marginTop: '8px',
                     textDecoration: 'underline',
@@ -1352,8 +1352,8 @@ function Products() {
                     alignItems: 'center',
                     gap: '12px',
                     padding: '16px 20px',
-                    background: '#f5f7fa',
-                    borderRadius: '12px',
+                    background: 'var(--grey-50)',
+                    borderRadius: 'var(--radius-lg)',
                     marginBottom: '16px',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -1362,21 +1362,21 @@ function Products() {
                   onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                 >
                   {collapsedCategories[category] ? (
-                    <ChevronRight size={20} style={{ color: '#64748b' }} />
+                    <ChevronRight size={20} style={{ color: 'var(--text-secondary)' }} />
                   ) : (
-                    <ChevronDown size={20} style={{ color: '#64748b' }} />
+                    <ChevronDown size={20} style={{ color: 'var(--text-secondary)' }} />
                   )}
-                  <Package size={20} style={{ color: '#64748b' }} />
-                  <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', flex: 1 }}>
+                  <Package size={20} style={{ color: 'var(--text-secondary)' }} />
+                  <h3 style={{ margin: 0, fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--text-primary)', flex: 1 }}>
                     {category}
                   </h3>
                   <span style={{
                     padding: '4px 12px',
                     background: 'rgba(255, 255, 255, 0.9)',
-                    borderRadius: '12px',
-                    fontSize: '0.875rem',
+                    borderRadius: 'var(--radius-lg)',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
-                    color: '#64748b',
+                    color: 'var(--text-secondary)',
                   }}>
                     {products.length} {products.length === 1 ? t('products.item') : t('products.items')}
                   </span>
@@ -1410,7 +1410,7 @@ function Products() {
                         padding: '10px 16px',
                         background: 'var(--bg-secondary)',
                         borderBottom: '1px solid var(--border)',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--text-xs)',
                         fontWeight: 700,
                         color: 'var(--text-muted)',
                         textTransform: 'uppercase',
@@ -1421,7 +1421,7 @@ function Products() {
                         <div>{t('products.category')}</div>
                         <div style={{ textAlign: 'center' }}>{t('dashboard.quotes')}</div>
                         <div style={{ textAlign: 'center' }}>{t('products.status')}</div>
-                        <div style={{ textAlign: 'right' }}>{t('products.actions')}</div>
+                        <div style={{ textAlign: 'end' }}>{t('products.actions')}</div>
                       </div>
                       {/* Table Rows */}
                       {products.map((product, idx) => {
@@ -1439,11 +1439,11 @@ function Products() {
                               gap: '12px',
                               padding: '8px 16px',
                               alignItems: 'center',
-                              background: selectedProducts.has(product.id) ? '#eff6ff' : (idx % 2 === 0 ? 'white' : 'var(--bg-primary)'),
+                              background: selectedProducts.has(product.id) ? 'var(--accent-light)' : (idx % 2 === 0 ? 'white' : 'var(--bg-primary)'),
                               borderBottom: idx < products.length - 1 ? '1px solid var(--border-light)' : 'none',
                               cursor: 'pointer',
                               transition: 'background 0.15s',
-                              fontSize: '0.875rem',
+                              fontSize: 'var(--text-base)',
                             }}
                             onMouseEnter={(e) => {
                               if (!selectedProducts.has(product.id)) {
@@ -1496,7 +1496,7 @@ function Products() {
 
                             {/* Category */}
                             <div style={{
-                              fontSize: '0.8rem',
+                              fontSize: 'var(--text-sm)',
                               color: 'var(--text-secondary)',
                               overflow: 'hidden',
                               textOverflow: 'ellipsis',
@@ -1519,10 +1519,10 @@ function Products() {
                               {isDraft ? (
                                 <span style={{
                                   padding: '3px 8px',
-                                  background: '#fef3c7',
-                                  color: '#92400e',
+                                  background: 'var(--warning-light)',
+                                  color: 'var(--warning)',
                                   borderRadius: 'var(--radius-sm)',
-                                  fontSize: '0.7rem',
+                                  fontSize: 'var(--text-xs)',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
                                 }}>
@@ -1534,7 +1534,7 @@ function Products() {
                                   background: 'var(--success-light)',
                                   color: 'var(--success)',
                                   borderRadius: 'var(--radius-sm)',
-                                  fontSize: '0.7rem',
+                                  fontSize: 'var(--text-xs)',
                                   fontWeight: 600,
                                   textTransform: 'uppercase',
                                 }}>
@@ -1675,10 +1675,10 @@ function Products() {
             zIndex: 1000,
             overflowY: 'auto',
             padding: '24px',
-            boxShadow: '-4px 0 12px rgba(0,0,0,0.15)',
+            boxShadow: 'var(--shadow-lg)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Filters & View</h3>
+              <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>Filters & View</h3>
               <button
                 onClick={() => setIsMobileFiltersOpen(false)}
                 style={{
@@ -1698,7 +1698,7 @@ function Products() {
 
             {/* View Mode */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 {t('products.viewMode')}
               </label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1719,7 +1719,7 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 600,
                   }}
                 >
@@ -1743,7 +1743,7 @@ function Products() {
                     flexDirection: 'column',
                     alignItems: 'center',
                     gap: '6px',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--text-xs)',
                     fontWeight: 600,
                   }}
                 >
@@ -1755,7 +1755,7 @@ function Products() {
 
             {/* Sort By */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 {t('products.sortBy')}
               </label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -1771,7 +1771,7 @@ function Products() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
@@ -1791,7 +1791,7 @@ function Products() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
@@ -1811,7 +1811,7 @@ function Products() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
@@ -1826,14 +1826,14 @@ function Products() {
             {categories.length > 0 && (
               <div style={{ marginBottom: '24px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)' }}>
                     {t('products.categories')}
                   </label>
                   {selectedCategoryFilters.length > 0 && (
                     <button
                       onClick={() => setSelectedCategoryFilters([])}
                       style={{
-                        fontSize: '0.7rem',
+                        fontSize: 'var(--text-xs)',
                         color: 'var(--error)',
                         background: 'none',
                         border: 'none',
@@ -1859,7 +1859,7 @@ function Products() {
                         border: selectedCategoryFilters.includes(category) ? '1px solid var(--accent)' : '1px solid transparent',
                         borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--text-base)',
                         fontWeight: 500,
                         transition: 'all 0.2s',
                       }}
@@ -1878,7 +1878,7 @@ function Products() {
                       />
                       <span style={{ flex: 1, color: 'var(--text-primary)' }}>{category}</span>
                       <span style={{
-                        fontSize: '0.7rem',
+                        fontSize: 'var(--text-xs)',
                         padding: '2px 8px',
                         background: 'white',
                         borderRadius: 'var(--radius-sm)',
@@ -1901,7 +1901,7 @@ function Products() {
                 borderRadius: 'var(--radius-md)',
                 border: '1px solid var(--error)',
               }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--error)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {selectedProducts.size} {t('products.selected')}
                 </div>
                 <button
@@ -1912,12 +1912,12 @@ function Products() {
                   style={{
                     width: '100%',
                     padding: '10px',
-                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)',
                     color: 'white',
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1942,7 +1942,7 @@ function Products() {
                     border: 'none',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     display: 'flex',
                     alignItems: 'center',
@@ -1963,7 +1963,7 @@ function Products() {
                     color: 'var(--error)',
                     border: 'none',
                     cursor: 'pointer',
-                    fontSize: '0.8rem',
+                    fontSize: 'var(--text-sm)',
                     fontWeight: 600,
                     marginTop: '8px',
                     textDecoration: 'underline',
@@ -2042,8 +2042,8 @@ function Products() {
         }}>
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-xl)',
             maxWidth: '900px',
             width: '90%',
             maxHeight: '90vh',
@@ -2051,47 +2051,47 @@ function Products() {
             flexDirection: 'column',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: '4px' }}>
                   Choose RFQ Export Theme
                 </h2>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', margin: 0 }}>
                   Generating RFQ for {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''}
                 </p>
               </div>
-              <button onClick={() => setShowRFQThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}>
-                <X size={24} color="#64748b" />
+              <button onClick={() => setShowRFQThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: 'var(--radius-md)' }}>
+                <X size={24} color="var(--text-secondary)" />
               </button>
             </div>
             <div style={{ display: 'flex', overflow: 'hidden', flex: 1 }}>
-              <div style={{ width: '280px', borderRight: '1px solid #e5e7eb', padding: '24px 16px', background: '#f8fafc', overflow: 'auto' }}>
+              <div style={{ width: '280px', borderInlineEnd: '1px solid var(--border)', padding: '24px 16px', background: 'var(--grey-25)', overflow: 'auto' }}>
                 {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
-                  <button key={key} onClick={() => setSelectedRFQTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedRFQTheme === key ? '#eff6ff' : 'white', border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedRFQTheme === key ? '#3b82f6' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {selectedRFQTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }} />}
+                  <button key={key} onClick={() => setSelectedRFQTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedRFQTheme === key ? 'var(--accent-light)' : 'white', border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedRFQTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {selectedRFQTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b', marginBottom: '4px' }}>{theme.name}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>{theme.description}</div>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '4px' }}>{theme.name}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '10px' }}>{theme.description}</div>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: '4px', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
+                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-xs)', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
-              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: '#64748b' }}>
+              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: 'var(--grey-25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                   <FileDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>Multi-Item RFQ Export</div>
-                  <div style={{ fontSize: '0.875rem', marginTop: '8px' }}>Excel file will include {selectedProducts.size} buying intent{selectedProducts.size > 1 ? 's' : ''}</div>
+                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>Multi-Item RFQ Export</div>
+                  <div style={{ fontSize: 'var(--text-base)', marginTop: '8px' }}>Excel file will include {selectedProducts.size} buying intent{selectedProducts.size > 1 ? 's' : ''}</div>
                 </div>
               </div>
             </div>
-            <div style={{ padding: '20px 32px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
-              <button onClick={() => setShowRFQThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '0.95rem', color: '#475569' }}>Cancel</button>
-              <button onClick={async () => { const selectedProductList = Array.from(selectedProducts).map(id => products.find(p => p.id === id)).filter(Boolean); await generateRFQExcel(selectedProductList, selectedRFQTheme); setShowRFQThemeSelector(false); }} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'white', boxShadow: '0 4px 12px rgba(59, 130, 246, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ padding: '20px 32px', borderTop: '1px solid var(--border)', background: 'var(--grey-25)', display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setShowRFQThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid var(--border-strong)', background: 'white', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 500, fontSize: 'var(--text-md)', color: 'var(--text-secondary)' }}>Cancel</button>
+              <button onClick={async () => { const selectedProductList = Array.from(selectedProducts).map(id => products.find(p => p.id === id)).filter(Boolean); await generateRFQExcel(selectedProductList, selectedRFQTheme); setShowRFQThemeSelector(false); }} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, var(--accent) 0%, var(--accent) 100%)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 600, fontSize: 'var(--text-md)', color: 'white', boxShadow: 'var(--shadow-md)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileDown size={18} />Export with {EXPORT_THEMES[selectedRFQTheme].name}
               </button>
             </div>
@@ -2116,8 +2116,8 @@ function Products() {
         }}>
           <div style={{
             background: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            borderRadius: 'var(--radius-xl)',
+            boxShadow: 'var(--shadow-xl)',
             maxWidth: '900px',
             width: '90%',
             maxHeight: '90vh',
@@ -2125,52 +2125,52 @@ function Products() {
             flexDirection: 'column',
             overflow: 'hidden',
           }}>
-            <div style={{ padding: '24px 32px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '24px 32px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: '4px' }}>
                   Choose Excel Export Theme
                 </h2>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', margin: 0 }}>
                   Exporting {selectedProducts.size} Buying Intent{selectedProducts.size > 1 ? 's' : ''}
                 </p>
               </div>
-              <button onClick={() => setShowExcelThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: '8px' }}>
-                <X size={24} color="#64748b" />
+              <button onClick={() => setShowExcelThemeSelector(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '8px', borderRadius: 'var(--radius-md)' }}>
+                <X size={24} color="var(--text-secondary)" />
               </button>
             </div>
             <div style={{ display: 'flex', overflow: 'hidden', flex: 1 }}>
-              <div style={{ width: '280px', borderRight: '1px solid #e5e7eb', padding: '24px 16px', background: '#f8fafc', overflow: 'auto' }}>
+              <div style={{ width: '280px', borderInlineEnd: '1px solid var(--border)', padding: '24px 16px', background: 'var(--grey-25)', overflow: 'auto' }}>
                 {Object.entries(EXPORT_THEMES).map(([key, theme]) => (
-                  <button key={key} onClick={() => setSelectedExcelTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedExcelTheme === key ? '#eff6ff' : 'white', border: `2px solid ${selectedExcelTheme === key ? '#3b82f6' : '#e5e7eb'}`, borderRadius: '10px', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedExcelTheme === key ? '#3b82f6' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {selectedExcelTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6' }} />}
+                  <button key={key} onClick={() => setSelectedExcelTheme(key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: '12px', padding: '16px', marginBottom: '8px', background: selectedExcelTheme === key ? 'var(--accent-light)' : 'white', border: `2px solid ${selectedExcelTheme === key ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
+                    <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${selectedExcelTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {selectedExcelTheme === key && <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--accent)' }} />}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: '0.95rem', color: '#1e293b', marginBottom: '4px' }}>{theme.name}</div>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '10px' }}>{theme.description}</div>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--text-md)', color: 'var(--text-primary)', marginBottom: '4px' }}>{theme.name}</div>
+                      <div style={{ fontSize: 'var(--text-sm)', color: 'var(--text-secondary)', marginBottom: '10px' }}>{theme.description}</div>
                       <div style={{ display: 'flex', gap: '4px' }}>
-                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: '4px', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
+                        {theme.preview.map((color, i) => <div key={i} style={{ width: '24px', height: '24px', borderRadius: 'var(--radius-xs)', background: color, border: '1px solid rgba(0,0,0,0.1)' }} />)}
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
-              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <div style={{ textAlign: 'center', color: '#64748b' }}>
+              <div style={{ flex: 1, padding: '32px', overflow: 'auto', background: 'var(--grey-25)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>
                   <FileDown size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
-                  <div style={{ fontSize: '1rem', fontWeight: 600 }}>Buying Intents Export</div>
-                  <div style={{ fontSize: '0.875rem', marginTop: '8px' }}>
+                  <div style={{ fontSize: 'var(--text-md)', fontWeight: 600 }}>Buying Intents Export</div>
+                  <div style={{ fontSize: 'var(--text-base)', marginTop: '8px' }}>
                     Excel file with images, specifications, and categories
                   </div>
-                  <div style={{ fontSize: '0.875rem', marginTop: '4px', opacity: 0.7 }}>
+                  <div style={{ fontSize: 'var(--text-base)', marginTop: '4px', opacity: 0.7 }}>
                     {selectedProducts.size} item{selectedProducts.size > 1 ? 's' : ''} selected
                   </div>
                 </div>
               </div>
             </div>
-            <div style={{ padding: '20px 32px', borderTop: '1px solid #e5e7eb', background: '#f8fafc', display: 'flex', justifyContent: 'space-between' }}>
-              <button onClick={() => setShowExcelThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid #cbd5e1', background: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 500, fontSize: '0.95rem', color: '#475569' }}>Cancel</button>
-              <button onClick={handleConfirmExcelExport} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)', borderRadius: '8px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95rem', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ padding: '20px 32px', borderTop: '1px solid var(--border)', background: 'var(--grey-25)', display: 'flex', justifyContent: 'space-between' }}>
+              <button onClick={() => setShowExcelThemeSelector(false)} style={{ padding: '10px 20px', border: '1px solid var(--border-strong)', background: 'white', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 500, fontSize: 'var(--text-md)', color: 'var(--text-secondary)' }}>Cancel</button>
+              <button onClick={handleConfirmExcelExport} style={{ padding: '10px 24px', border: 'none', background: 'linear-gradient(135deg, var(--success) 0%, var(--success) 100%)', borderRadius: 'var(--radius-md)', cursor: 'pointer', fontWeight: 600, fontSize: 'var(--text-md)', color: 'white', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileDown size={18} />Export with {EXPORT_THEMES[selectedExcelTheme].name}
               </button>
             </div>

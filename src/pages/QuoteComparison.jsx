@@ -228,14 +228,14 @@ function QuoteComparison() {
 
     const style = doc.createElement('style');
     style.textContent = `
-      body { font-family: Arial, Helvetica, sans-serif; padding: 40px; color: #1e293b; }
+      body { font-family: Arial, Helvetica, sans-serif; padding: 40px; color: var(--text-primary); }
       h1 { margin: 0 0 4px; font-size: 20px; }
-      .meta { color: #64748b; font-size: 13px; margin-bottom: 24px; }
+      .meta { color: var(--text-secondary); font-size: 13px; margin-bottom: 24px; }
       table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-      th, td { border: 1px solid #cbd5e1; padding: 10px; text-align: left; font-size: 13px; }
-      th { background: #f1f5f9; }
-      tr.chosen td { background: #ecfdf5; font-weight: 600; }
-      .note { margin-top: 24px; font-size: 12px; color: #64748b; }
+      th, td { border: 1px solid var(--border-strong); padding: 10px; text-align: left; font-size: 13px; }
+      th { background: var(--grey-100); }
+      tr.chosen td { background: var(--success-light); font-weight: 600; }
+      .note { margin-top: 24px; font-size: 12px; color: var(--text-secondary); }
     `;
     doc.head.appendChild(style);
 
@@ -668,7 +668,7 @@ Write ONLY the message.`);
           </button>
           <div>
             <h2>{t('comparison.title')}</h2>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '2px' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)', marginTop: '2px' }}>
               {t('comparison.subtitle')}
             </p>
           </div>
@@ -687,7 +687,7 @@ Write ONLY the message.`);
             gap: '16px',
           }}>
             <div className="spinner" style={{ width: '40px', height: '40px' }} />
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>{t('comparison.loading')}</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 'var(--text-md)' }}>{t('comparison.loading')}</p>
           </div>
         ) : (
           <>
@@ -699,34 +699,34 @@ Write ONLY the message.`);
             gap: '20px',
             marginBottom: '28px',
           }}>
-            <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-                <FileText size={22} color="#6366F1" />
+                <FileText size={22} color="var(--accent)" />
               </div>
               <div className="stat-content">
                 <div className="stat-label">{t('comparison.totalQuotes')}</div>
                 <div className="stat-value">{quotesWithLanded.length}</div>
               </div>
             </div>
-            <div className="stat-card" style={{ '--stat-color': '#10b981', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
+            <div className="stat-card" style={{ '--stat-color': 'var(--success)', '--stat-bg': 'rgba(16, 185, 129, 0.1)' }}>
               <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.1)' }}>
-                <TrendingDown size={22} color="#10b981" />
+                <TrendingDown size={22} color="var(--success)" />
               </div>
               <div className="stat-content">
                 <div className="stat-label">{t('comparison.bestPrice')}</div>
-                <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+                <div className="stat-value" style={{ fontSize: 'var(--text-2xl)' }}>
                   {formatCurrency(bestQuote.unit_price, bestQuote.currency)}
                 </div>
               </div>
             </div>
             {otherQuotes.length > 0 && (
-              <div className="stat-card" style={{ '--stat-color': '#f59e0b', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
+              <div className="stat-card" style={{ '--stat-color': 'var(--warning)', '--stat-bg': 'rgba(245, 158, 11, 0.1)' }}>
                 <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.1)' }}>
-                  <Calculator size={22} color="#f59e0b" />
+                  <Calculator size={22} color="var(--warning)" />
                 </div>
                 <div className="stat-content">
                   <div className="stat-label">{t('comparison.potentialSavings')}</div>
-                  <div className="stat-value" style={{ fontSize: '1.5rem' }}>
+                  <div className="stat-value" style={{ fontSize: 'var(--text-2xl)' }}>
                     {otherQuotes[0].comparablePrice !== null && bestQuote.comparablePrice !== null
                       ? formatCurrency(otherQuotes[0].comparablePrice - bestQuote.comparablePrice, baseCurrency)
                       : '—'}
@@ -750,7 +750,7 @@ Write ONLY the message.`);
             border: 'none',
             borderRadius: 'var(--radius-md)',
             cursor: 'pointer',
-            fontSize: '0.875rem',
+            fontSize: 'var(--text-base)',
             fontWeight: 600,
             alignItems: 'center',
             gap: '8px',
@@ -773,7 +773,7 @@ Write ONLY the message.`);
             top: '24px'
           }}>
             <h3 style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
@@ -792,8 +792,8 @@ Write ONLY the message.`);
             />
 
             {!selectedProductId && (
-              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                <AlertCircle size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
+              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>
+                <AlertCircle size={14} style={{ color: 'var(--accent)', marginInlineEnd: '6px' }} />
                 {t('comparison.selectToCompare')}
               </div>
             )}
@@ -801,7 +801,7 @@ Write ONLY the message.`);
             {/* Recently Used */}
             {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
               <div style={{ marginTop: '24px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {t('comparison.recentlyUsed')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -819,9 +819,9 @@ Write ONLY the message.`);
                         alignItems: 'center',
                         gap: '8px',
                         transition: 'all 0.2s',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--text-base)',
                         fontWeight: 500,
-                        textAlign: 'left'
+                        textAlign: 'start'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'var(--accent-light)';
@@ -839,7 +839,7 @@ Write ONLY the message.`);
                         background: 'var(--success-light)',
                         color: 'var(--success)',
                         borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--text-xs)',
                         fontWeight: 600,
                         flexShrink: 0
                       }}>
@@ -912,7 +912,7 @@ Write ONLY the message.`);
                       marginBottom: '24px',
                       borderColor: isSupplierSelected ? 'var(--success)' : undefined,
                       background: isSupplierSelected
-                        ? '#f0fdf4'
+                        ? 'var(--success-light)'
                         : undefined,
                     }}
                   >
@@ -946,10 +946,10 @@ Write ONLY the message.`);
                     ) : (
                       <>
                         <div className="best-quote-header">
-                          <Trophy size={24} color="#f59e0b" />
+                          <Trophy size={24} color="var(--warning)" />
                           <div style={{ flex: 1 }}>
                             <h3 style={{ margin: 0 }}>{t('comparison.best')}: {bestQuote.supplierName}</h3>
-                            <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                            <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>
                               {t('comparison.lowestPrice')} ({bestQuote.incoterm})
                             </p>
                           </div>
@@ -994,19 +994,19 @@ Write ONLY the message.`);
                   <div style={{
                     marginBottom: '20px',
                     padding: '16px 20px',
-                    background: 'linear-gradient(135deg, #fefce8 0%, #fef3c7 100%)',
-                    border: '2px solid #fbbf24',
-                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, var(--warning-light) 0%, var(--warning-light) 100%)',
+                    border: '2px solid var(--warning)',
+                    borderRadius: 'var(--radius-lg)',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '16px',
                   }}>
-                    <AlertCircle size={24} style={{ color: '#92400e', flexShrink: 0 }} />
+                    <AlertCircle size={24} style={{ color: 'var(--warning)', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontWeight: 700, color: '#92400e', marginBottom: '4px' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--warning)', marginBottom: '4px' }}>
                         This Buying Intent was auto-created
                       </div>
-                      <div style={{ fontSize: '0.875rem', color: '#78350f' }}>
+                      <div style={{ fontSize: 'var(--text-base)', color: 'var(--warning)' }}>
                         Give it a meaningful name to finalize and organize your quotes better
                       </div>
                     </div>
@@ -1024,24 +1024,24 @@ Write ONLY the message.`);
                       }}
                       style={{
                         padding: '10px 20px',
-                        background: '#f59e0b',
+                        background: 'var(--warning)',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '8px',
+                        borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
                         fontWeight: 600,
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--text-base)',
                         whiteSpace: 'nowrap',
                         boxShadow: '0 2px 8px rgba(245, 158, 11, 0.3)',
                         transition: 'all 0.2s',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.background = '#d97706';
+                        e.currentTarget.style.background = 'var(--warning)';
                         e.currentTarget.style.transform = 'translateY(-1px)';
                         e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.4)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.background = '#f59e0b';
+                        e.currentTarget.style.background = 'var(--warning)';
                         e.currentTarget.style.transform = 'translateY(0)';
                         e.currentTarget.style.boxShadow = '0 2px 8px rgba(245, 158, 11, 0.3)';
                       }}
@@ -1061,10 +1061,10 @@ Write ONLY the message.`);
                       {selectedProduct?.status === 'draft' && (
                         <span style={{
                           padding: '3px 10px',
-                          background: '#fef3c7',
-                          color: '#92400e',
-                          borderRadius: '4px',
-                          fontSize: '0.7rem',
+                          background: 'var(--warning-light)',
+                          color: 'var(--warning)',
+                          borderRadius: 'var(--radius-xs)',
+                          fontSize: 'var(--text-xs)',
                           fontWeight: 600,
                           textTransform: 'uppercase',
                           letterSpacing: '0.3px',
@@ -1081,7 +1081,7 @@ Write ONLY the message.`);
                         alignItems: 'center',
                         gap: '6px',
                         padding: '6px 12px',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--text-base)',
                       }}
                       title="Export comparison to Excel"
                     >
@@ -1131,7 +1131,7 @@ Write ONLY the message.`);
                               <td style={{ fontWeight: 500 }}>
                                 {quote.supplierName}
                                 {isSelected && <span className="selected-label">Selected</span>}
-                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)' }}>
                                   {quote.incoterm}
                                 </div>
                               </td>
@@ -1145,7 +1145,7 @@ Write ONLY the message.`);
                                 {quote.isConverted && (
                                   <span style={{
                                     display: 'block',
-                                    fontSize: '0.7rem',
+                                    fontSize: 'var(--text-xs)',
                                     color: 'var(--text-muted)',
                                   }}>
                                     ≈ {formatCurrency(quote.comparablePrice, baseCurrency)}/unit
@@ -1154,8 +1154,8 @@ Write ONLY the message.`);
                                 {quote.comparablePrice === null && (
                                   <span style={{
                                     display: 'block',
-                                    fontSize: '0.7rem',
-                                    color: 'var(--warning, #b45309)',
+                                    fontSize: 'var(--text-xs)',
+                                    color: 'var(--warning, var(--warning))',
                                   }}>
                                     No {baseCurrency} rate — not ranked
                                   </span>
@@ -1163,7 +1163,7 @@ Write ONLY the message.`);
                                 {isBest && savingsVsNext > 0 && (
                                   <span style={{
                                     display: 'block',
-                                    fontSize: '0.7rem',
+                                    fontSize: 'var(--text-xs)',
                                     color: 'var(--success)',
                                   }}>
                                     Saves {formatCurrency(savingsVsNext, baseCurrency)}/unit
@@ -1222,7 +1222,7 @@ Write ONLY the message.`);
                               return <h4 key={i} style={{ marginTop: i > 0 ? '16px' : 0 }}>{line.replace(/\*\*/g, '')}</h4>;
                             }
                             if (line.startsWith('• ')) {
-                              return <li key={i} style={{ marginLeft: '20px' }}>{line.substring(2)}</li>;
+                              return <li key={i} style={{ marginInlineStart: '20px' }}>{line.substring(2)}</li>;
                             }
                             if (line.startsWith('---')) {
                               return <hr key={i} style={{ margin: '16px 0', border: 'none', borderTop: '1px solid var(--border)' }} />;
@@ -1267,9 +1267,9 @@ Write ONLY the message.`);
           <div style={{
             padding: '80px 20px',
             textAlign: 'center',
-            background: '#f9fafb',
-            borderRadius: '16px',
-            border: '2px dashed #cbd5e1',
+            background: 'var(--grey-50)',
+            borderRadius: 'var(--radius-xl)',
+            border: '2px dashed var(--border-strong)',
           }}>
             <div style={{
               display: 'inline-flex',
@@ -1279,12 +1279,12 @@ Write ONLY the message.`);
               marginBottom: '20px',
               boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
             }}>
-              <TrendingDown size={48} style={{ color: '#94a3b8' }} />
+              <TrendingDown size={48} style={{ color: 'var(--text-subtle)' }} />
             </div>
-            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#1e293b', marginBottom: '8px' }}>
+            <h3 style={{ fontSize: 'var(--text-xl)', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>
               Select a Buying Intent to Compare
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.95rem', maxWidth: '400px', margin: '0 auto' }}>
+            <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', maxWidth: '400px', margin: '0 auto' }}>
               Choose a buying intent above to view and compare supplier quotes side-by-side.
             </p>
           </div>
@@ -1310,11 +1310,11 @@ Write ONLY the message.`);
         >
           <div style={{
             background: 'white',
-            borderRadius: '16px',
+            borderRadius: 'var(--radius-xl)',
             maxWidth: '1200px',
             width: '95%',
             height: '85vh',
-            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+            boxShadow: 'var(--shadow-xl)',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
@@ -1324,16 +1324,16 @@ Write ONLY the message.`);
             {/* Header */}
             <div style={{
               padding: '24px 32px',
-              borderBottom: '1px solid #e5e7eb',
+              borderBottom: '1px solid var(--border)',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}>
               <div>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e293b', margin: 0, marginBottom: '4px' }}>
+                <h2 style={{ fontSize: 'var(--text-2xl)', fontWeight: 700, color: 'var(--text-primary)', margin: 0, marginBottom: '4px' }}>
                   Choose Export Theme
                 </h2>
-                <p style={{ color: '#64748b', fontSize: '0.9rem', margin: 0 }}>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 'var(--text-md)', margin: 0 }}>
                   Select a theme and preview before exporting
                 </p>
               </div>
@@ -1344,16 +1344,16 @@ Write ONLY the message.`);
                   border: 'none',
                   cursor: 'pointer',
                   padding: '8px',
-                  borderRadius: '8px',
+                  borderRadius: 'var(--radius-md)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   transition: 'background 0.2s',
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = '#f3f4f6'}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--grey-100)'}
                 onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
               >
-                <X size={24} style={{ color: '#64748b' }} />
+                <X size={24} style={{ color: 'var(--text-secondary)' }} />
               </button>
             </div>
 
@@ -1362,20 +1362,20 @@ Write ONLY the message.`);
               {/* Left Sidebar - Theme List */}
               <div style={{
                 width: '320px',
-                borderRight: '1px solid #e5e7eb',
+                borderInlineEnd: '1px solid var(--border)',
                 display: 'flex',
                 flexDirection: 'column',
               }}>
                 <div style={{
                   padding: '20px',
-                  borderBottom: '1px solid #e5e7eb',
+                  borderBottom: '1px solid var(--border)',
                 }}>
                   <h3 style={{
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    color: '#64748b',
+                    color: 'var(--text-secondary)',
                     margin: 0,
                   }}>
                     Available Themes
@@ -1395,22 +1395,22 @@ Write ONLY the message.`);
                         width: '100%',
                         padding: '16px',
                         marginBottom: '8px',
-                        background: selectedTheme === key ? '#eff6ff' : 'white',
-                        border: `2px solid ${selectedTheme === key ? '#3b82f6' : '#e5e7eb'}`,
-                        borderRadius: '10px',
+                        background: selectedTheme === key ? 'var(--accent-light)' : 'white',
+                        border: `2px solid ${selectedTheme === key ? 'var(--accent)' : 'var(--border)'}`,
+                        borderRadius: 'var(--radius-md)',
                         cursor: 'pointer',
-                        textAlign: 'left',
+                        textAlign: 'start',
                         transition: 'all 0.2s',
                       }}
                       onMouseEnter={(e) => {
                         if (selectedTheme !== key) {
-                          e.currentTarget.style.borderColor = '#cbd5e1';
-                          e.currentTarget.style.background = '#f9fafb';
+                          e.currentTarget.style.borderColor = 'var(--border-strong)';
+                          e.currentTarget.style.background = 'var(--grey-50)';
                         }
                       }}
                       onMouseLeave={(e) => {
                         if (selectedTheme !== key) {
-                          e.currentTarget.style.borderColor = '#e5e7eb';
+                          e.currentTarget.style.borderColor = 'var(--border)';
                           e.currentTarget.style.background = 'white';
                         }
                       }}
@@ -1425,7 +1425,7 @@ Write ONLY the message.`);
                           width: '20px',
                           height: '20px',
                           borderRadius: '50%',
-                          border: `2px solid ${selectedTheme === key ? '#3b82f6' : '#d1d5db'}`,
+                          border: `2px solid ${selectedTheme === key ? 'var(--accent)' : 'var(--border-strong)'}`,
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -1436,22 +1436,22 @@ Write ONLY the message.`);
                               width: '10px',
                               height: '10px',
                               borderRadius: '50%',
-                              background: '#3b82f6',
+                              background: 'var(--accent)',
                             }} />
                           )}
                         </div>
                         <h4 style={{
-                          fontSize: '0.95rem',
+                          fontSize: 'var(--text-md)',
                           fontWeight: 600,
-                          color: '#1e293b',
+                          color: 'var(--text-primary)',
                           margin: 0,
                         }}>
                           {theme.name}
                         </h4>
                       </div>
                       <p style={{
-                        color: '#64748b',
-                        fontSize: '0.8rem',
+                        color: 'var(--text-secondary)',
+                        fontSize: 'var(--text-sm)',
                         margin: '0 0 12px 28px',
                       }}>
                         {theme.description}
@@ -1459,7 +1459,7 @@ Write ONLY the message.`);
                       <div style={{
                         display: 'flex',
                         gap: '6px',
-                        marginLeft: '28px',
+                        marginInlineStart: '28px',
                       }}>
                         {theme.preview.map((color, index) => (
                           <div
@@ -1467,7 +1467,7 @@ Write ONLY the message.`);
                             style={{
                               width: '20px',
                               height: '20px',
-                              borderRadius: '4px',
+                              borderRadius: 'var(--radius-xs)',
                               background: color,
                               border: '1px solid rgba(0,0,0,0.1)',
                             }}
@@ -1484,19 +1484,19 @@ Write ONLY the message.`);
                 flex: 1,
                 display: 'flex',
                 flexDirection: 'column',
-                background: '#f9fafb',
+                background: 'var(--grey-50)',
               }}>
                 <div style={{
                   padding: '20px 32px',
                   background: 'white',
-                  borderBottom: '1px solid #e5e7eb',
+                  borderBottom: '1px solid var(--border)',
                 }}>
                   <h3 style={{
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--text-base)',
                     fontWeight: 600,
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
-                    color: '#64748b',
+                    color: 'var(--text-secondary)',
                     margin: 0,
                   }}>
                     Preview
@@ -1529,7 +1529,7 @@ Write ONLY the message.`);
                           padding: '20px',
                           fontWeight: 'bold',
                           textAlign: 'center',
-                          fontSize: '1.2rem',
+                          fontSize: 'var(--text-xl)',
                           borderBottom: '2px solid #000',
                         }}>
                           QUOTE COMPARISON
@@ -1544,10 +1544,10 @@ Write ONLY the message.`);
                             color: `#${theme.colors.imagePlaceholder.text.substring(2)}`,
                             padding: '30px 10px',
                             textAlign: 'center',
-                            fontSize: '0.75rem',
+                            fontSize: 'var(--text-xs)',
                             fontWeight: 'bold',
                             border: `2px solid #${theme.colors.imagePlaceholder.border.substring(2)}`,
-                            borderLeft: 'none',
+                            borderInlineStart: 'none',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -1561,39 +1561,39 @@ Write ONLY the message.`);
                               background: `#${theme.colors.productName.bg.substring(2)}`,
                               color: `#${theme.colors.productName.text.substring(2)}`,
                               padding: '10px 12px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               fontWeight: 'bold',
-                              borderBottom: '1px solid #d0d0d0',
-                              borderRight: '2px solid #000',
+                              borderBottom: '1px solid var(--border)',
+                              borderInlineEnd: '2px solid #000',
                             }}>Product: {selectedProduct?.name || 'Adhesive Tape'}</div>
 
                             <div style={{
                               background: `#${theme.colors.category.bg.substring(2)}`,
                               color: `#${theme.colors.category.text.substring(2)}`,
                               padding: '10px 12px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               fontWeight: 'bold',
-                              borderBottom: '1px solid #d0d0d0',
-                              borderRight: '2px solid #000',
+                              borderBottom: '1px solid var(--border)',
+                              borderInlineEnd: '2px solid #000',
                             }}>Category: {selectedProduct?.category || 'Other'}</div>
 
                             <div style={{
                               background: `#${theme.colors.date.bg.substring(2)}`,
                               color: `#${theme.colors.date.text.substring(2)}`,
                               padding: '10px 12px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               fontWeight: 'bold',
-                              borderBottom: '1px solid #d0d0d0',
-                              borderRight: '2px solid #000',
+                              borderBottom: '1px solid var(--border)',
+                              borderInlineEnd: '2px solid #000',
                             }}>Generated: {new Date().toLocaleDateString()}</div>
 
                             <div style={{
                               background: `#${theme.colors.totalQuotes.bg.substring(2)}`,
                               color: `#${theme.colors.totalQuotes.text.substring(2)}`,
                               padding: '10px 12px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               fontWeight: 'bold',
-                              borderRight: '2px solid #000',
+                              borderInlineEnd: '2px solid #000',
                               borderBottom: '2px solid #000',
                             }}>Total Quotes: {quotesWithLanded.length || 5}</div>
                           </div>
@@ -1608,10 +1608,10 @@ Write ONLY the message.`);
                             background: `#${theme.colors.header.bg.substring(2)}`,
                             color: `#${theme.colors.header.text.substring(2)}`,
                           }}>
-                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #666', borderBottom: '2px solid #000' }}>Rank</div>
-                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #666', borderBottom: '2px solid #000' }}>Supplier</div>
-                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #666', borderBottom: '2px solid #000' }}>Price</div>
-                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: '0.85rem', textAlign: 'center', borderRight: '2px solid #000', borderBottom: '2px solid #000' }}>Status</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '1px solid #666', borderBottom: '2px solid #000' }}>Rank</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '1px solid #666', borderBottom: '2px solid #000' }}>Supplier</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '1px solid #666', borderBottom: '2px solid #000' }}>Price</div>
+                            <div style={{ padding: '12px 8px', fontWeight: 'bold', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '2px solid #000', borderBottom: '2px solid #000' }}>Status</div>
                           </div>
 
                           {/* Best Price Row */}
@@ -1623,28 +1623,28 @@ Write ONLY the message.`);
                           }}>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '1px solid #999',
+                              borderInlineEnd: '1px solid #999',
                               borderBottom: '1px solid #999',
                               background: `#${theme.colors.rankColumn.bg.substring(2)}`,
                               fontWeight: 'bold',
                             }}>1</div>
-                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #999', borderBottom: '1px solid #999' }}>A Sarah</div>
+                            <div style={{ padding: '10px 8px', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '1px solid #999', borderBottom: '1px solid #999' }}>A Sarah</div>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '1px solid #999',
+                              borderInlineEnd: '1px solid #999',
                               borderBottom: '1px solid #999',
                               background: `#${theme.colors.priceColumn.bg.substring(2)}`,
                               fontWeight: 'bold',
                             }}>$0.32</div>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '2px solid #000',
+                              borderInlineEnd: '2px solid #000',
                               borderBottom: '1px solid #999',
                               fontWeight: 'bold',
                               color: `#${theme.colors.bestPrice.status.substring(2)}`,
@@ -1659,24 +1659,24 @@ Write ONLY the message.`);
                           }}>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '1px solid #ccc',
+                              borderInlineEnd: '1px solid #ccc',
                               borderBottom: '1px solid #ccc',
                               background: `#${theme.colors.rankColumn.bg.substring(2)}`,
                               fontWeight: 'bold',
                             }}>2</div>
-                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>Jasion</div>
+                            <div style={{ padding: '10px 8px', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '1px solid #ccc', borderBottom: '1px solid #ccc' }}>Jasion</div>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '1px solid #ccc',
+                              borderInlineEnd: '1px solid #ccc',
                               borderBottom: '1px solid #ccc',
                               background: `#${theme.colors.priceColumn.bg.substring(2)}`,
                               fontWeight: 'bold',
                             }}>$0.33</div>
-                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '2px solid #000', borderBottom: '1px solid #ccc' }}>-</div>
+                            <div style={{ padding: '10px 8px', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '2px solid #000', borderBottom: '1px solid #ccc' }}>-</div>
                           </div>
 
                           {/* Regular Row 2 */}
@@ -1687,24 +1687,24 @@ Write ONLY the message.`);
                           }}>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '1px solid #ccc',
+                              borderInlineEnd: '1px solid #ccc',
                               borderBottom: '2px solid #000',
                               background: `#${theme.colors.rankColumn.bg.substring(2)}`,
                               fontWeight: 'bold',
                             }}>3</div>
-                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '1px solid #ccc', borderBottom: '2px solid #000' }}>Melo</div>
+                            <div style={{ padding: '10px 8px', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '1px solid #ccc', borderBottom: '2px solid #000' }}>Melo</div>
                             <div style={{
                               padding: '10px 8px',
-                              fontSize: '0.85rem',
+                              fontSize: 'var(--text-sm)',
                               textAlign: 'center',
-                              borderRight: '1px solid #ccc',
+                              borderInlineEnd: '1px solid #ccc',
                               borderBottom: '2px solid #000',
                               background: `#${theme.colors.priceColumn.bg.substring(2)}`,
                               fontWeight: 'bold',
                             }}>$0.34</div>
-                            <div style={{ padding: '10px 8px', fontSize: '0.85rem', textAlign: 'center', borderRight: '2px solid #000', borderBottom: '2px solid #000' }}>-</div>
+                            <div style={{ padding: '10px 8px', fontSize: 'var(--text-sm)', textAlign: 'center', borderInlineEnd: '2px solid #000', borderBottom: '2px solid #000' }}>-</div>
                           </div>
                         </div>
                       </div>
@@ -1716,7 +1716,7 @@ Write ONLY the message.`);
                 <div style={{
                   padding: '20px 32px',
                   background: 'white',
-                  borderTop: '1px solid #e5e7eb',
+                  borderTop: '1px solid var(--border)',
                   display: 'flex',
                   justifyContent: 'flex-end',
                   gap: '12px',
@@ -1726,7 +1726,7 @@ Write ONLY the message.`);
                     className="btn btn-secondary"
                     style={{
                       padding: '10px 20px',
-                      fontSize: '0.9rem',
+                      fontSize: 'var(--text-md)',
                     }}
                   >
                     Cancel
@@ -1739,7 +1739,7 @@ Write ONLY the message.`);
                     className="btn btn-primary"
                     style={{
                       padding: '10px 24px',
-                      fontSize: '0.9rem',
+                      fontSize: 'var(--text-md)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
@@ -1780,10 +1780,10 @@ Write ONLY the message.`);
             zIndex: 1000,
             overflowY: 'auto',
             padding: '24px',
-            boxShadow: '-4px 0 12px rgba(0,0,0,0.15)',
+            boxShadow: 'var(--shadow-lg)',
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>Select Buying Intent</h3>
+              <h3 style={{ margin: 0, fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--text-primary)' }}>Select Buying Intent</h3>
               <button
                 onClick={() => setIsMobileSelectorOpen(false)}
                 style={{
@@ -1813,8 +1813,8 @@ Write ONLY the message.`);
             />
 
             {!selectedProductId && (
-              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                <AlertCircle size={14} style={{ color: 'var(--accent)', marginRight: '6px' }} />
+              <div style={{ marginTop: '16px', padding: '12px', background: 'var(--accent-light)', border: '1px solid var(--accent)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-base)', color: 'var(--text-secondary)' }}>
+                <AlertCircle size={14} style={{ color: 'var(--accent)', marginInlineEnd: '6px' }} />
                 {t('comparison.selectToCompare')}
               </div>
             )}
@@ -1822,7 +1822,7 @@ Write ONLY the message.`);
             {/* Recently Used */}
             {!loadingCounts && products.filter(p => (quoteCounts[p.id] || 0) > 0 && p.id !== selectedProductId).slice(0, 3).length > 0 && (
               <div style={{ marginTop: '24px' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                   {t('comparison.recentlyUsed')}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1843,9 +1843,9 @@ Write ONLY the message.`);
                         alignItems: 'center',
                         gap: '8px',
                         transition: 'all 0.2s',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--text-base)',
                         fontWeight: 500,
-                        textAlign: 'left'
+                        textAlign: 'start'
                       }}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.background = 'var(--accent-light)';
@@ -1863,7 +1863,7 @@ Write ONLY the message.`);
                         background: 'var(--success-light)',
                         color: 'var(--success)',
                         borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--text-xs)',
                         fontWeight: 600,
                         flexShrink: 0
                       }}>

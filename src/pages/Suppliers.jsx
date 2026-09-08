@@ -7,10 +7,10 @@ import { SearchInput } from '../components';
 import { filterBySearch } from '../utils/helpers';
 
 const STATUS_OPTIONS = [
-  { value: 'verified', label: 'Verified', color: '#10b981' },
-  { value: 'pending', label: 'Pending', color: '#f59e0b' },
-  { value: 'warning', label: 'Warning', color: '#ef4444' },
-  { value: 'blocked', label: 'Blocked', color: '#6b7280' }
+  { value: 'verified', label: 'Verified', color: 'var(--success)' },
+  { value: 'pending', label: 'Pending', color: 'var(--warning)' },
+  { value: 'warning', label: 'Warning', color: 'var(--error)' },
+  { value: 'blocked', label: 'Blocked', color: 'var(--text-muted)' }
 ];
 
 function Suppliers() {
@@ -76,9 +76,9 @@ function Suppliers() {
           gap: '20px',
           marginBottom: '28px',
         }}>
-          <div className="stat-card" style={{ '--stat-color': '#6366F1', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
+          <div className="stat-card" style={{ '--stat-color': 'var(--accent)', '--stat-bg': 'rgba(99, 102, 241, 0.1)' }}>
             <div className="stat-icon-wrapper" style={{ background: 'rgba(99, 102, 241, 0.1)' }}>
-              <Users size={22} color="#6366F1" />
+              <Users size={22} color="var(--accent)" />
             </div>
             <div className="stat-content">
               <div className="stat-label">{t('suppliers.totalSuppliers')}</div>
@@ -111,7 +111,7 @@ function Suppliers() {
             top: '24px'
           }}>
             <h3 style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--text-base)',
               fontWeight: 700,
               textTransform: 'uppercase',
               letterSpacing: '0.5px',
@@ -123,14 +123,14 @@ function Suppliers() {
 
             {/* Status Filter */}
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
+              <label style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '10px', display: 'block' }}>
                 Status
               </label>
               <select
                 className="form-input"
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
-                style={{ fontSize: '0.875rem' }}
+                style={{ fontSize: 'var(--text-base)' }}
               >
                 <option value="all">All Suppliers</option>
                 {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
@@ -143,15 +143,15 @@ function Suppliers() {
               background: 'var(--bg-secondary)',
               borderRadius: 'var(--radius-md)',
             }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+              <div style={{ fontSize: 'var(--text-xs)', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '10px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                 Quick Stats
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-base)' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>{t('suppliers.totalSuppliers')}</span>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{suppliers.length}</span>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--text-base)' }}>
                   <span style={{ color: 'var(--text-secondary)' }}>Filtered</span>
                   <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{filteredSuppliers.length}</span>
                 </div>
@@ -183,10 +183,10 @@ function Suppliers() {
                 <div className="supplier-info">
                   {supplier.contact && <span>{supplier.contact}</span>}
                   {supplier.email && <span>{supplier.email}</span>}
-                  {supplier.wechat && <span><MessageCircle size={14} style={{ marginRight: '4px' }} />{supplier.wechat}</span>}
-                  {supplier.website && <span><Globe size={14} style={{ marginRight: '4px' }} />{supplier.website}</span>}
+                  {supplier.wechat && <span><MessageCircle size={14} style={{ marginInlineEnd: '4px' }} />{supplier.wechat}</span>}
+                  {supplier.website && <span><Globe size={14} style={{ marginInlineEnd: '4px' }} />{supplier.website}</span>}
                 </div>
-                <div style={{ marginTop: '12px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                <div style={{ marginTop: '12px', fontSize: 'var(--text-sm)', color: 'var(--text-muted)' }}>
                   {computed.getSupplierQuotes(supplier.id).length} quotes
                 </div>
               </div>
@@ -243,7 +243,7 @@ function Suppliers() {
               </div>
             </div>
             <div className="modal-footer">
-              {editingSupplier && <button className="btn btn-danger" onClick={() => { handleDelete(editingSupplier.id); handleCloseModal(); }} style={{ marginRight: 'auto' }}>Delete</button>}
+              {editingSupplier && <button className="btn btn-danger" onClick={() => { handleDelete(editingSupplier.id); handleCloseModal(); }} style={{ marginInlineEnd: 'auto' }}>Delete</button>}
               <button className="btn btn-secondary" onClick={handleCloseModal}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSave}><Check size={16} /> {editingSupplier ? 'Update' : 'Save'}</button>
             </div>
