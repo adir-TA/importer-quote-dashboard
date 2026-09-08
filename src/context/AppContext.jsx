@@ -638,9 +638,7 @@ export function AppProvider({ children }) {
       try {
         await persistSettings({ fees: pending });
         // Only clear if nothing newer arrived while we were writing
-        if (pendingFeesRef.current === pending) {
-          pendingFeesRef.current = null;
-            }
+        if (pendingFeesRef.current === pending) pendingFeesRef.current = null;
         setFeeSaveError(null);
       } catch (error) {
         console.error('Failed to save fees:', error);
@@ -652,7 +650,14 @@ export function AppProvider({ children }) {
     return feeSaveChain.current;
   }, [user]);
 
-  const commitFees = useCallback((nextFees) => {
+  /**
+   * @param {Array} nextFees
+   * @param {boolean} immediate - true for discrete actions (add, delete,
+   *   reset, changing a fee's type). Only free-text editing needs debouncing,
+   *   and those actions have no blur to flush on, so deferring them risked
+   *   losing the change if the tab closed within the debounce window.
+   */
+  const commitFees = useCallback((nextFees, immediate = false) => {
     setFees(nextFees);
 
     if (!user) return; // signed out mid-edit; keep it local
@@ -667,6 +672,12 @@ export function AppProvider({ children }) {
     pendingFeesRef.current = nextFees;
 
     if (feeSaveTimer.current) clearTimeout(feeSaveTimer.current);
+
+    if (immediate) {
+      flushFees();
+      return;
+    }
+
     feeSaveTimer.current = setTimeout(flushFees, 400);
   }, [flushFees, settingsLoadFailed, user]);
 
@@ -689,7 +700,7 @@ export function AppProvider({ children }) {
     };
   }, [flushFees]);
 
-  const updateFees = (newFees) => commitFees(newFees);
+  const updateFees = (newFees) => commitFees(newFees, true);
 
   const addFee = (fee) => {
     const newFee = {
@@ -698,16 +709,16 @@ export function AppProvider({ children }) {
       type: fee.type || 'fixed',
       value: fee.value || 0,
     };
-    commitFees([...fees, newFee]);
+    commitFees([...fees, newFee], true);
     return newFee;
   };
 
-  const updateFee = (feeId, updates) =>
-    commitFees(fees.map(f => (f.id === feeId ? { ...f, ...updates } : f)));
+  const updateFee = (feeId, updates, immediate = false) =>
+    commitFees(fees.map(f => (f.id === feeId ? { ...f, ...updates } : f)), immediate);
 
-  const deleteFee = (feeId) => commitFees(fees.filter(f => f.id !== feeId));
+  const deleteFee = (feeId) => commitFees(fees.filter(f => f.id !== feeId), true);
 
-  const resetFees = () => commitFees(DEFAULT_FEES);
+  const resetFees = () => commitFees(DEFAULT_FEES, true);
 
 
   // ============================================

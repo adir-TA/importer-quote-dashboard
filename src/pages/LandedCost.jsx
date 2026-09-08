@@ -663,7 +663,15 @@ function LandedCost() {
   };
 
   const handleFeeChange = (feeId, field, value) => {
-    actions.updateFee(feeId, { [field]: field === 'value' ? parseFloat(value) || 0 : value });
+    // Changing the fee type is a discrete choice with no blur to flush on, so
+    // it persists immediately; free-text name/value edits stay debounced and
+    // are flushed by handleFeeBlur.
+    const immediate = field === 'type';
+    actions.updateFee(
+      feeId,
+      { [field]: field === 'value' ? parseFloat(value) || 0 : value },
+      immediate
+    );
   };
 
   // The write is debounced in AppContext; blurring commits it immediately.
